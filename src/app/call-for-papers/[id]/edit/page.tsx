@@ -33,6 +33,7 @@ export default async function EditEventPage({
       location: true,
       description: true,
       deadline: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       publisher: true,
@@ -76,6 +77,7 @@ export default async function EditEventPage({
             ? new Date(event.deadline).toISOString().slice(0, 10)
             : "",
           notificationLink: event.notificationLink ?? "",
+          imageUrl: event.imageUrl ?? "",
           // Mirror academic positions: prefill the bare email so the user never
           // sees/edits `mailto:` text.
           applyLink: event.applyLink ? stripMailtoPrefix(event.applyLink) : "",

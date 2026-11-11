@@ -23,6 +23,7 @@ import { getRichTextLength } from "@/lib/html";
 import type { CallForPaperWithAuthor } from "@/types/cards";
 import { JournalPicker } from "./JournalPicker";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
 import {
   EVENT_TITLE_TIP,
   EVENT_PUBLISHER_TIP,
@@ -46,6 +47,7 @@ export type CallForPaperFormValues = {
   deadline: string;
   notificationLink: string;
   applyLink: string;
+  imageUrl: string;
 };
 
 export default function CallForPaperForm({
@@ -70,6 +72,7 @@ export default function CallForPaperForm({
     deadline: initialValues?.deadline ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
     applyLink: initialValues?.applyLink ?? "",
+    imageUrl: initialValues?.imageUrl ?? "",
   };
 
   const draftKey = mode === "edit" ? null : "draft_event_create";
@@ -238,6 +241,19 @@ export default function CallForPaperForm({
             value={draftFields.deadline}
             onChange={(e) => updateDraftField("deadline", e.target.value)}
           />
+        </div>
+
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Cover Image (Optional)
+            <InfoTooltip message="Main image shown on the call for papers list card and detail page header." />
+          </label>
+          <ContentImageUploadField
+            kind="cfp-cover"
+            value={draftFields.imageUrl}
+            onChange={(url) => updateDraftField("imageUrl", url)}
+          />
+          <input type="hidden" name="coverImageUrl" value={draftFields.imageUrl} />
         </div>
 
         <div>

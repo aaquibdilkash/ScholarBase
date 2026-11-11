@@ -20,6 +20,8 @@ import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/l
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
+import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Loads one page of research event rows for the
@@ -52,6 +54,7 @@ export const getEvent = cache(async (id: string, userId?: string) => {
       category: true,
       location: true,
       description: true,
+      imageUrl: true,
       deadline: true,
       notificationLink: true,
       applyLink: true,
@@ -137,6 +140,7 @@ export async function createCallForPaper(formData: FormData) {
   let journalId = readOptionalFormValue(formData, "journalId");
   // Empty string from an unselected journal is not a valid FK — coerce to null.
   if (journalId === "") journalId = null;
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -154,6 +158,15 @@ export async function createCallForPaper(formData: FormData) {
     if (!journal) return { success: false, message: "Selected journal is no longer available." };
   }
 
+  // Promote the draft cover image to published before the row is created.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "cfp-cover",
+    inlineKind: "cfp-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
+
   const event = await prisma.$transaction(async (tx) => {
     const newEvent = await tx.callForPaper.create({
       data: {
@@ -161,7 +174,8 @@ export async function createCallForPaper(formData: FormData) {
         category: category as "CONFERENCE" | "BOOK_CHAPTER" | "JOURNAL" | "WORKSHOP" | "SYMPOSIUM",
         eventDate,
         location,
-        description,
+        description: publishedHtml,
+        imageUrl: coverUrl,
         deadline,
         notificationLink: safeNotificationLink,
         applyLink: safeApplyLink,
@@ -244,6 +258,7 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
   let journalId = readOptionalFormValue(formData, "journalId");
   // Empty string from an unselected journal is not a valid FK — coerce to null.
   if (journalId === "") journalId = null;
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -259,7 +274,7 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
 
   const event = await prisma.callForPaper.findUnique({
     where: { id: eventId },
-    select: { authorId: true },
+    select: { authorId: true, imageUrl: true, description: true },
   });
 
   if (!event) {
@@ -273,6 +288,25 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
     if (!journal) return { success: false, message: "Selected journal is no longer available." };
   }
 
+  // Promote the draft cover image to published before updating.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "cfp-cover",
+    inlineKind: "cfp-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
+
+  // Work out which images this edit removes. Every path comes from the
+  // event's OWN stored content (or its own stored cover), never from the
+  // submitted form, so this cannot delete somebody else's object.
+  const removedPaths = findRemovedImagePaths(event.description, publishedHtml);
+  const oldCoverPath = extractCoverImagePath(event.imageUrl);
+  const newCoverPath = extractCoverImagePath(coverUrl);
+  if (oldCoverPath && oldCoverPath !== newCoverPath) {
+    removedPaths.push(oldCoverPath);
+  }
+
   const updatedEvent = await prisma.callForPaper.update({
     where: { id: eventId },
     data: {
@@ -280,7 +314,8 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
       category: category as "CONFERENCE" | "BOOK_CHAPTER" | "JOURNAL" | "WORKSHOP" | "SYMPOSIUM",
       eventDate,
       location,
-      description,
+      description: publishedHtml,
+      imageUrl: coverUrl,
       deadline,
       notificationLink: safeNotificationLink,
       applyLink: safeApplyLink,
@@ -289,6 +324,11 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
       editedAt: new Date(),
     },
   });
+
+  // Persist the edit FIRST, then collect the images the edit replaced.
+  if (removedPaths.length > 0) {
+    await deleteBlogImagePaths(removedPaths);
+  }
 
   // Purge the cached research event pages: edit must be visible at once, not after the TTL.
   revalidateContent("CALL_FOR_PAPER", event.authorId);

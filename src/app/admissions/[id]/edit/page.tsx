@@ -31,6 +31,7 @@ export default async function EditAdmissionPage({
       level: true,
       deadline: true,
       description: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       authorId: true,
@@ -63,6 +64,7 @@ export default async function EditAdmissionPage({
           deadline: new Date(admission.deadline).toISOString().slice(0, 10),
           description: admission.description,
           notificationLink: admission.notificationLink ?? "",
+          imageUrl: admission.imageUrl ?? "",
           applyLink: admission.applyLink ?? "",
         }}
       />

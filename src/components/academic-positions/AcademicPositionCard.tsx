@@ -9,7 +9,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
-import Link from "next/link";
+import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deleteAcademicPosition } from "@/app/actions/academic-positions";
 import { useToast } from "@/components/ui/Toast";
@@ -143,7 +143,7 @@ export function AcademicPositionCard({ academicPosition,
         />
       }
       noBodyLink={true}
-      constrainBody={true}
+      constrainBody={false}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <SmartExternalLink
@@ -160,83 +160,91 @@ export function AcademicPositionCard({ academicPosition,
         </div>
       }
     >
-      <Link href={`/academic-positions/${academicPosition.id}`} prefetch={false} className="block group">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-            {positionTypeLabel}
-          </span>
-          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-            {employmentTypeLabel}
-          </span>
-          {urgency && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-            >
-              <Clock className="h-3 w-3" strokeWidth="2.5" />
-              {urgency.label}
-            </span>
-          )}
-        </div>
-        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {academicPosition.title}
-        </h2>
-        <p className="mb-2 break-words text-sm font-medium text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
-          {academicPosition.institution}
-        </p>
-        {deptSubject && (
-          <p className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-            <BookOpen className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-            <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
-              {deptSubject}
-            </span>
-          </p>
-        )}
-
-        {(academicPosition.salaryOrStipend ||
-          academicPosition.contractDuration ||
-          academicPosition.location ||
-          academicPosition.isRemote) && (
-          <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
-            {academicPosition.salaryOrStipend && (
-              <span className="inline-flex items-center gap-1.5">
-                <Banknote className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-                {academicPosition.salaryOrStipend}
+      <CollapsibleMediaBody
+        href={`/academic-positions/${academicPosition.id}`}
+        imageUrl={academicPosition.imageUrl}
+        contentKey={`${academicPosition.description}|${academicPosition.imageUrl ?? ""}`}
+        header={
+          <>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                {positionTypeLabel}
               </span>
-            )}
-            {academicPosition.contractDuration && (
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-                {academicPosition.contractDuration}
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {employmentTypeLabel}
               </span>
+              {urgency && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
+                >
+                  <Clock className="h-4 w-4" strokeWidth="2.5" />
+                  {urgency.label}
+                </span>
+              )}
+            </div>
+            <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+              {academicPosition.title}
+            </h2>
+            <p className="mb-2 break-words text-sm font-medium text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
+              {academicPosition.institution}
+            </p>
+            {deptSubject && (
+              <p className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                <BookOpen className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                  {deptSubject}
+                </span>
+              </p>
             )}
-            {(academicPosition.location || academicPosition.isRemote) && (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-                {academicPosition.isRemote
-                  ? academicPosition.location
-                    ? `Remote — ${academicPosition.location}`
-                    : "Remote"
-                  : academicPosition.location}
+
+            {(academicPosition.salaryOrStipend ||
+              academicPosition.contractDuration ||
+              academicPosition.location ||
+              academicPosition.isRemote) && (
+              <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
+                {academicPosition.salaryOrStipend && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Banknote className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                    {academicPosition.salaryOrStipend}
+                  </span>
+                )}
+                {academicPosition.contractDuration && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                    {academicPosition.contractDuration}
+                  </span>
+                )}
+                {(academicPosition.location || academicPosition.isRemote) && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                    {academicPosition.isRemote
+                      ? academicPosition.location
+                        ? `Remote — ${academicPosition.location}`
+                        : "Remote"
+                      : academicPosition.location}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+              <span>
+                Last Date:{" "}
+                <span className="font-medium">
+                  {formatDate(academicPosition.deadline)}
+                </span>
               </span>
-            )}
-          </div>
-        )}
-
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-          <span>
-            Last Date:{" "}
-            <span className="font-medium">
-              {formatDate(academicPosition.deadline)}
-            </span>
-          </span>
-        </div>
-
-        <RichContent
-          content={academicPosition.description}
-          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
-        />
-      </Link>
+            </div>
+          </>
+        }
+        text={
+          <RichContent
+            content={academicPosition.description}
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          />
+        }
+      />
     </ListPageCardShell>
   );
 }

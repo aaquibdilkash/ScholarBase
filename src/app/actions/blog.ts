@@ -18,9 +18,9 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
 import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
-import { promoteBlogImages } from "@/lib/blog-images";
+import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { repairLegacyInlineImages } from "@/lib/article-content";
-import { deleteDraftBlogImage } from "@/app/actions/blog-images";
+import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
 import type { ArticleWithAuthor } from "@/types/cards";
 
 /**
@@ -146,7 +146,9 @@ export async function createArticle(formData: FormData) {
   assertRichTextWithinLimit(content, MAX_ARTICLE_CONTENT, "Article content");
 
   // Promote draft images (cover + inline) to published before creating the article.
-  const { coverUrl, publishedHtml } = await promoteBlogImages({
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "article-cover",
+    inlineKind: "article-inline",
     imageUrl: coverImageUrl || undefined,
     html: content,
     userId: user.id,
@@ -253,7 +255,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    select: { authorId: true, slug: true, imageUrl: true },
+    select: { authorId: true, slug: true, imageUrl: true, content: true },
   });
 
   if (!article) {
@@ -264,16 +266,29 @@ export async function updateArticle(formData: FormData, articleId: string) {
   }
 
   // Promote draft images (cover + inline) to published before updating.
-  const { coverUrl, publishedHtml } = await promoteBlogImages({
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "article-cover",
+    inlineKind: "article-inline",
     imageUrl: coverImageUrl || undefined,
     html: content,
     userId: user.id,
   });
 
-  // If the cover image changed, delete the old draft (published assets are
-  // deleted by the 30-day trim cron, not here).
-  if (coverImageUrl && coverImageUrl !== article.imageUrl) {
-    await deleteDraftBlogImage(article.imageUrl, { allowFrozen: true });
+  // Work out which images this edit removes, but do NOT delete them yet.
+  //
+  // The feed deletes a replaced post image as soon as it is replaced
+  // (`deleteCloudinaryAsset` on save). This does the same for the blog and
+  // extends it to INLINE body images, which the feed never had: every image
+  // that was in the stored body and is no longer in the new body is collected.
+  //
+  // Every path here comes from the article's OWN stored content (or its own
+  // stored cover), never from the submitted form, so this cannot delete
+  // somebody else's object.
+  const removedPaths = findRemovedImagePaths(article.content, publishedHtml);
+  const oldCoverPath = extractCoverImagePath(article.imageUrl);
+  const newCoverPath = extractCoverImagePath(coverUrl);
+  if (oldCoverPath && oldCoverPath !== newCoverPath) {
+    removedPaths.push(oldCoverPath);
   }
 
   const baseSlug = slugify(title) || "article";
@@ -297,6 +312,14 @@ export async function updateArticle(formData: FormData, articleId: string) {
       editedAt: new Date(),
     },
   });
+
+  // Persist the edit FIRST so the database is the source of truth, then
+  // collect the images the edit replaced. Deleting before the write would
+  // leave the article pointing at objects that are already gone if the write
+  // failed — the same ordering the feed uses for a replaced post image.
+  if (removedPaths.length > 0) {
+    await deleteBlogImagePaths(removedPaths);
+  }
 
   // The edited title/excerpt/slug are part of the cached public payload.
   revalidateContent("ARTICLE", article.authorId);

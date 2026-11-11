@@ -103,8 +103,8 @@ export function CollapsibleMediaBody({
   // that width (to detect when it is cropped).
   const [thumbnailWidth, setThumbnailWidth] = useState(0);
 
-  const bodyRef = useRef<HTMLParagraphElement>(null);
-  const measureRef = useRef<HTMLParagraphElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   // Track the previous expansion state so we only scroll on the
@@ -201,7 +201,11 @@ export function CollapsibleMediaBody({
         >
           <div className={hasImage ? (isExpanded ? "w-full min-w-0" : "w-1/2 min-w-0") : "w-full"}>
           <div className="relative min-w-0 w-full">
-            <p
+            {/* A <div>, not a <p>: the body can be rich content that renders
+                block elements (RichContent is a <div>), and a <div> inside a
+                <p> is invalid HTML — the browser reparents it, which breaks
+                hydration. */}
+            <div
               ref={bodyRef}
               className={`mb-4 whitespace-pre-wrap break-words leading-relaxed text-slate-800 [overflow-wrap:anywhere] transition-colors group-hover:text-slate-600 ${
                 isExpanded ? "" : "overflow-hidden"
@@ -209,12 +213,12 @@ export function CollapsibleMediaBody({
               style={isExpanded ? undefined : lineClampStyle(maxLines)}
             >
               {text}
-            </p>
+            </div>
             {/* Hidden, non-clamped copy used purely for truncation measurement.
                 It must share the body's exact text-layout classes so it
                 wraps/breaks identically and gives an accurate height
                 comparison. */}
-            <p
+            <div
               ref={measureRef}
               inert
               aria-hidden="true"
@@ -222,7 +226,7 @@ export function CollapsibleMediaBody({
               style={{ visibility: "hidden" }}
             >
               {text}
-            </p>
+            </div>
           </div>
         </div>
         {hasImage && (

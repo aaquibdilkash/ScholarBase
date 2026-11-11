@@ -9,6 +9,8 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
+import { FeedImage } from "@/components/feed/FeedImage";
+import { isValidImageUrl } from "@/lib/image-constants";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
@@ -232,6 +234,16 @@ const EventDetailPage = async ({
           </div>
         )}
       </div>
+
+      {isValidImageUrl(event.imageUrl) && (
+        <div className="mb-6">
+          <FeedImage
+            src={event.imageUrl}
+            alt={event.title}
+            className="block w-full object-cover rounded-xl"
+          />
+        </div>
+      )}
 
       <RichContent
         content={event.description}

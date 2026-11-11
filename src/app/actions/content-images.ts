@@ -4,6 +4,7 @@ import {
   deleteBlogImagePaths,
   extractCoverImagePath,
   uploadBlogImage,
+  type ContentImageKind,
 } from "@/lib/supabase-storage";
 import { getActiveUser, requireCurrentUser } from "@/lib/auth";
 import {
@@ -12,9 +13,9 @@ import {
   ALLOWED_IMAGE_TYPES,
 } from "@/lib/image-constants";
 
-export type BlogUploadKind = "cover" | "inline";
+export type ContentUploadKind = ContentImageKind;
 
-export type BlogUploadResult = {
+export type ContentUploadResult = {
   url: string;
   path: string;
   bytes: number;
@@ -26,25 +27,25 @@ export type BlogUploadResult = {
 export type FrozenActionResult = { success: false; error: string; message: string };
 
 /**
- * Uploads a blog image to Supabase Storage.
+ * Uploads a content image to Supabase Storage.
  *
  * The client is expected to compress the file before upload (using
  * `compressImageToBudget` from `@/utils/image-compression`) so the stored
  * asset lands under the 500 KB budget. The server validates size/type and
  * rejects anything over the 5 MB raw ceiling.
  *
- * Draft uploads go to `users/{userId}/{kind}s/{uuid}/<file>`.
- * On publish, `promoteBlogImages` copies drafts to `published/`.
+ * Draft uploads go to `users/{userId}/drafts/{kind}/{uuid}/{fileName}`.
+ * On publish, `promoteContentImages` copies drafts to `published/`.
  *
  * @param formData - Must contain a `file` Field.
- * @param kind - "cover" (main article image) or "inline" (body image).
+ * @param kind - Module-scoped folder the image belongs to.
  * @param options - { allowFrozen } to permit frozen accounts.
  */
-export async function uploadBlogImageAction(
+export async function uploadContentImageAction(
   formData: FormData,
-  kind: BlogUploadKind,
+  kind: ContentUploadKind,
   options?: { allowFrozen?: boolean },
-): Promise<BlogUploadResult | FrozenActionResult> {
+): Promise<ContentUploadResult | FrozenActionResult> {
   const auth = await getActiveUser("Log in to upload images.");
   if (auth.frozen && !options?.allowFrozen) {
     return { success: false, error: auth.message, message: auth.message };
@@ -89,7 +90,7 @@ export async function uploadBlogImageAction(
       format: file.type.split("/")[1] ?? "unknown",
     };
   } catch (error) {
-    console.error("[UploadBlogImageAction Error]:", error);
+    console.error("[UploadContentImageAction Error]:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Image upload failed.",
@@ -100,9 +101,9 @@ export async function uploadBlogImageAction(
 
 /**
  * Deletes draft images that belong to the current user.
- * Validates that each path starts with the user's draft folder.
+ * Validates that each path starts with the user's own draft folder.
  */
-export async function deleteDraftBlogImage(
+export async function deleteDraftContentImage(
   imageUrl: string | null | undefined,
   options?: { allowFrozen?: boolean },
 ): Promise<boolean | FrozenActionResult> {
@@ -121,7 +122,7 @@ export async function deleteDraftBlogImage(
 
   const expectedPrefix = `users/${user.id}/`;
   if (!path.startsWith(`${expectedPrefix}drafts/`)) {
-    console.warn("[deleteDraftBlogImage] Rejected path outside user's draft folders:", {
+    console.warn("[deleteDraftContentImage] Rejected path outside user's draft folders:", {
       path,
       expectedPrefix,
     });
@@ -131,4 +132,3 @@ export async function deleteDraftBlogImage(
   await deleteBlogImagePaths([path]);
   return true;
 }
-

@@ -2340,6 +2340,7 @@ model CallForPaper {
   eventDate        DateTime?
   location         String?
   description      String
+  imageUrl         String?
   deadline         DateTime?
   notificationLink String?
   applyLink        String?
@@ -2441,6 +2442,7 @@ model Admission {
   level            AdmissionLevel @default(PHD)
   deadline         DateTime
   description      String
+  imageUrl         String?
   notificationLink String?
   applyLink        String?
   createdAt        DateTime       @default(now())
@@ -2546,6 +2548,7 @@ model AcademicPosition {
   isRemote         Boolean      @default(false)
   deadline         DateTime
   description      String
+  imageUrl         String?
   notificationLink String?
   applyLink        String?
   createdAt        DateTime     @default(now())

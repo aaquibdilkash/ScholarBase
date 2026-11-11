@@ -29,6 +29,8 @@ import {
 } from "@/lib/constants";
 import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
+import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Normalizes an optional short-text field: trims, enforces the max length,
@@ -101,6 +103,7 @@ export const getAcademicPositionById = cache(async (id: string, userId?: string)
       isRemote: true,
       deadline: true,
       description: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       createdAt: true,
@@ -184,6 +187,7 @@ export async function createAcademicPosition(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_POSITION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -196,6 +200,15 @@ export async function createAcademicPosition(formData: FormData) {
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
   }
+
+  // Promote the draft cover image to published before the row is created.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "position-cover",
+    inlineKind: "position-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
 
   const academicPosition = await prisma.$transaction(async (tx) => {
     const newPosition = await tx.academicPosition.create({
@@ -212,7 +225,8 @@ export async function createAcademicPosition(formData: FormData) {
         location,
         isRemote,
         deadline,
-        description,
+        description: publishedHtml,
+        imageUrl: coverUrl,
         notificationLink: safeNotificationLink,
         applyLink: safeApplyLink,
         authorId: user.id,
@@ -313,6 +327,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
   assertRichTextWithinLimit(description, MAX_POSITION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -328,12 +343,34 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
 
   const academicPosition = await prisma.academicPosition.findUnique({
     where: { id: academicPositionId },
-    select: { authorId: true },
+    select: { authorId: true, imageUrl: true, description: true },
   });
 
   if (!academicPosition) return;
   if (!(await isAuthorizedOrAdmin(academicPosition.authorId, user.id))) {
     throw new Error("Not authorized to edit this position.");
+  }
+
+  // Promote the draft cover image to published before updating.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "position-cover",
+    inlineKind: "position-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
+
+  // Work out which images this edit removes. Every path comes from the
+  // position's OWN stored content (or its own stored cover), never from the
+  // submitted form.
+  const removedPaths = findRemovedImagePaths(
+    academicPosition.description,
+    publishedHtml,
+  );
+  const oldCoverPath = extractCoverImagePath(academicPosition.imageUrl);
+  const newCoverPath = extractCoverImagePath(coverUrl);
+  if (oldCoverPath && oldCoverPath !== newCoverPath) {
+    removedPaths.push(oldCoverPath);
   }
 
   const updatedPosition = await prisma.academicPosition.update({
@@ -351,7 +388,8 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       location,
       isRemote,
       deadline,
-      description,
+      description: publishedHtml,
+      imageUrl: coverUrl,
       notificationLink: safeNotificationLink,
       applyLink: safeApplyLink,
       editedAt: new Date(),
@@ -371,6 +409,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       isRemote: true,
       deadline: true,
       description: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       createdAt: true,
@@ -386,6 +425,11 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       },
     },
   });
+
+  // Persist the edit FIRST, then collect the images the edit replaced.
+  if (removedPaths.length > 0) {
+    await deleteBlogImagePaths(removedPaths);
+  }
 
   // Purge the cached academic position pages: edit must be visible at once, not after the TTL.
   revalidateContent("ACADEMIC_POSITION", academicPosition.authorId);

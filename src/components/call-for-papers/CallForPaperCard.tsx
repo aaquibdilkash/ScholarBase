@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
-import Link from "next/link";
+import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import { Calendar, Clock, MapPin } from "lucide-react";
@@ -129,7 +129,7 @@ export function CallForPaperCard({
         />
       }
       noBodyLink={true}
-      constrainBody={true}
+      constrainBody={false}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <SafeExternalLink
@@ -147,62 +147,70 @@ export function CallForPaperCard({
         </div>
       }
     >
-      <Link href={`/call-for-papers/${callForPaper.id}`} prefetch={false} className="block group">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {urgency && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-            >
-              <Clock className="h-3 w-3" />
-              {urgency.label}
-            </span>
-          )}
-          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-            {getCallForPaperCategoryLabel(callForPaper.category)}
-          </span>
-        </div>
-
-        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {callForPaper.title}
-        </h2>
-        {(callForPaper.publisher || callForPaper.journal) && (
-          <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-            {callForPaper.journal?.title ?? callForPaper.publisher}
-            {callForPaper.journal?.title && callForPaper.publisher ? ` · ${callForPaper.publisher}` : ""}
-          </p>
-        )}
-
-        <div className="mb-3 space-y-1.5">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="font-medium">
-              {callForPaper.eventDate ? formatDate(callForPaper.eventDate) : "Date not specified"}
-            </span>
-          </div>
-          {callForPaper.location && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
-              <span className="break-words [overflow-wrap:anywhere]">{callForPaper.location}</span>
-            </div>
-          )}
-          {callForPaper.deadline && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-              <span>
-                Deadline:{" "}
-                <span className="font-medium">
-                  {formatDate(callForPaper.deadline)}
+      <CollapsibleMediaBody
+        href={`/call-for-papers/${callForPaper.id}`}
+        imageUrl={callForPaper.imageUrl}
+        contentKey={`${callForPaper.description}|${callForPaper.imageUrl ?? ""}`}
+        header={
+          <>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {urgency && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
+                >
+                  <Clock className="h-3 w-3" />
+                  {urgency.label}
                 </span>
+              )}
+              <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                {getCallForPaperCategoryLabel(callForPaper.category)}
               </span>
             </div>
-          )}
-        </div>
 
-        <RichContent
-          content={callForPaper.description}
-          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
-        />
-      </Link>
+            <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+              {callForPaper.title}
+            </h2>
+            {(callForPaper.publisher || callForPaper.journal) && (
+              <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+                {callForPaper.journal?.title ?? callForPaper.publisher}
+                {callForPaper.journal?.title && callForPaper.publisher ? ` · ${callForPaper.publisher}` : ""}
+              </p>
+            )}
+
+            <div className="mb-3 space-y-1.5">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
+                <span className="font-medium">
+                  {callForPaper.eventDate ? formatDate(callForPaper.eventDate) : "Date not specified"}
+                </span>
+              </div>
+              {callForPaper.location && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="break-words [overflow-wrap:anywhere]">{callForPaper.location}</span>
+                </div>
+              )}
+              {callForPaper.deadline && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span>
+                    Deadline:{" "}
+                    <span className="font-medium">
+                      {formatDate(callForPaper.deadline)}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
+        }
+        text={
+          <RichContent
+            content={callForPaper.description}
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          />
+        }
+      />
     </ListPageCardShell>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeRichHtml } from "@/lib/sanitize";
 import { extractImageUrlsFromHtml } from "@/lib/html";
@@ -33,6 +33,20 @@ export function RichContent({
     setIsHydrated(true);
   }, []);
 
+  const isHtml = normalized ? htmlLikePattern.test(normalized) : false;
+
+  // Sanitising is a real HTML parse and the composer's live preview
+  // re-renders on every keystroke, so both the parse and the image scan are
+  // memoised on the content instead of re-running on every render.
+  const safeHtml = useMemo(
+    () => (isHtml && normalized ? sanitizeRichHtml(normalized) : ""),
+    [isHtml, normalized],
+  );
+
+  // Every inline image in the body, in document order — the lightbox pages
+  // through these.
+  const imageUrls = useMemo(() => extractImageUrlsFromHtml(safeHtml), [safeHtml]);
+
   if (!normalized) {
     return null;
   }
@@ -44,13 +58,7 @@ export function RichContent({
     compact ? "prose-sm" : "prose-sm sm:prose-base"
   } ${className}`;
 
-  if (htmlLikePattern.test(normalized)) {
-    const safeHtml = sanitizeRichHtml(normalized);
-
-    // Every inline image in the body, in document order — the lightbox pages
-    // through these.
-    const imageUrls = extractImageUrlsFromHtml(safeHtml);
-
+  if (isHtml) {
     // The browser parses server HTML before React hydrates it. Sanitized rich
     // HTML can therefore produce a different child tree on the client (for
     // example around links), so keep the initial shell identical and mount

@@ -8,6 +8,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
@@ -43,6 +44,7 @@ export type AdmissionFormValues = {
   description: string;
   notificationLink: string;
   applyLink: string;
+  imageUrl: string;
 };
 
 export default function AdmissionForm({
@@ -64,6 +66,7 @@ export default function AdmissionForm({
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
     applyLink: initialValues?.applyLink ?? "",
+    imageUrl: initialValues?.imageUrl ?? "",
   };
 
   const draftKey = mode === "edit" ? null : "draft_admission_create";
@@ -194,6 +197,19 @@ export default function AdmissionForm({
           value={draftFields.deadline}
           onChange={(e) => updateDraftField("deadline", e.target.value)}
         />
+      </div>
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Cover Image (Optional)
+          <InfoTooltip message="Main image shown on the admission list card and detail page header." />
+        </label>
+        <ContentImageUploadField
+          kind="admission-cover"
+          value={draftFields.imageUrl}
+          onChange={(url) => updateDraftField("imageUrl", url)}
+        />
+        <input type="hidden" name="coverImageUrl" value={draftFields.imageUrl} />
       </div>
 
       <div>

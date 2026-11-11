@@ -7,7 +7,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
-import Link from "next/link";
+import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import { Clock } from "lucide-react";
@@ -118,7 +118,7 @@ export function AdmissionCard({
         />
       }
       noBodyLink={true}
-      constrainBody={true}
+      constrainBody={false}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <SafeExternalLink
@@ -136,45 +136,53 @@ export function AdmissionCard({
         </div>
       }
     >
-      <Link href={`/admissions/${admission.id}`} prefetch={false} className="block group">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-            {levelLabel}
-          </span>
-          {urgency && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-            >
-              <Clock className="h-3 w-3" />
-              {urgency.label}
-            </span>
-          )}
-        </div>
-
-        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {admission.university}
-        </h2>
-
-        <div className="mb-3 space-y-1.5">
-          <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
-            {admission.department}
-          </p>
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-            <span>
-              Deadline:{" "}
-              <span className="font-medium">
-                {formatDate(admission.deadline)}
+      <CollapsibleMediaBody
+        href={`/admissions/${admission.id}`}
+        imageUrl={admission.imageUrl}
+        contentKey={`${admission.description}|${admission.imageUrl ?? ""}`}
+        header={
+          <>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                {levelLabel}
               </span>
-            </span>
-          </div>
-        </div>
+              {urgency && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
+                >
+                  <Clock className="h-3 w-3" />
+                  {urgency.label}
+                </span>
+              )}
+            </div>
 
-        <RichContent
-          content={admission.description}
-          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
-        />
-      </Link>
+            <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+              {admission.university}
+            </h2>
+
+            <div className="mb-3 space-y-1.5">
+              <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
+                {admission.department}
+              </p>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                <span>
+                  Deadline:{" "}
+                  <span className="font-medium">
+                    {formatDate(admission.deadline)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </>
+        }
+        text={
+          <RichContent
+            content={admission.description}
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          />
+        }
+      />
     </ListPageCardShell>
   );
 }

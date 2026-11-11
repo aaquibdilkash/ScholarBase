@@ -57,6 +57,9 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN NULL; END;
 
   -- From Article (imageUrl - Supabase)
+  -- The URL PATH is matched, not the host: this deployment serves Supabase
+  -- Storage from a custom domain (api.staging.scholarbase.app), so a
+  -- `supabase.co` pattern would never match anything.
   BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, "imageUrl", NOW()
@@ -64,7 +67,7 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%supabase.co/storage/v1/object/public/blog-images%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -75,10 +78,88 @@ BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, (m)[1], NOW()
     FROM "Article",
-    LATERAL regexp_matches("content", '(https://[^"]*supabase\.co/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    LATERAL regexp_matches("content", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "content" LIKE '%supabase.co/storage/v1/object/public/blog-images%';
+      AND "content" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From CallForPaper (imageUrl - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, "imageUrl", NOW()
+    FROM "CallForPaper"
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "imageUrl" IS NOT NULL
+      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From CallForPaper description (inline images - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, (m)[1], NOW()
+    FROM "CallForPaper",
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From Admission (imageUrl - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, "imageUrl", NOW()
+    FROM "Admission"
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "imageUrl" IS NOT NULL
+      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From Admission description (inline images - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, (m)[1], NOW()
+    FROM "Admission",
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From AcademicPosition (imageUrl - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, "imageUrl", NOW()
+    FROM "AcademicPosition"
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "imageUrl" IS NOT NULL
+      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From AcademicPosition description (inline images - Supabase)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, (m)[1], NOW()
+    FROM "AcademicPosition",
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;

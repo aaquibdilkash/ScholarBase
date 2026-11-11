@@ -1,12 +1,34 @@
 import "server-only";
 
 import { createClient } from "@/utils/supabase/server";
+import { createServiceClient } from "@/utils/supabase/service";
 
 /**
- * Supabase Storage bucket used for blog (Article) images.
- * Public bucket: URLs resolve directly without signed URLs.
+ * Supabase Storage bucket used for content images (blog articles, call for
+ * papers). Public bucket: URLs resolve directly without signed URLs.
  */
 export const BLOG_IMAGE_BUCKET = "blog-images";
+
+/**
+ * The kind of image an object holds.
+ *
+ * It is the folder segment under the owner, so it is module-scoped: an
+ * article's cover and a call for paper's cover are different folders and can
+ * never be confused for one another.
+ *
+ * Modules whose editor does not offer inline uploads still declare an inline
+ * kind, so a draft image that somehow reaches the body is promoted rather
+ * than left pointing at a draft object that gets collected.
+ */
+export type ContentImageKind =
+  | "article-cover"
+  | "article-inline"
+  | "cfp-cover"
+  | "cfp-inline"
+  | "position-cover"
+  | "position-inline"
+  | "admission-cover"
+  | "admission-inline";
 
 /**
  * Returns a server-side Supabase client for Storage operations.
@@ -35,7 +57,7 @@ export async function uploadBlogImage({
   userId: string;
   buffer: Buffer;
   fileName: string;
-  kind: "cover" | "inline";
+  kind: ContentImageKind;
   fileType: string;
 }): Promise<{ url: string; path: string; bytes: number }> {
   const supabase = await getSupabase();
@@ -66,7 +88,11 @@ export async function uploadBlogImage({
  * Copies a draft image to the published folder and removes the draft object.
  * Called when an article is published: draft -> published.
  *
- * Path: `users/{userId}/published/{kind}/{fileName}`
+ * Path: `users/{userId}/published/{kind}/{uuid}/{fileName}`
+ *
+ * The uuid segment is PRESERVED. Dropping it would map every upload called
+ * `photo.png` onto the same published path, so a second upload would collide
+ * with the first ("The resource already exists") and silently overwrite it.
  *
  * @param userId - Owner of the image.
  * @param draftPath - Full storage path of the draft object.
@@ -80,12 +106,16 @@ export async function publishBlogImage({
 }: {
   userId: string;
   draftPath: string;
-  kind: "cover" | "inline";
+  kind: ContentImageKind;
 }): Promise<string> {
   const supabase = await getSupabase();
 
   const fileName = draftPath.split("/").pop()!;
-  const publishedPath = `users/${userId}/published/${kind}/${fileName}`;
+  // The draft path is `users/{userId}/drafts/{kind}/{uuid}/{fileName}`; the
+  // published path swaps `drafts` for `published` and keeps the uuid.
+  const segments = draftPath.split("/");
+  const uuid = segments.length >= 2 ? segments[segments.length - 2] : fileName;
+  const publishedPath = `users/${userId}/published/${kind}/${uuid}/${fileName}`;
 
   const { error: copyError } = await supabase.storage
     .from(BLOG_IMAGE_BUCKET)
@@ -118,6 +148,30 @@ export async function deleteBlogImagePaths(paths: string[]): Promise<void> {
   if (error) {
     console.error("[deleteBlogImagePaths] Supabase Storage remove error:", error.message);
     // Don't throw — cleanup should be idempotent and non-blocking.
+  }
+}
+
+/**
+ * Deletes images using the SERVICE ROLE, which bypasses row-level security.
+ *
+ * Needed by the orphaned-asset cleanup cron: it deletes published objects
+ * belonging to users who are not signed in, so no user session can authorise
+ * those deletes. The paths always come from the `OrphanedAsset` queue, which
+ * the trim cron populates from the content's own stored rows.
+ */
+export async function deleteBlogImagePathsAsServiceRole(
+  paths: string[],
+): Promise<void> {
+  if (paths.length === 0) return;
+
+  const supabase = createServiceClient();
+  const { error } = await supabase.storage.from(BLOG_IMAGE_BUCKET).remove(paths);
+
+  if (error) {
+    console.error(
+      "[deleteBlogImagePathsAsServiceRole] Supabase Storage remove error:",
+      error.message,
+    );
   }
 }
 

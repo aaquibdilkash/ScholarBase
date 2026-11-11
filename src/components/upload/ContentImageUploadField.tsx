@@ -4,9 +4,10 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import {
-  uploadBlogImageAction,
-  deleteDraftBlogImage,
-} from "@/app/actions/blog-images";
+  uploadContentImageAction,
+  deleteDraftContentImage,
+  type ContentUploadKind,
+} from "@/app/actions/content-images";
 import { compressImageToBudget } from "@/utils/image-compression";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useUser } from "@/hooks/useUser";
@@ -15,10 +16,9 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { isValidImageUrl, MAX_FILE_BYTES } from "@/lib/image-constants";
 
-export type BlogImageUploadKind = "cover";
-
-type BlogImageUploadFieldProps = {
-  kind: BlogImageUploadKind;
+type ContentImageUploadFieldProps = {
+  /** Module-scoped folder the image is stored in. */
+  kind: ContentUploadKind;
   /** Current image URL (draft or published). */
   value: string;
   onChange: (url: string) => void;
@@ -31,12 +31,13 @@ type BlogImageUploadFieldProps = {
 };
 
 /**
- * Image upload field for blog cover images using Supabase Storage.
- * Standardized add/replace/remove UX: upload goes to the user's draft folder,
- * replacing deletes the previous draft, and the remove button clears the field.
- * Published assets are left for the 30-day trim cron to clean up.
+ * Image upload field for a content module's cover image, backed by Supabase
+ * Storage. Standardized add/replace/remove UX: upload goes to the uploader's
+ * own draft folder, replacing deletes the previous draft, and the remove
+ * button clears the field. Published assets are left for the 30-day trim cron
+ * to clean up.
  */
-export function BlogImageUploadField({
+export function ContentImageUploadField({
   kind,
   value,
   onChange,
@@ -45,7 +46,7 @@ export function BlogImageUploadField({
   tooltip,
   previewSize = 120,
   className,
-}: BlogImageUploadFieldProps) {
+}: ContentImageUploadFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -64,7 +65,7 @@ export function BlogImageUploadField({
       const fd = new FormData();
       fd.append("file", uploadFile);
 
-      const data = await uploadBlogImageAction(fd, kind as "cover");
+      const data = await uploadContentImageAction(fd, kind);
       if ("success" in data) {
         setUploadError(data.message);
         toast(data.message, "error");
@@ -73,7 +74,7 @@ export function BlogImageUploadField({
 
       // Replace flow: delete the previous draft if it was a draft URL
       if (value && value !== data.url && value.includes("/drafts/")) {
-        await deleteDraftBlogImage(value);
+        await deleteDraftContentImage(value);
       }
 
       onChange(data.url);
@@ -114,7 +115,7 @@ export function BlogImageUploadField({
     setRemoving(true);
     try {
       if (value.includes("/drafts/")) {
-        const deleted = await deleteDraftBlogImage(value);
+        const deleted = await deleteDraftContentImage(value);
         if (!deleted) {
           toast("Could not delete the draft image. Please try again.", "error");
           return;

@@ -38,6 +38,7 @@ export default async function EditAcademicPositionPage({
       isRemote: true,
       deadline: true,
       description: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       authorId: true,
@@ -79,6 +80,7 @@ export default async function EditAcademicPositionPage({
           deadline: new Date(academicPosition.deadline).toISOString().slice(0, 10),
           description: academicPosition.description,
           notificationLink: academicPosition.notificationLink ?? "",
+          imageUrl: academicPosition.imageUrl ?? "",
           // Legacy rows may store `mailto:a@b.com` from the old writer —
           // prefill the bare email so the user never sees/edits `mailto:` text.
           applyLink: academicPosition.applyLink ? stripMailtoPrefix(academicPosition.applyLink) : "",

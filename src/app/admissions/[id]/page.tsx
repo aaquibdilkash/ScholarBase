@@ -8,6 +8,8 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import { FeedImage } from "@/components/feed/FeedImage";
+import { isValidImageUrl } from "@/lib/image-constants";
 import { Clock } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
@@ -204,6 +206,16 @@ const AdmissionDetailPage = async ({
           })}
         </span>
       </div>
+      {isValidImageUrl(admission.imageUrl) && (
+        <div className="mb-6">
+          <FeedImage
+            src={admission.imageUrl}
+            alt={`${admission.university} — ${admission.department}`}
+            className="block w-full object-cover rounded-xl"
+          />
+        </div>
+      )}
+
       <RichContent
         content={admission.description}
         className="text-slate-800 leading-relaxed"

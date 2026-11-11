@@ -20,6 +20,8 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
+import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Loads one page of admission rows for the
@@ -52,6 +54,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       level: true,
       deadline: true,
       description: true,
+      imageUrl: true,
       notificationLink: true,
       applyLink: true,
       createdAt: true,
@@ -126,6 +129,7 @@ export async function createAdmission(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -139,6 +143,15 @@ export async function createAdmission(formData: FormData) {
     throw new Error("Notification and Apply links are required.");
   }
 
+  // Promote the draft cover image to published before the row is created.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "admission-cover",
+    inlineKind: "admission-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
+
   const admission = await prisma.$transaction(async (tx) => {
     const newAdmission = await tx.admission.create({
       data: {
@@ -146,7 +159,8 @@ export async function createAdmission(formData: FormData) {
         department,
         level,
         deadline,
-        description,
+        description: publishedHtml,
+        imageUrl: coverUrl,
         notificationLink: safeNotificationLink,
         applyLink: safeApplyLink,
         authorId: user.id,
@@ -203,6 +217,7 @@ export async function updateAdmission(
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -218,7 +233,7 @@ export async function updateAdmission(
 
   const admission = await prisma.admission.findUnique({
     where: { id: admissionId },
-    select: { authorId: true },
+    select: { authorId: true, imageUrl: true, description: true },
   });
 
   if (!admission) {
@@ -228,6 +243,25 @@ export async function updateAdmission(
     throw new Error("Not authorized to edit this admission.");
   }
 
+  // Promote the draft cover image to published before updating.
+  const { coverUrl, publishedHtml } = await promoteContentImages({
+    coverKind: "admission-cover",
+    inlineKind: "admission-inline",
+    imageUrl: coverImageUrl || undefined,
+    html: description,
+    userId: user.id,
+  });
+
+  // Work out which images this edit removes. Every path comes from the
+  // admission's OWN stored content (or its own stored cover), never from the
+  // submitted form.
+  const removedPaths = findRemovedImagePaths(admission.description, publishedHtml);
+  const oldCoverPath = extractCoverImagePath(admission.imageUrl);
+  const newCoverPath = extractCoverImagePath(coverUrl);
+  if (oldCoverPath && oldCoverPath !== newCoverPath) {
+    removedPaths.push(oldCoverPath);
+  }
+
   const updatedAdmission = await prisma.admission.update({
     where: { id: admissionId },
     data: {
@@ -235,12 +269,18 @@ export async function updateAdmission(
       department,
       level,
       deadline,
-      description,
+      description: publishedHtml,
+      imageUrl: coverUrl,
       notificationLink: safeNotificationLink,
       applyLink: safeApplyLink,
       editedAt: new Date(),
     },
   });
+
+  // Persist the edit FIRST, then collect the images the edit replaced.
+  if (removedPaths.length > 0) {
+    await deleteBlogImagePaths(removedPaths);
+  }
 
   // Purge the cached admission pages: edit must be visible at once, not after the TTL.
   revalidateContent("ADMISSION", admission.authorId);

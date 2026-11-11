@@ -9,6 +9,8 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
+import { FeedImage } from "@/components/feed/FeedImage";
+import { isValidImageUrl } from "@/lib/image-constants";
 import { Clock, Building2, BookOpen, MapPin, Banknote, CalendarClock } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
@@ -265,6 +267,16 @@ const AcademicPositionDetailPage = async ({
           })}
         </span>
       </div>
+      {isValidImageUrl(academicPosition.imageUrl) && (
+        <div className="mb-6">
+          <FeedImage
+            src={academicPosition.imageUrl}
+            alt={academicPosition.title}
+            className="block w-full object-cover rounded-xl"
+          />
+        </div>
+      )}
+
       <RichContent
         content={academicPosition.description}
         className="text-slate-800 leading-relaxed"

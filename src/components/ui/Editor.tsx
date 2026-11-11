@@ -356,28 +356,32 @@ const Editor = ({
         >
           <Minus className="h-4 w-4" />
         </button>
-        <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
-        <button
-          type="button"
-          onClick={() => imageInputRef.current?.click()}
-          disabled={imageUploading}
-          className={`p-2 rounded-lg transition-all text-slate-600 dark:text-slate-300 ${imageUploading ? "bg-slate-100 dark:bg-slate-700" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}
-          aria-label="Insert image"
-        >
-          {imageUploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-        </button>
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageInsert}
-          disabled={imageUploading}
-        />
+        {onImageUpload && (
+          <>
+            <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={imageUploading}
+              className={`p-2 rounded-lg transition-all text-slate-600 dark:text-slate-300 ${imageUploading ? "bg-slate-100 dark:bg-slate-700" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}
+              aria-label="Insert image"
+            >
+              {imageUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageInsert}
+              disabled={imageUploading}
+            />
+          </>
+        )}
       </div>
       <EditorContent
         editor={editor}

@@ -8,9 +8,9 @@ import {
   createArticle,
   updateArticle,
 } from "@/app/actions/blog";
-import { uploadBlogImageAction } from "@/app/actions/blog-images";
+import { uploadContentImageAction } from "@/app/actions/content-images";
 import { repairLegacyInlineImages } from "@/lib/article-content";
-import { BlogImageUploadField } from "@/components/upload/BlogImageUploadField";
+import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -78,7 +78,7 @@ export function ArticleComposer({
   const { toast } = useToast();
 
   const handleImageUpload = async (formData: FormData): Promise<string | null> => {
-    const data = await uploadBlogImageAction(formData, "inline");
+    const data = await uploadContentImageAction(formData, "article-inline");
     if ("success" in data) {
       toast(data.message, "error");
       return null;
@@ -232,8 +232,8 @@ export function ArticleComposer({
               Cover Image (Optional)
               <InfoTooltip message="Main image shown on the article list card and detail page header." />
             </label>
-            <BlogImageUploadField
-              kind="cover"
+            <ContentImageUploadField
+              kind="article-cover"
               value={draftFields.coverImageUrl}
               onChange={(url) => updateDraftField("coverImageUrl", url)}
             />
