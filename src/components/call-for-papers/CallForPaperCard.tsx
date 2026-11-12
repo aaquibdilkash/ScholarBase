@@ -13,9 +13,10 @@ import { actionErrorMessage } from "@/lib/utils";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
+import { CardChip } from "@/components/cards/CardChip";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { BookOpen, Building2, Calendar, Clock, MapPin } from "lucide-react";
 import type { CallForPaperWithAuthor } from "@/types/cards";
 import { RichContent } from "../content/RichContent";
 import { getCallForPaperCategoryLabel } from "@/lib/call-for-papers";
@@ -150,40 +151,51 @@ export function CallForPaperCard({
       <CollapsibleMediaBody
         href={`/call-for-papers/${callForPaper.id}`}
         imageUrl={callForPaper.imageUrl}
+        layout="stacked"
         contentKey={`${callForPaper.description}|${callForPaper.imageUrl ?? ""}`}
         header={
           <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               {urgency && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-                >
-                  <Clock className="h-3 w-3" />
+                <CardChip tone={urgency.tone}>
+                  <Clock className="h-3 w-3" strokeWidth={2.5} />
                   {urgency.label}
-                </span>
+                </CardChip>
               )}
-              <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+              <CardChip tone="info">
                 {getCallForPaperCategoryLabel(callForPaper.category)}
-              </span>
+              </CardChip>
             </div>
 
             <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
               {callForPaper.title}
             </h2>
-            {(callForPaper.publisher || callForPaper.journal) && (
-              <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-                {callForPaper.journal?.title ?? callForPaper.publisher}
-                {callForPaper.journal?.title && callForPaper.publisher ? ` · ${callForPaper.publisher}` : ""}
-              </p>
-            )}
 
-            <div className="mb-3 space-y-1.5">
+            <div className="mb-2 space-y-1">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
                 <span className="font-medium">
                   {callForPaper.eventDate ? formatDate(callForPaper.eventDate) : "Date not specified"}
                 </span>
               </div>
+              {/* Journal and publisher are separate rows: they are different
+                  things, and running them together reads as one string. */}
+              {callForPaper.journal && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <BookOpen className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="break-words [overflow-wrap:anywhere]">
+                    {callForPaper.journal.title}
+                  </span>
+                </div>
+              )}
+              {callForPaper.publisher && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="break-words [overflow-wrap:anywhere]">
+                    {callForPaper.publisher}
+                  </span>
+                </div>
+              )}
               {callForPaper.location && (
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                   <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
@@ -207,7 +219,7 @@ export function CallForPaperCard({
         text={
           <RichContent
             content={callForPaper.description}
-            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+            className="text-base leading-relaxed text-slate-600 dark:text-slate-300"
           />
         }
       />

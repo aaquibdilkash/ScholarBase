@@ -38,8 +38,56 @@ export function findRemovedImagePaths(
   return removed;
 }
 
+export type PromoteContentImagesResult =
+  | { ok: true; coverUrl: string | null; publishedHtml: string }
+  | { ok: false; error: string };
+
+/**
+ * Message returned when draft images cannot be published. Deliberately
+ * generic — the Storage error is infrastructure detail — but it is logged in
+ * full so the cause reaches the server logs and Sentry.
+ */
+const PROMOTE_FAILED_MESSAGE =
+  "Your images could not be saved. Please try again in a moment.";
+
 /**
  * Promotes draft content images to published.
+ *
+ * Never throws: a Storage failure (misconfigured bucket policy, outage) is
+ * returned as `{ ok: false }` so the calling action can answer with its normal
+ * `{ success: false }` shape instead of a 500 with a hidden error digest.
+ *
+ * The failure happens BEFORE the row is written, so content is never saved
+ * pointing at `drafts/` URLs that only its owner can read. The drafts stay in
+ * place, so retrying the submit promotes them.
+ */
+export async function promoteContentImages(args: {
+  /** Folder for the cover image. */
+  coverKind: ContentImageKind;
+  /**
+   * Folder for inline body images. Omit for modules that do not support
+   * them (the cover is then the only kind in play).
+   */
+  inlineKind?: ContentImageKind;
+  imageUrl?: string | null;
+  html: string;
+  userId: string;
+}): Promise<PromoteContentImagesResult> {
+  try {
+    const { coverUrl, publishedHtml } = await promoteContentImagesOrThrow(args);
+    return { ok: true, coverUrl, publishedHtml };
+  } catch (error) {
+    console.error(
+      "[promoteContentImages] Failed to publish content images:",
+      error,
+    );
+    return { ok: false, error: PROMOTE_FAILED_MESSAGE };
+  }
+}
+
+/**
+ * The actual promotion. Throws on a Storage error; `promoteContentImages` is
+ * the public, non-throwing entry point.
  *
  * NOT a server action: this takes the already-resolved owner's id, so it must
  * never be reachable as an action endpoint (a client could otherwise pass
@@ -47,26 +95,15 @@ export function findRemovedImagePaths(
  * content modules, which resolve the viewer server-side first.
  *
  * Draft objects are copied to the published folder and the drafts removed.
- *
- * @param kind - Which folder the images belong to (module-scoped).
- * @param imageUrl - Optional cover image URL (draft) to promote.
- * @param html - Content body HTML containing inline image draft URLs.
- * @param userId - Owner of the images.
- * @returns { coverUrl, publishedHtml } with draft paths replaced by published paths.
  */
-export async function promoteContentImages({
+async function promoteContentImagesOrThrow({
   coverKind,
   inlineKind,
   imageUrl,
   html,
   userId,
 }: {
-  /** Folder for the cover image. */
   coverKind: ContentImageKind;
-  /**
-   * Folder for inline body images. Omit for modules that do not support
-   * them (the cover is then the only kind in play).
-   */
   inlineKind?: ContentImageKind;
   imageUrl?: string | null;
   html: string;
@@ -84,6 +121,13 @@ export async function promoteContentImages({
     // kept as-is: re-copying it onto its own published path fails with
     // "The resource already exists".
     if (coverPath && coverPath.includes("/drafts/")) {
+      // Only the owner's own draft may be promoted — the cover URL is client
+      // supplied, so without this a crafted form could try to publish (and
+      // then read back) somebody else's draft object. Row-level security
+      // would reject the copy, but the invariant belongs in the code.
+      if (!coverPath.startsWith(`users/${userId}/drafts/`)) {
+        throw new Error("Cover image is not owned by the current user.");
+      }
       coverUrl = await publishBlogImage({
         userId,
         draftPath: coverPath,

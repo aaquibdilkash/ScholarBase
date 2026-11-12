@@ -148,23 +148,23 @@ export default function ListPageCardShell({
         </div>
       ) : null}
       {/* Common header */}
-      <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+      <div className="mb-4 flex items-center justify-between gap-4 border-b border-slate-100 pb-3 dark:border-slate-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {authorHref ? (
             <Link href={authorHref} prefetch={false} className="shrink-0">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
                 {authorAvatarUrl ? (
                   <UserAvatar src={authorAvatarUrl} name={authorName} />
                 ) : (
-                  <span className="font-semibold text-slate-400 text-lg">
+                  <span className="font-semibold text-slate-400 text-base">
                     {authorName?.charAt(0).toUpperCase() || "?"}
                   </span>
                 )}
               </div>
             </Link>
           ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 dark:border dark:border-slate-700 dark:bg-slate-800">
-              <span className="font-semibold text-slate-400 text-lg">?</span>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 dark:border dark:border-slate-700 dark:bg-slate-800">
+              <span className="font-semibold text-slate-400 text-base">?</span>
             </div>
           )}
 

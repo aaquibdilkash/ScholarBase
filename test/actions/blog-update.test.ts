@@ -244,3 +244,35 @@ describe("updateArticle garbage-collects the images the edit removed", () => {
     expect(callOrder).toEqual(["update", "delete"]);
   });
 });
+
+describe("updateArticle reports a failed image publish instead of throwing", () => {
+  it("returns a failure result and writes nothing when the promote fails", async () => {
+    // A stale bucket policy made every promote throw, which reached the browser
+    // as an opaque 500. The action must answer with its normal failure shape,
+    // and must not touch the row: the body would otherwise keep drafts/ URLs
+    // that only its owner can read.
+    seedArticle({ title: "Original" });
+    publishBlogImage.mockRejectedValueOnce(
+      new Error(
+        "Failed to publish image: new row violates row-level security policy",
+      ),
+    );
+    const updateSpy = vi.spyOn(fakeDb.client.article, "update");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await updateArticle(
+      form({
+        title: "Renamed",
+        excerpt: "Excerpt",
+        content: "<p>body</p>",
+        coverImageUrl: pub(`users/${AUTHOR}/drafts/article-cover/uuid/photo.png`),
+      }),
+      "art-1",
+    );
+
+    expect(result.success).toBe(false);
+    expect(updateSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+    updateSpy.mockRestore();
+  });
+});

@@ -11,7 +11,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { FeedImage } from "@/components/feed/FeedImage";
 import { isValidImageUrl } from "@/lib/image-constants";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { BookOpen, Building2, Calendar, Clock, MapPin } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
@@ -204,12 +204,24 @@ const EventDetailPage = async ({
             }) : "Date to be announced"}
           </span>
         </div>
-        {(event.publisher || event.journal) && (
-          <div className="text-xs sm:text-sm text-slate-600">
-            <span className="font-semibold">Publisher / Journal:</span>{" "}
-            {event.journal?.title ?? ""}
-            {event.journal?.title && event.publisher ? " · " : ""}
-            {event.publisher ?? ""}
+        {/* Journal and publisher are separate rows: they are different things,
+            and a combined "journal · publisher" string reads as one value. */}
+        {event.journal && (
+          <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
+            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
+            <span className="shrink-0 font-semibold">Journal:</span>
+            <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+              {event.journal.title}
+            </span>
+          </div>
+        )}
+        {event.publisher && (
+          <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
+            <Building2 className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
+            <span className="shrink-0 font-semibold">Publisher:</span>
+            <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+              {event.publisher}
+            </span>
           </div>
         )}
         {event.location && (

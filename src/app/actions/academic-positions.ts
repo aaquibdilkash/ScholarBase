@@ -202,13 +202,17 @@ export async function createAcademicPosition(formData: FormData) {
   }
 
   // Promote the draft cover image to published before the row is created.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "position-cover",
     inlineKind: "position-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   const academicPosition = await prisma.$transaction(async (tx) => {
     const newPosition = await tx.academicPosition.create({
@@ -352,13 +356,17 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
   }
 
   // Promote the draft cover image to published before updating.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "position-cover",
     inlineKind: "position-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   // Work out which images this edit removes. Every path comes from the
   // position's OWN stored content (or its own stored cover), never from the

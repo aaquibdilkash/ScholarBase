@@ -144,13 +144,17 @@ export async function createAdmission(formData: FormData) {
   }
 
   // Promote the draft cover image to published before the row is created.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "admission-cover",
     inlineKind: "admission-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   const admission = await prisma.$transaction(async (tx) => {
     const newAdmission = await tx.admission.create({
@@ -244,13 +248,17 @@ export async function updateAdmission(
   }
 
   // Promote the draft cover image to published before updating.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "admission-cover",
     inlineKind: "admission-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   // Work out which images this edit removes. Every path comes from the
   // admission's OWN stored content (or its own stored cover), never from the

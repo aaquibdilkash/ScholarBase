@@ -31,7 +31,7 @@ export default async function BlogIndex({
       title={LIST_PAGE_TEXT.blog.title}
       description={LIST_PAGE_TEXT.blog.description}
       addHref="/blog/add"
-      addLabel="+ New Article"
+      addLabel="+ New Blog"
       tab={tab}
       enableTrending={true}
       allHref="/blog"

@@ -159,13 +159,17 @@ export async function createCallForPaper(formData: FormData) {
   }
 
   // Promote the draft cover image to published before the row is created.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "cfp-cover",
     inlineKind: "cfp-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   const event = await prisma.$transaction(async (tx) => {
     const newEvent = await tx.callForPaper.create({
@@ -289,13 +293,17 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
   }
 
   // Promote the draft cover image to published before updating.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "cfp-cover",
     inlineKind: "cfp-inline",
     imageUrl: coverImageUrl || undefined,
     html: description,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   // Work out which images this edit removes. Every path comes from the
   // event's OWN stored content (or its own stored cover), never from the

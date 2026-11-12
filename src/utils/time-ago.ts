@@ -32,9 +32,16 @@ export function formatTimeAgo(date: Date | string | number | null | undefined): 
   return `${years}y ago`;
 }
 
+/**
+ * Tone of the deadline badge, mapped to `CardChip` on the list cards. The
+ * utility stays UI-agnostic (no class strings) so dark-mode styling lives in
+ * one place.
+ */
+export type TimeLeftTone = "info" | "warning" | "danger";
+
 export function getTimeLeft(deadline: Date | string | number | null | undefined): {
   label: string;
-  className: string;
+  tone: TimeLeftTone;
 } | null {
   if (!deadline && deadline !== 0) return null;
 
@@ -53,7 +60,7 @@ export function getTimeLeft(deadline: Date | string | number | null | undefined)
   if (diff <= 0) {
     return {
       label: "Closed",
-      className: "bg-red-200 text-red-800",
+      tone: "danger",
     };
   }
 
@@ -67,14 +74,14 @@ export function getTimeLeft(deadline: Date | string | number | null | undefined)
   if (days > 7) {
     return {
       label: `${days} days left`,
-      className: "bg-blue-200 text-blue-800",
+      tone: "info",
     };
   }
 
   if (days > 0) {
     return {
       label: `${days}d ${hours}h left`,
-      className: "bg-orange-200 text-orange-800",
+      tone: "warning",
     };
   }
 
@@ -82,20 +89,20 @@ export function getTimeLeft(deadline: Date | string | number | null | undefined)
   if (hours > 0) {
     return {
       label: `${hours}h ${minutes}m left`,
-      className: "bg-red-200 text-red-800",
+      tone: "danger",
     };
   }
 
   if (minutes > 0) {
     return {
       label: `${minutes} minutes left`,
-      className: "bg-red-200 text-red-800 font-bold",
+      tone: "danger",
     };
   }
 
   return {
     label: "Closing now",
-    className: "bg-red-200 text-red-800 font-bold",
+    tone: "danger",
   };
 }
 

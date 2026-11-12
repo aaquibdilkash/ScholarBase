@@ -291,10 +291,19 @@ describe("findRemovedImagePaths", () => {
 });
 
 describe("promoteContentImages", () => {
+  /** Narrows the result, failing the test on an unexpected failure. */
+  async function promoteOrFail(
+    args: Parameters<typeof promoteContentImages>[0],
+  ) {
+    const result = await promoteContentImages(args);
+    if (!result.ok) throw new Error(`promote failed: ${result.error}`);
+    return result;
+  }
+
   it("publishes the cover image and returns the published url", async () => {
     const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cover/uuid/photo.png`;
 
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       imageUrl: coverUrl,
       html: "<p>hello</p>",
@@ -313,7 +322,7 @@ describe("promoteContentImages", () => {
   });
 
   it("leaves a non-Supabase cover url untouched", async () => {
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       imageUrl: "https://res.cloudinary.com/demo/image/upload/old.jpg",
       html: "<p>hello</p>",
@@ -330,7 +339,7 @@ describe("promoteContentImages", () => {
     // "The resource already exists", so it must be left alone.
     const publishedCover = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/cover/photo.png`;
 
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       imageUrl: publishedCover,
       html: "<p>hello</p>",
@@ -345,7 +354,7 @@ describe("promoteContentImages", () => {
     const publishedSrc = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/inline/fig.png`;
     const html = `<img src="${publishedSrc}" alt="fig" />`;
 
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       inlineKind: "article-inline",
       imageUrl: null,
@@ -361,7 +370,7 @@ describe("promoteContentImages", () => {
     const draftSrc = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/inline/uuid/fig.png`;
     const html = `<p>before</p><img src="${draftSrc}" alt="fig" />`;
 
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       inlineKind: "article-inline",
       imageUrl: null,
@@ -382,7 +391,7 @@ describe("promoteContentImages", () => {
   });
 
   it("returns a null cover when no image was supplied", async () => {
-    const result = await promoteContentImages({
+    const result = await promoteOrFail({
       coverKind: "article-cover",
       imageUrl: null,
       html: "<p>hello</p>",
@@ -391,5 +400,48 @@ describe("promoteContentImages", () => {
 
     expect(result.coverUrl).toBeNull();
     expect(result.publishedHtml).toBe("<p>hello</p>");
+  });
+
+  it("returns a failure instead of throwing when Storage rejects the copy", async () => {
+    // A stale bucket policy made every promote fail with an RLS error, which
+    // surfaced as an opaque 500 on submit. It must come back as a normal
+    // failure so the action can tell the user something.
+    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cover/uuid/photo.png`;
+    publishBlogImage.mockRejectedValueOnce(
+      new Error(
+        "Failed to publish image: new row violates row-level security policy",
+      ),
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await promoteContentImages({
+      coverKind: "article-cover",
+      imageUrl: coverUrl,
+      html: "<p>hello</p>",
+      userId: USER,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBeTruthy();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("refuses to promote a cover draft owned by another user", async () => {
+    // The cover URL is client supplied. RLS would reject the copy anyway, but
+    // the ownership rule belongs in the code, like the inline-image branch.
+    const foreignCover = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const result = await promoteContentImages({
+      coverKind: "article-cover",
+      imageUrl: foreignCover,
+      html: "<p>hello</p>",
+      userId: USER,
+    });
+
+    expect(publishBlogImage).not.toHaveBeenCalled();
+    expect(result.ok).toBe(false);
+    errorSpy.mockRestore();
   });
 });

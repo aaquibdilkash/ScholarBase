@@ -10,6 +10,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
+import { CardChip } from "@/components/cards/CardChip";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deleteAcademicPosition } from "@/app/actions/academic-positions";
 import { useToast } from "@/components/ui/Toast";
@@ -163,23 +164,18 @@ export function AcademicPositionCard({ academicPosition,
       <CollapsibleMediaBody
         href={`/academic-positions/${academicPosition.id}`}
         imageUrl={academicPosition.imageUrl}
+        layout="stacked"
         contentKey={`${academicPosition.description}|${academicPosition.imageUrl ?? ""}`}
         header={
           <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                {positionTypeLabel}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {employmentTypeLabel}
-              </span>
+              <CardChip tone="info">{positionTypeLabel}</CardChip>
+              <CardChip>{employmentTypeLabel}</CardChip>
               {urgency && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-                >
-                  <Clock className="h-4 w-4" strokeWidth="2.5" />
+                <CardChip tone={urgency.tone}>
+                  <Clock className="h-3 w-3" strokeWidth={2.5} />
                   {urgency.label}
-                </span>
+                </CardChip>
               )}
             </div>
             <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
@@ -241,7 +237,7 @@ export function AcademicPositionCard({ academicPosition,
         text={
           <RichContent
             content={academicPosition.description}
-            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+            className="text-base leading-relaxed text-slate-600 dark:text-slate-300"
           />
         }
       />

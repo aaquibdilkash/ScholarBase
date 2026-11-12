@@ -29,7 +29,24 @@ const lineClampStyle = (lines: number): React.CSSProperties => ({
  * Fixed minimum height (px) for the collapsed card body, so every card renders
  * a uniform rectangle regardless of text length or image aspect ratio.
  */
-const COLLAPSED_MIN_HEIGHT = 100;
+const COLLAPSED_MIN_HEIGHT = 80;
+
+/**
+ * Line cap for the collapsed body on the stacked list-page layout.
+ *
+ * The feed uses a fixed 100px box because its image sits BESIDE the text and
+ * the two must line up. Stacked cards put the image BELOW the text, so the
+ * text block is allowed to take its natural (clamped) height — a fixed box
+ * left a visible hole between a one-line post and its image.
+ */
+const STACKED_COLLAPSED_LINES = 2;
+
+/**
+ * Height (px) of the collapsed image strip on the stacked layout. Shorter than
+ * the feed's 100px thumbnail box: stacked cards already carry a badge/metadata
+ * block above the body, so the strip only needs to hint at the image.
+ */
+const STACKED_COLLAPSED_IMAGE_HEIGHT = 64;
 
 export type CollapsibleMediaBodyProps = {
   /** Detail page the collapsed body links to. */
@@ -52,28 +69,42 @@ export type CollapsibleMediaBodyProps = {
   priority?: boolean;
   /** Extra classes for the clamped text element. */
   textClassName?: string;
+  /**
+   * Where the image sits relative to the text.
+   *
+   * - `"side"` (default) — the feed layout: text left, image right, both
+   *   clipped to a fixed-height rectangle.
+   * - `"stacked"` — the list-page layout: text full width, image full width
+   *   directly below it, collapsed to a short strip.
+   */
+  layout?: "side" | "stacked";
 };
 
 /**
  * CollapsibleMediaBody
  * --------------------
- * The shared "text beside an image, collapsed" card body.
+ * The shared "text with an image, collapsed" card body.
  *
  * This is the Research Feed card's body layout, extracted so every content
- * module that grows an `imageUrl` column renders the exact same thing instead
- * of re-implementing the collapse behaviour:
+ * module that grows an `imageUrl` column renders the exact same collapse
+ * behaviour instead of re-implementing it:
  *
- *   collapsed  ->  text on the left, image on the right, both clipped to a
- *                  fixed-height rectangle; the image is cropped from the BOTTOM
- *                  when it is taller than that rectangle.
- *   expanded   ->  text on top, image full-width below, nothing clipped.
+ *   side (feed)   collapsed  ->  text on the left, image on the right, both
+ *                                clipped to a fixed-height rectangle; the
+ *                                image is cropped from the BOTTOM when it is
+ *                                taller than that rectangle.
+ *                 expanded   ->  text on top, image full-width below.
  *
- * "View more" appears whenever the text is truncated OR the image is cut off
- * (a tall image is the common case), and "View less" collapses it back. The
- * image opens the shared ImageLightbox on click.
+ *   stacked       collapsed  ->  text full width, then a short full-width
+ *                                image strip below it (top-anchored crop).
+ *                 expanded   ->  image at its natural aspect ratio.
  *
- * Used by: the Research Feed card, the Research Blog card, and any future
- * module that adds an `imageUrl` column.
+ * "View more" appears whenever the text is truncated or the image is cropped,
+ * in either layout, and "View less" collapses it back. The image opens the
+ * shared ImageLightbox on click.
+ *
+ * Used by: the Research Feed card (side), the Research Blog / Call for Papers /
+ * Academic Positions / Admissions list cards (stacked).
  */
 export function CollapsibleMediaBody({
   href,
@@ -83,7 +114,9 @@ export function CollapsibleMediaBody({
   contentKey,
   priority = false,
   textClassName,
-}: CollapsibleMediaBodyProps) {  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  layout = "side",
+}: CollapsibleMediaBodyProps) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
   // Height of the collapsed preview box. Fixed minimum so every card renders a
@@ -112,11 +145,20 @@ export function CollapsibleMediaBody({
   const prevExpanded = useRef(isExpanded);
 
   const hasImage = isValidImageUrl(imageUrl);
+  // In the stacked layout the image always sits BELOW the text at full width.
+  const isStacked = layout === "stacked";
+  // The text-beside-image row — feed layout only, and only while collapsed.
+  const isSideRow = hasImage && !isStacked && !isExpanded;
 
-  // Compute (a) how many text lines fit in the fixed collapsed box, so text
-  // never looks "cut while there is still empty space below it", and (b)
-  // whether the full text exceeds that capacity (real truncation -> show
-  // toggle).
+  // Height of the collapsed image strip. The feed matches its side-by-side
+  // text box (100px); stacked cards use a shorter, full-width strip.
+  const collapsedImageHeight = isStacked
+    ? STACKED_COLLAPSED_IMAGE_HEIGHT
+    : collapsedBodyHeight;
+
+  // Compute (a) how many text lines fit in the collapsed box, so text never
+  // looks "cut while there is still empty space below it", and (b) whether the
+  // full text exceeds that capacity (real truncation -> show toggle).
   const updateCollapsedMetrics = useCallback(() => {
     const body = bodyRef.current;
     const measure = measureRef.current;
@@ -125,17 +167,19 @@ export function CollapsibleMediaBody({
       return;
     }
     const lineHeightPx = parseFloat(getComputedStyle(body).lineHeight) || 0;
-    const lines =
-      lineHeightPx > 0
+    const lines = isStacked
+      ? STACKED_COLLAPSED_LINES
+      : lineHeightPx > 0
         ? Math.max(1, Math.floor(COLLAPSED_MIN_HEIGHT / lineHeightPx))
         : 3;
     setMaxLines(lines);
     setCollapsedBodyHeight(COLLAPSED_MIN_HEIGHT);
-    // Truncation is when the non-clamped text is taller than the visible box.
-    setIsTruncated(
-      measure.getBoundingClientRect().height > COLLAPSED_MIN_HEIGHT + 1,
-    );
-  }, []);
+    // Truncation is when the non-clamped text is taller than what is visible.
+    const visibleHeight = isStacked
+      ? lineHeightPx * STACKED_COLLAPSED_LINES
+      : COLLAPSED_MIN_HEIGHT;
+    setIsTruncated(measure.getBoundingClientRect().height > visibleHeight + 1);
+  }, [isStacked]);
 
   useEffect(() => {
     updateCollapsedMetrics();
@@ -175,12 +219,14 @@ export function CollapsibleMediaBody({
 
   // The image's natural height at the thumbnail's width. If this exceeds the
   // collapsed box height, the image is being cropped from the bottom -> show
-  // "View more" so the user can reveal the rest.
+  // "View more" so the user can reveal the rest. True for both layouts: the
+  // stacked strip crops a tall image exactly like the feed's side thumbnail.
   const fullImageHeight =
     imageNatural && thumbnailWidth > 0
       ? thumbnailWidth * (imageNatural.h / imageNatural.w)
       : 0;
-  const imageIsCut = !isExpanded && fullImageHeight > collapsedBodyHeight + 1;
+  const imageIsCut =
+    !isExpanded && fullImageHeight > collapsedImageHeight + 1;
   const showToggle = isExpanded || isTruncated || imageIsCut;
 
   return (
@@ -196,73 +242,91 @@ export function CollapsibleMediaBody({
       >
         {header}
         <div
-          className={`flex min-w-0 gap-4 ${hasImage ? "items-start" : ""} ${isExpanded ? "flex-col" : ""}`}
-          style={isExpanded ? undefined : { minHeight: collapsedBodyHeight }}
+          className={`flex min-w-0 ${
+            isStacked ? "flex-col" : `gap-4 ${isSideRow ? "items-start" : "flex-col"}`
+          }`}
+          // The fixed minimum height keeps the side-by-side feed rectangle
+          // uniform. Stacked cards let the text take its own clamped height, so
+          // it must not apply here — otherwise a one-line post leaves a hole
+          // under the text.
+          style={!isStacked && !isExpanded ? { minHeight: collapsedBodyHeight } : undefined}
         >
-          <div className={hasImage ? (isExpanded ? "w-full min-w-0" : "w-1/2 min-w-0") : "w-full"}>
-          <div className="relative min-w-0 w-full">
-            {/* A <div>, not a <p>: the body can be rich content that renders
-                block elements (RichContent is a <div>), and a <div> inside a
-                <p> is invalid HTML — the browser reparents it, which breaks
-                hydration. */}
-            <div
-              ref={bodyRef}
-              className={`mb-4 whitespace-pre-wrap break-words leading-relaxed text-slate-800 [overflow-wrap:anywhere] transition-colors group-hover:text-slate-600 ${
-                isExpanded ? "" : "overflow-hidden"
-              } ${textClassName ?? ""}`}
-              style={isExpanded ? undefined : lineClampStyle(maxLines)}
-            >
-              {text}
-            </div>
-            {/* Hidden, non-clamped copy used purely for truncation measurement.
-                It must share the body's exact text-layout classes so it
-                wraps/breaks identically and gives an accurate height
-                comparison. */}
-            <div
-              ref={measureRef}
-              inert
-              aria-hidden="true"
-              className="pointer-events-none absolute left-0 top-0 w-full whitespace-pre-wrap break-words leading-relaxed [overflow-wrap:anywhere]"
-              style={{ visibility: "hidden" }}
-            >
-              {text}
+          <div className={isSideRow ? "w-1/2 min-w-0" : "w-full min-w-0"}>
+            <div className="relative min-w-0 w-full">
+              {/* A <div>, not a <p>: the body can be rich content that renders
+                  block elements (RichContent is a <div>), and a <div> inside a
+                  <p> is invalid HTML — the browser reparents it, which breaks
+                  hydration. */}
+              <div
+                ref={bodyRef}
+                className={`mb-3 whitespace-pre-wrap break-words leading-relaxed text-slate-800 [overflow-wrap:anywhere] transition-colors group-hover:text-slate-600 ${
+                  isExpanded ? "" : "overflow-hidden"
+                } ${textClassName ?? ""}`}
+                style={isExpanded ? undefined : lineClampStyle(maxLines)}
+              >
+                {text}
+              </div>
+              {/* Hidden, non-clamped copy used purely for truncation
+                  measurement. It must share the body's exact text-layout
+                  classes so it wraps/breaks identically and gives an accurate
+                  height comparison. */}
+              <div
+                ref={measureRef}
+                inert
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-0 w-full whitespace-pre-wrap break-words leading-relaxed [overflow-wrap:anywhere]"
+                style={{ visibility: "hidden" }}
+              >
+                {text}
+              </div>
             </div>
           </div>
-        </div>
-        {hasImage && (
-          <button
-            ref={imageButtonRef}
-            type="button"
-            aria-label="Open image preview"
-            className={`mb-4 ${isExpanded ? "w-full" : "w-1/2"} self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900`}
-            style={!isExpanded ? { height: collapsedBodyHeight } : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.nativeEvent?.stopImmediatePropagation();
-              setOpenIndex(0);
-            }}
-          >
-            <Image
-              src={imageUrl as string}
-              alt=""
-              width={800}
-              height={400}
-              unoptimized
-              loading={priority ? "eager" : "lazy"}
-              onLoad={(e) => {
-                const el = e.currentTarget;
-                if (el.naturalWidth && el.naturalHeight) {
-                  setImageNatural({ w: el.naturalWidth, h: el.naturalHeight });
-                }
+          {hasImage && (
+            <button
+              ref={imageButtonRef}
+              type="button"
+              aria-label="Open image preview"
+              className={`mb-3 self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900 ${
+                isSideRow ? "w-1/2" : "w-full"
+              }`}
+              style={!isExpanded ? { height: collapsedImageHeight } : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.nativeEvent?.stopImmediatePropagation();
+                setOpenIndex(0);
               }}
-              // Natural aspect ratio (`w-full h-auto`), so the image is never
-              // distorted. Any part taller than the box is cut off from the
-              // bottom only, hinting there is more -> "View more".
-              className="block w-full h-auto transition duration-200 hover:scale-[1.02]"
-            />
-          </button>
-        )}
+            >
+              <Image
+                src={imageUrl as string}
+                alt=""
+                width={800}
+                height={400}
+                unoptimized
+                loading={priority ? "eager" : "lazy"}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  if (el.naturalWidth && el.naturalHeight) {
+                    setImageNatural({ w: el.naturalWidth, h: el.naturalHeight });
+                  }
+                }}
+                // Side layout: natural aspect ratio, so the image is never
+                // distorted — anything taller than the collapsed box is cut off
+                // from the bottom only, hinting there is more -> "View more".
+                // Stacked collapsed: fill the full-width strip, anchored to the
+                // top so it reads like the feed's thumbnail.
+                // Expanded: shown at its natural aspect ratio, but capped so a
+                // tall screenshot does not take over the whole page.
+                className={`block transition duration-200 hover:scale-[1.02] ${
+                  isStacked && !isExpanded
+                    ? "h-full w-full object-cover object-top"
+                    : isExpanded
+                      ? "mx-auto h-auto max-h-[300px] w-auto max-w-full"
+                      : "h-auto w-full"
+                }`}
+              />
+            </button>
+          )}
         </div>
       </Link>
 
@@ -278,7 +342,7 @@ export function CollapsibleMediaBody({
             e.stopPropagation();
             setIsExpanded((current) => !current);
           }}
-          className="mt-3 inline-flex text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+          className="mt-2 inline-flex text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
         >
           {isExpanded ? "View less" : "View more"}
         </button>

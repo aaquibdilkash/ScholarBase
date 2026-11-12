@@ -8,6 +8,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
+import { CardChip } from "@/components/cards/CardChip";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import { Clock } from "lucide-react";
@@ -139,20 +140,17 @@ export function AdmissionCard({
       <CollapsibleMediaBody
         href={`/admissions/${admission.id}`}
         imageUrl={admission.imageUrl}
+        layout="stacked"
         contentKey={`${admission.description}|${admission.imageUrl ?? ""}`}
         header={
           <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                {levelLabel}
-              </span>
+              <CardChip tone="info">{levelLabel}</CardChip>
               {urgency && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-                >
-                  <Clock className="h-3 w-3" />
+                <CardChip tone={urgency.tone}>
+                  <Clock className="h-3 w-3" strokeWidth={2.5} />
                   {urgency.label}
-                </span>
+                </CardChip>
               )}
             </div>
 
@@ -160,7 +158,7 @@ export function AdmissionCard({
               {admission.university}
             </h2>
 
-            <div className="mb-3 space-y-1.5">
+            <div className="mb-2 space-y-1">
               <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
                 {admission.department}
               </p>
@@ -179,7 +177,7 @@ export function AdmissionCard({
         text={
           <RichContent
             content={admission.description}
-            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+            className="text-base leading-relaxed text-slate-600 dark:text-slate-300"
           />
         }
       />

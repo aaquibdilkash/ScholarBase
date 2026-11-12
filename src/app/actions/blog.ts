@@ -146,13 +146,17 @@ export async function createArticle(formData: FormData) {
   assertRichTextWithinLimit(content, MAX_ARTICLE_CONTENT, "Article content");
 
   // Promote draft images (cover + inline) to published before creating the article.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "article-cover",
     inlineKind: "article-inline",
     imageUrl: coverImageUrl || undefined,
     html: content,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   const baseSlug = slugify(title) || "article";
   let slug = baseSlug;
@@ -214,7 +218,7 @@ export async function createArticle(formData: FormData) {
       type: "content-published",
       targetType: "Article",
       targetId: article.id,
-      title: `${user.user_metadata?.name || user.email?.split("@")[0] || "Someone"} published a new article`,
+      title: `${user.user_metadata?.name || user.email?.split("@")[0] || "Someone"} published a new blog`,
       body: article.title,
     }),
     notifyMentionedUsers({
@@ -266,13 +270,17 @@ export async function updateArticle(formData: FormData, articleId: string) {
   }
 
   // Promote draft images (cover + inline) to published before updating.
-  const { coverUrl, publishedHtml } = await promoteContentImages({
+  const promoted = await promoteContentImages({
     coverKind: "article-cover",
     inlineKind: "article-inline",
     imageUrl: coverImageUrl || undefined,
     html: content,
     userId: user.id,
   });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl, publishedHtml } = promoted;
 
   // Work out which images this edit removes, but do NOT delete them yet.
   //
