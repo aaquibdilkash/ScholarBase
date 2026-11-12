@@ -7,7 +7,7 @@ import { createServiceClient } from "@/utils/supabase/service";
  * Supabase Storage bucket used for content images (blog articles, call for
  * papers). Public bucket: URLs resolve directly without signed URLs.
  */
-export const BLOG_IMAGE_BUCKET = "blog-images";
+export const CONTENT_IMAGE_BUCKET = "content-images";
 
 /**
  * The kind of image an object holds.
@@ -64,7 +64,7 @@ export async function uploadBlogImage({
   const path = `users/${userId}/drafts/${kind}/${crypto.randomUUID()}/${fileName}`;
 
   const { error } = await supabase.storage
-    .from(BLOG_IMAGE_BUCKET)
+    .from(CONTENT_IMAGE_BUCKET)
     .upload(path, buffer, {
       cacheControl: "3600",
       upsert: false,
@@ -75,7 +75,7 @@ export async function uploadBlogImage({
     throw new Error(`Failed to upload image to Supabase Storage: ${error.message}`);
   }
 
-  const { data: urlData } = supabase.storage.from(BLOG_IMAGE_BUCKET).getPublicUrl(path);
+  const { data: urlData } = supabase.storage.from(CONTENT_IMAGE_BUCKET).getPublicUrl(path);
 
   return {
     url: urlData.publicUrl,
@@ -118,7 +118,7 @@ export async function publishBlogImage({
   const publishedPath = `users/${userId}/published/${kind}/${uuid}/${fileName}`;
 
   const { error: copyError } = await supabase.storage
-    .from(BLOG_IMAGE_BUCKET)
+    .from(CONTENT_IMAGE_BUCKET)
     .copy(draftPath, publishedPath);
 
   if (copyError) {
@@ -126,9 +126,9 @@ export async function publishBlogImage({
   }
 
   // Remove the draft copy
-  await supabase.storage.from(BLOG_IMAGE_BUCKET).remove([draftPath]);
+  await supabase.storage.from(CONTENT_IMAGE_BUCKET).remove([draftPath]);
 
-  const { data: urlData } = supabase.storage.from(BLOG_IMAGE_BUCKET).getPublicUrl(publishedPath);
+  const { data: urlData } = supabase.storage.from(CONTENT_IMAGE_BUCKET).getPublicUrl(publishedPath);
 
   return urlData.publicUrl;
 }
@@ -143,7 +143,7 @@ export async function deleteBlogImagePaths(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
 
   const supabase = await getSupabase();
-  const { error } = await supabase.storage.from(BLOG_IMAGE_BUCKET).remove(paths);
+  const { error } = await supabase.storage.from(CONTENT_IMAGE_BUCKET).remove(paths);
 
   if (error) {
     console.error("[deleteBlogImagePaths] Supabase Storage remove error:", error.message);
@@ -165,7 +165,7 @@ export async function deleteBlogImagePathsAsServiceRole(
   if (paths.length === 0) return;
 
   const supabase = createServiceClient();
-  const { error } = await supabase.storage.from(BLOG_IMAGE_BUCKET).remove(paths);
+  const { error } = await supabase.storage.from(CONTENT_IMAGE_BUCKET).remove(paths);
 
   if (error) {
     console.error(
@@ -189,7 +189,7 @@ export async function deleteBlogImagePathsAsServiceRole(
  * @returns The decoded storage key, or null when the bucket is not ours.
  */
 function storageKeyFromPathname(pathname: string): string | null {
-  const prefix = `/public/blog-images/`;
+  const prefix = `/public/content-images/`;
   const idx = pathname.indexOf(prefix);
   if (idx === -1) return null;
 
@@ -205,7 +205,7 @@ function storageKeyFromPathname(pathname: string): string | null {
 
 /**
  * Extracts Supabase Storage image references from an HTML string.
- * Finds every  src attribute pointing at the blog-images bucket.
+ * Finds every  src attribute pointing at the content-images bucket.
  *
  * Returns the full `src` URL AND the DECODED storage key, so callers can
  * rewrite the exact URL string that appears in the HTML (instead of
@@ -221,8 +221,8 @@ export function extractBlogImageUrlsFromHtml(
   const refs: { url: string; path: string }[] = [];
 
   // Match Supabase Storage public URLs:
-  // https://<project>.supabase.co/storage/v1/object/public/blog-images/<path>
-  const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/blog-images\/[^"]+)"[^>]*>/gi;
+  // https://<project>.supabase.co/storage/v1/object/public/content-images/<path>
+  const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"[^>]*>/gi;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(html)) !== null) {
@@ -245,7 +245,7 @@ export function extractBlogImageUrlsFromHtml(
 
 /**
  * Extracts Supabase Storage paths from an HTML string.
- * Finds all  src attributes pointing to the blog-images bucket.
+ * Finds all  src attributes pointing to the content-images bucket.
  *
  * @param html - HTML content (e.g., article.description).
  * @returns Array of storage paths.
@@ -257,12 +257,12 @@ export function extractBlogImagePathsFromHtml(html: string): string[] {
 /**
  * Extracts the Supabase Storage key from a public image URL.
  *
- * Works for any object in the `blog-images` bucket (a cover or an inline
+ * Works for any object in the `content-images` bucket (a cover or an inline
  * image), and returns the DECODED key so it can be handed to Storage
  * `copy`/`remove` unchanged — see `storageKeyFromPathname`.
  *
  * @param imageUrl - The stored image URL (Article.imageUrl and friends).
- * @returns Storage key or null when the URL is not a blog-images object.
+ * @returns Storage key or null when the URL is not a content-images object.
  */
 export function extractCoverImagePath(imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;

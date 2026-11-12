@@ -54,7 +54,7 @@ export async function GET() {
           // Match the PATH, not the host: the deployment serves Supabase
           // Storage from a custom domain (`api.staging.scholarbase.app`),
           // not `supabase.co`. Only the path segment is stable.
-          contains: '/storage/v1/object/public/blog-images',
+          contains: '/storage/v1/object/public/content-images',
         },
       },
     });

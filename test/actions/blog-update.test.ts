@@ -67,36 +67,36 @@ const deleteBlogImagePaths = vi.fn(async (_paths: string[]) => {
 });
 const publishBlogImage = vi.fn(
   async ({ userId, draftPath, kind }: { userId: string; draftPath: string; kind: string }) =>
-    `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${userId}/published/${kind}/${draftPath.split("/").pop()}`,
+    `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${userId}/published/${kind}/${draftPath.split("/").pop()}`,
 );
 
 vi.mock("@/lib/supabase-storage", () => ({
-  BLOG_IMAGE_BUCKET: "blog-images",
+  CONTENT_IMAGE_BUCKET: "content-images",
   deleteBlogImagePaths: (paths: string[]) => deleteBlogImagePaths(paths),
   publishBlogImage: (args: Parameters<typeof publishBlogImage>[0]) =>
     publishBlogImage(args),
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
-    const match = url.match(/\/public\/blog-images\/(.+)$/);
+    const match = url.match(/\/public\/content-images\/(.+)$/);
     // The real helper decodes the percent-encoded public URL back to the key.
     return match ? decodeURIComponent(match[1]) : null;
   },
   extractBlogImagePathsFromHtml: (html: string) => {
     const paths: string[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/blog-images\/[^"]+)"/gi;
+    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
-      const path = match[1].match(/\/public\/blog-images\/(.+)$/);
+      const path = match[1].match(/\/public\/content-images\/(.+)$/);
       if (path) paths.push(decodeURIComponent(path[1]));
     }
     return paths;
   },
   extractBlogImageUrlsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/blog-images\/[^"]+)"/gi;
+    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
-      const path = match[1].match(/\/public\/blog-images\/(.+)$/);
+      const path = match[1].match(/\/public\/content-images\/(.+)$/);
       if (path) refs.push({ url: match[1], path: decodeURIComponent(path[1]) });
     }
     return refs;
@@ -104,7 +104,7 @@ vi.mock("@/lib/supabase-storage", () => ({
 }));
 
 const pub = (path: string) =>
-  `${SUPABASE_URL}/storage/v1/object/public/blog-images/${path}`;
+  `${SUPABASE_URL}/storage/v1/object/public/content-images/${path}`;
 
 const form = (fields: Record<string, string>) => {
   const fd = new FormData();

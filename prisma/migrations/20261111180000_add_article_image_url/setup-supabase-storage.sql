@@ -22,8 +22,8 @@
 -- Create the bucket (public)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-  'blog-images',
-  'blog-images',
+  'content-images',
+  'content-images',
   true,
   5242880, -- 5 MB
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']
@@ -44,7 +44,7 @@ DROP POLICY IF EXISTS "Users can upload to their own draft folder" ON storage.ob
 CREATE POLICY "Users can upload to their own draft folder" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'drafts'
@@ -54,7 +54,7 @@ DROP POLICY IF EXISTS "Users can read their own draft images" ON storage.objects
 CREATE POLICY "Users can read their own draft images" ON storage.objects
 FOR SELECT TO authenticated
 USING (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'drafts'
@@ -64,13 +64,13 @@ DROP POLICY IF EXISTS "Users can update their own draft images" ON storage.objec
 CREATE POLICY "Users can update their own draft images" ON storage.objects
 FOR UPDATE TO authenticated
 USING (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'drafts'
 )
 WITH CHECK (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'drafts'
@@ -80,7 +80,7 @@ DROP POLICY IF EXISTS "Users can delete their own draft images" ON storage.objec
 CREATE POLICY "Users can delete their own draft images" ON storage.objects
 FOR DELETE TO authenticated
 USING (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'drafts'
@@ -92,7 +92,7 @@ DROP POLICY IF EXISTS "Users can publish drafts to published folder" ON storage.
 CREATE POLICY "Users can publish drafts to published folder" ON storage.objects
 FOR INSERT TO authenticated
 WITH CHECK (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'published'
@@ -105,7 +105,7 @@ DROP POLICY IF EXISTS "Users can delete their own published images" ON storage.o
 CREATE POLICY "Users can delete their own published images" ON storage.objects
 FOR DELETE TO authenticated
 USING (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[1] = 'users'
   AND (storage.foldername(name))[2] = auth.uid()::text
   AND (storage.foldername(name))[3] = 'published'
@@ -116,7 +116,7 @@ DROP POLICY IF EXISTS "Public can read published images" ON storage.objects;
 CREATE POLICY "Public can read published images" ON storage.objects
 FOR SELECT TO public
 USING (
-  bucket_id = 'blog-images'
+  bucket_id = 'content-images'
   AND (storage.foldername(name))[3] = 'published'
 );
 
@@ -125,5 +125,5 @@ USING (
 DROP POLICY IF EXISTS "Service role can manage blog images" ON storage.objects;
 CREATE POLICY "Service role can manage blog images" ON storage.objects
 FOR ALL TO service_role
-USING (bucket_id = 'blog-images')
-WITH CHECK (bucket_id = 'blog-images');
+USING (bucket_id = 'content-images')
+WITH CHECK (bucket_id = 'content-images');

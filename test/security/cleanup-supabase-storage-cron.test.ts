@@ -30,14 +30,14 @@ vi.mock("@/lib/cron", () => ({
 const deleteBlogImagePathsAsServiceRole = vi.fn(async (_paths: string[]) => {});
 
 vi.mock("@/lib/supabase-storage", () => ({
-  BLOG_IMAGE_BUCKET: "blog-images",
+  CONTENT_IMAGE_BUCKET: "content-images",
   deleteBlogImagePathsAsServiceRole: (paths: string[]) =>
     deleteBlogImagePathsAsServiceRole(paths),
   // Mirrors the real helper: the public URL is percent-encoded, Storage takes
   // the decoded key.
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
-    const marker = "/public/blog-images/";
+    const marker = "/public/content-images/";
     const idx = url.indexOf(marker);
     if (idx === -1) return null;
     const encoded = url.slice(idx + marker.length);
@@ -96,7 +96,7 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
 
   it("deletes the queued object from Supabase Storage and clears the queue", async () => {
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
     );
 
     const response = await get();
@@ -118,7 +118,7 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
     // The deployment serves Storage from a custom domain, not supabase.co —
     // a host-based filter would silently match nothing.
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
     );
 
     const response = await get();
@@ -132,7 +132,7 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
   it("deletes a file whose name contains a space by its decoded key", async () => {
     // getPublicUrl percent-encodes the path; Storage deletes by raw key.
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/u1/published/cfp-cover/abc/download%20(2).jpeg`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cfp-cover/abc/download%20(2).jpeg`,
     );
 
     const response = await get();
@@ -154,12 +154,12 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
 
   it("clears a queued row whose URL cannot be parsed, so the queue cannot stall", async () => {
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
     );
     // A second row with a Supabase-looking prefix but an unparseable path.
     fakeDb.seed("orphanedAsset", {
       id: "oa-broken",
-      url: "not-a-url supabase.co/storage/v1/object/public/blog-images/x",
+      url: "not-a-url supabase.co/storage/v1/object/public/content-images/x",
       createdAt: new Date(),
     });
 

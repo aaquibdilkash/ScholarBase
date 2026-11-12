@@ -57,7 +57,7 @@ const uploadBlogImage = vi.fn(
     kind: string;
     fileType: string;
   }) => ({
-    url: `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${userId}/drafts/${kind}/uuid/${fileName}`,
+    url: `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${userId}/drafts/${kind}/uuid/${fileName}`,
     path: `users/${userId}/drafts/${kind}/uuid/${fileName}`,
     bytes: buffer.length,
   }),
@@ -66,11 +66,11 @@ const uploadBlogImage = vi.fn(
 const deleteBlogImagePaths = vi.fn(async (_paths: string[]) => {});
 const publishBlogImage = vi.fn(
   async ({ userId, draftPath, kind }: { userId: string; draftPath: string; kind: string }) =>
-    `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${userId}/published/${kind}/${draftPath.split("/").slice(-2).join("/")}`,
+    `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${userId}/published/${kind}/${draftPath.split("/").slice(-2).join("/")}`,
 );
 
 vi.mock("@/lib/supabase-storage", () => ({
-  BLOG_IMAGE_BUCKET: "blog-images",
+  CONTENT_IMAGE_BUCKET: "content-images",
   uploadBlogImage: (args: Parameters<typeof uploadBlogImage>[0]) =>
     uploadBlogImage(args),
   deleteBlogImagePaths: (paths: string[]) => deleteBlogImagePaths(paths),
@@ -78,28 +78,28 @@ vi.mock("@/lib/supabase-storage", () => ({
     publishBlogImage(args),
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
-    const match = url.match(/\/public\/blog-images\/(.+)$/);
+    const match = url.match(/\/public\/content-images\/(.+)$/);
     // The real helper decodes the percent-encoded public URL back to the key.
     return match ? decodeURIComponent(match[1]) : null;
   },
   extractBlogImageUrlsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/blog-images\/[^"]+)"/gi;
+    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
       const url = match[1];
-      const path = url.match(/\/public\/blog-images\/(.+)$/);
+      const path = url.match(/\/public\/content-images\/(.+)$/);
       if (path) refs.push({ url, path: decodeURIComponent(path[1]) });
     }
     return refs;
   },
   extractBlogImagePathsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/blog-images\/[^"]+)"/gi;
+    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
       const url = match[1];
-      const path = url.match(/\/public\/blog-images\/(.+)$/);
+      const path = url.match(/\/public\/content-images\/(.+)$/);
       if (path) refs.push({ url, path: decodeURIComponent(path[1]) });
     }
     return refs.map((r) => r.path);
@@ -217,7 +217,7 @@ describe("deleteDraftBlogImage", () => {
   });
 
   it("deletes an object inside the caller's own draft folder", async () => {
-    const url = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cover/uuid/photo.png`;
+    const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cover/uuid/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(true);
     expect(deleteBlogImagePaths).toHaveBeenCalledWith([
@@ -226,14 +226,14 @@ describe("deleteDraftBlogImage", () => {
   });
 
   it("refuses to delete an object in another user's folder", async () => {
-    const url = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
+    const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(false);
     expect(deleteBlogImagePaths).not.toHaveBeenCalled();
   });
 
   it("refuses to delete an already-published object", async () => {
-    const url = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/cover/photo.png`;
+    const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/cover/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(false);
     expect(deleteBlogImagePaths).not.toHaveBeenCalled();
@@ -242,7 +242,7 @@ describe("deleteDraftBlogImage", () => {
 
 describe("findRemovedImagePaths", () => {
   const img = (path: string) =>
-    `<img src="${SUPABASE_URL}/storage/v1/object/public/blog-images/${path}" />`;
+    `<img src="${SUPABASE_URL}/storage/v1/object/public/content-images/${path}" />`;
 
   it("reports nothing when the body did not change", () => {
     const body = `<p>a</p>${img(`users/${USER}/published/inline/fig.png`)}`;
@@ -277,7 +277,7 @@ describe("findRemovedImagePaths", () => {
   });
 
   it("recognises a legacy escaped image as removed", () => {
-    const oldBody = `&lt;img src="${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/inline/fig.png" /&gt;`;
+    const oldBody = `&lt;img src="${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/inline/fig.png" /&gt;`;
 
     expect(findRemovedImagePaths(oldBody, "<p>a</p>")).toEqual([
       `users/${USER}/published/inline/fig.png`,
@@ -285,7 +285,7 @@ describe("findRemovedImagePaths", () => {
   });
 
   it("does not treat a legacy escaped image as newly added", () => {
-    const body = `&lt;img src="${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/inline/fig.png" /&gt;`;
+    const body = `&lt;img src="${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/inline/fig.png" /&gt;`;
 
     expect(findRemovedImagePaths(body, body)).toEqual([]);
   });
@@ -302,7 +302,7 @@ describe("promoteContentImages", () => {
   }
 
   it("publishes the cover image and returns the published url", async () => {
-    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cover/uuid/photo.png`;
+    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cover/uuid/photo.png`;
 
     const result = await promoteOrFail({
       coverKind: "article-cover",
@@ -317,7 +317,7 @@ describe("promoteContentImages", () => {
       kind: "article-cover",
     });
     expect(result.coverUrl).toBe(
-      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/article-cover/uuid/photo.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/article-cover/uuid/photo.png`,
     );
     expect(result.publishedHtml).toBe("<p>hello</p>");
   });
@@ -326,7 +326,7 @@ describe("promoteContentImages", () => {
     // A browser-saved JPEG arrives as `download (2).jpeg`; getPublicUrl
     // addresses it as `download%20(2).jpeg`, but Storage copy/remove take the
     // RAW key. Handing them the encoded one fails with "Object not found".
-    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cfp-cover/uuid/download%20(2).jpeg`;
+    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cfp-cover/uuid/download%20(2).jpeg`;
 
     await promoteOrFail({
       coverKind: "cfp-cover",
@@ -358,7 +358,7 @@ describe("promoteContentImages", () => {
     // Editing an article without replacing the cover sends the PUBLISHED url
     // back. Re-copying it onto its own published path fails with
     // "The resource already exists", so it must be left alone.
-    const publishedCover = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/cover/photo.png`;
+    const publishedCover = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/cover/photo.png`;
 
     const result = await promoteOrFail({
       coverKind: "article-cover",
@@ -372,7 +372,7 @@ describe("promoteContentImages", () => {
   });
 
   it("does not re-publish an inline image that is already published", async () => {
-    const publishedSrc = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/inline/fig.png`;
+    const publishedSrc = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/inline/fig.png`;
     const html = `<img src="${publishedSrc}" alt="fig" />`;
 
     const result = await promoteOrFail({
@@ -388,7 +388,7 @@ describe("promoteContentImages", () => {
   });
 
   it("rewrites inline draft image urls in the body to their published urls", async () => {
-    const draftSrc = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/inline/uuid/fig.png`;
+    const draftSrc = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/inline/uuid/fig.png`;
     const html = `<p>before</p><img src="${draftSrc}" alt="fig" />`;
 
     const result = await promoteOrFail({
@@ -427,7 +427,7 @@ describe("promoteContentImages", () => {
     // A stale bucket policy made every promote fail with an RLS error, which
     // surfaced as an opaque 500 on submit. It must come back as a normal
     // failure so the action can tell the user something.
-    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cover/uuid/photo.png`;
+    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cover/uuid/photo.png`;
     publishBlogImage.mockRejectedValueOnce(
       new Error(
         "Failed to publish image: new row violates row-level security policy",
@@ -451,7 +451,7 @@ describe("promoteContentImages", () => {
   it("refuses to promote a cover draft owned by another user", async () => {
     // The cover URL is client supplied. RLS would reject the copy anyway, but
     // the ownership rule belongs in the code, like the inline-image branch.
-    const foreignCover = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
+    const foreignCover = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     const result = await promoteContentImages({

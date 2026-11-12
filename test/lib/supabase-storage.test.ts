@@ -18,7 +18,7 @@ import {
 
 const SUPABASE_URL = "https://api.staging.scholarbase.app";
 const publicUrl = (path: string) =>
-  `${SUPABASE_URL}/storage/v1/object/public/blog-images/${path}`;
+  `${SUPABASE_URL}/storage/v1/object/public/content-images/${path}`;
 
 describe("extractCoverImagePath", () => {
   it("returns the decoded key for a file name containing spaces and brackets", () => {
@@ -56,7 +56,7 @@ describe("extractCoverImagePath", () => {
     );
   });
 
-  it("returns null for a URL outside the blog-images bucket", () => {
+  it("returns null for a URL outside the content-images bucket", () => {
     expect(
       extractCoverImagePath("https://res.cloudinary.com/demo/image/upload/a.jpg"),
     ).toBeNull();
@@ -96,7 +96,7 @@ describe("extractBlogImageUrlsFromHtml", () => {
     ]);
   });
 
-  it("ignores images that are not in the blog-images bucket", () => {
+  it("ignores images that are not in the content-images bucket", () => {
     const html = `<img src="https://res.cloudinary.com/demo/image/upload/a.jpg" />`;
 
     expect(extractBlogImageUrlsFromHtml(html)).toEqual([]);

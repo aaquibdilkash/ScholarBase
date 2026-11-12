@@ -67,7 +67,7 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -78,10 +78,10 @@ BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, (m)[1], NOW()
     FROM "Article",
-    LATERAL regexp_matches("content", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    LATERAL regexp_matches("content", '(https?://[^"]*/storage/v1/object/public/content-images/[^"]+)', 'g') AS m
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "content" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "content" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -94,7 +94,7 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -104,10 +104,10 @@ BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, (m)[1], NOW()
     FROM "CallForPaper",
-    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/content-images/[^"]+)', 'g') AS m
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "description" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -120,7 +120,7 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -130,10 +130,10 @@ BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, (m)[1], NOW()
     FROM "Admission",
-    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/content-images/[^"]+)', 'g') AS m
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "description" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -146,7 +146,7 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -156,10 +156,10 @@ BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
     SELECT gen_random_uuid()::text, (m)[1], NOW()
     FROM "AcademicPosition",
-    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    LATERAL regexp_matches("description", '(https?://[^"]*/storage/v1/object/public/content-images/[^"]+)', 'g') AS m
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "description" LIKE '%/storage/v1/object/public/blog-images/%';
+      AND "description" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
