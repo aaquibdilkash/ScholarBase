@@ -79,7 +79,8 @@ vi.mock("@/lib/supabase-storage", () => ({
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
     const match = url.match(/\/public\/blog-images\/(.+)$/);
-    return match ? match[1] : null;
+    // The real helper decodes the percent-encoded public URL back to the key.
+    return match ? decodeURIComponent(match[1]) : null;
   },
   extractBlogImageUrlsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
@@ -88,7 +89,7 @@ vi.mock("@/lib/supabase-storage", () => ({
     while ((match = regex.exec(html)) !== null) {
       const url = match[1];
       const path = url.match(/\/public\/blog-images\/(.+)$/);
-      if (path) refs.push({ url, path: path[1] });
+      if (path) refs.push({ url, path: decodeURIComponent(path[1]) });
     }
     return refs;
   },
@@ -99,7 +100,7 @@ vi.mock("@/lib/supabase-storage", () => ({
     while ((match = regex.exec(html)) !== null) {
       const url = match[1];
       const path = url.match(/\/public\/blog-images\/(.+)$/);
-      if (path) refs.push({ url, path: path[1] });
+      if (path) refs.push({ url, path: decodeURIComponent(path[1]) });
     }
     return refs.map((r) => r.path);
   },
@@ -319,6 +320,26 @@ describe("promoteContentImages", () => {
       `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/published/article-cover/uuid/photo.png`,
     );
     expect(result.publishedHtml).toBe("<p>hello</p>");
+  });
+
+  it("promotes a file name that the public URL percent-encodes", async () => {
+    // A browser-saved JPEG arrives as `download (2).jpeg`; getPublicUrl
+    // addresses it as `download%20(2).jpeg`, but Storage copy/remove take the
+    // RAW key. Handing them the encoded one fails with "Object not found".
+    const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/${USER}/drafts/cfp-cover/uuid/download%20(2).jpeg`;
+
+    await promoteOrFail({
+      coverKind: "cfp-cover",
+      imageUrl: coverUrl,
+      html: "<p>hello</p>",
+      userId: USER,
+    });
+
+    expect(publishBlogImage).toHaveBeenCalledWith({
+      userId: USER,
+      draftPath: `users/${USER}/drafts/cfp-cover/uuid/download (2).jpeg`,
+      kind: "cfp-cover",
+    });
   });
 
   it("leaves a non-Supabase cover url untouched", async () => {

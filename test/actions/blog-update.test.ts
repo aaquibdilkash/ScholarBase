@@ -78,7 +78,8 @@ vi.mock("@/lib/supabase-storage", () => ({
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
     const match = url.match(/\/public\/blog-images\/(.+)$/);
-    return match ? match[1] : null;
+    // The real helper decodes the percent-encoded public URL back to the key.
+    return match ? decodeURIComponent(match[1]) : null;
   },
   extractBlogImagePathsFromHtml: (html: string) => {
     const paths: string[] = [];
@@ -86,7 +87,7 @@ vi.mock("@/lib/supabase-storage", () => ({
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
       const path = match[1].match(/\/public\/blog-images\/(.+)$/);
-      if (path) paths.push(path[1]);
+      if (path) paths.push(decodeURIComponent(path[1]));
     }
     return paths;
   },
@@ -96,7 +97,7 @@ vi.mock("@/lib/supabase-storage", () => ({
     let match: RegExpExecArray | null;
     while ((match = regex.exec(html)) !== null) {
       const path = match[1].match(/\/public\/blog-images\/(.+)$/);
-      if (path) refs.push({ url: match[1], path: path[1] });
+      if (path) refs.push({ url: match[1], path: decodeURIComponent(path[1]) });
     }
     return refs;
   },

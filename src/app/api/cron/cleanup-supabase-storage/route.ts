@@ -2,29 +2,13 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyCronSecret } from '@/lib/cron';
-import { deleteBlogImagePathsAsServiceRole } from '@/lib/supabase-storage';
+import {
+  deleteBlogImagePathsAsServiceRole,
+  extractCoverImagePath,
+} from '@/lib/supabase-storage';
 import { hasServiceRoleCredentials } from '@/utils/supabase/service';
 
 export const revalidate = 0;
-
-/**
- * Extracts the Supabase Storage path from a public URL.
- *
- * Example:
- * https://project.supabase.co/storage/v1/object/public/blog-images/users/u123/published/cover/abc/file.jpg
- * -> "users/u123/published/cover/abc/file.jpg"
- */
-function extractStoragePath(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const prefix = `/public/blog-images/`;
-    const idx = parsed.pathname.indexOf(prefix);
-    if (idx === -1) return null;
-    return parsed.pathname.slice(idx + prefix.length);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Cron: deletes orphaned Supabase Storage objects.
@@ -84,10 +68,12 @@ export async function GET() {
       });
     }
 
-    // 2. Extract valid storage paths from the stored URLs
+    // 2. Extract valid storage keys from the stored URLs. The helper returns
+    // the DECODED key, because `getPublicUrl` percent-encodes the path while
+    // Storage deletes by raw key (`download (2).jpeg`, not `download%20(2).jpeg`).
     const paths: string[] = [];
     for (const asset of orphanedAssets) {
-      const path = extractStoragePath(asset.url);
+      const path = extractCoverImagePath(asset.url);
       if (path) {
         paths.push(path);
       }

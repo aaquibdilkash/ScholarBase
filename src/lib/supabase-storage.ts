@@ -176,12 +176,41 @@ export async function deleteBlogImagePathsAsServiceRole(
 }
 
 /**
+ * Converts a public URL pathname into the Storage OBJECT KEY.
+ *
+ * `getPublicUrl` runs the path through `encodeURI`, so an object stored as
+ * `download (2).jpeg` is addressed as `download%20(2).jpeg`. Storage `copy`
+ * and `remove` take keys, not URLs: handing them the encoded string makes
+ * them look for a key that does not exist ("Object not found"), which is why
+ * every image whose file name held a space, a bracket or a non-ASCII
+ * character failed to publish while `photo.png` worked.
+ *
+ * @param pathname - A public URL pathname (`/storage/v1/object/public/...`).
+ * @returns The decoded storage key, or null when the bucket is not ours.
+ */
+function storageKeyFromPathname(pathname: string): string | null {
+  const prefix = `/public/blog-images/`;
+  const idx = pathname.indexOf(prefix);
+  if (idx === -1) return null;
+
+  const encoded = pathname.slice(idx + prefix.length);
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    // A malformed escape (the URL can be client supplied) is not a key we can
+    // resolve. Keep it as-is rather than throwing; callers validate ownership.
+    return encoded;
+  }
+}
+
+/**
  * Extracts Supabase Storage image references from an HTML string.
  * Finds every  src attribute pointing at the blog-images bucket.
  *
- * Returns the full `src` URL AND the storage path, so callers can rewrite
- * the exact URL string that appears in the HTML instead of reconstructing it
- * from an env var (which breaks when the origin differs).
+ * Returns the full `src` URL AND the DECODED storage key, so callers can
+ * rewrite the exact URL string that appears in the HTML (instead of
+ * reconstructing it from an env var, which breaks when the origin differs)
+ * and hand the key to Storage `copy`/`remove` unchanged.
  *
  * @param html - HTML content (e.g., article.description).
  * @returns Array of { url, path }.
@@ -200,13 +229,11 @@ export function extractBlogImageUrlsFromHtml(
     const url = match[1];
     try {
       const parsed = new URL(url);
-      const prefix = `/public/blog-images/`;
-      const idx = parsed.pathname.indexOf(prefix);
-      if (idx !== -1) {
-        refs.push({
-          url,
-          path: parsed.pathname.slice(idx + prefix.length),
-        });
+      const path = storageKeyFromPathname(parsed.pathname);
+      if (path) {
+        // `url` stays exactly as it appears in the HTML so the caller can
+        // replace that string verbatim; `path` is the decoded storage key.
+        refs.push({ url, path });
       }
     } catch {
       // Ignore unparseable URLs
@@ -228,21 +255,20 @@ export function extractBlogImagePathsFromHtml(html: string): string[] {
 }
 
 /**
- * Extracts the cover image storage path from an imageUrl field.
+ * Extracts the Supabase Storage key from a public image URL.
  *
- * @param imageUrl - The Article.imageUrl value.
- * @returns Storage path or null.
+ * Works for any object in the `blog-images` bucket (a cover or an inline
+ * image), and returns the DECODED key so it can be handed to Storage
+ * `copy`/`remove` unchanged — see `storageKeyFromPathname`.
+ *
+ * @param imageUrl - The stored image URL (Article.imageUrl and friends).
+ * @returns Storage key or null when the URL is not a blog-images object.
  */
 export function extractCoverImagePath(imageUrl: string | null | undefined): string | null {
   if (!imageUrl) return null;
 
   try {
-    const parsed = new URL(imageUrl);
-    const prefix = `/public/blog-images/`;
-    const idx = parsed.pathname.indexOf(prefix);
-    if (idx !== -1) {
-      return parsed.pathname.slice(idx + prefix.length);
-    }
+    return storageKeyFromPathname(new URL(imageUrl).pathname);
   } catch {
     // Ignore
   }

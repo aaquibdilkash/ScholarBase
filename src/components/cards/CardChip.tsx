@@ -21,7 +21,7 @@ export type CardChipTone = keyof typeof TONES;
 
 type CardChipProps = {
   tone?: CardChipTone;
-  /** Optional leading icon; sized to the chip's text by the caller. */
+  /** Optional leading icon; sized to match the text by the caller. */
   children: ReactNode;
   className?: string;
 };
@@ -32,12 +32,15 @@ type CardChipProps = {
  * A fixed height (not padding alone) is what keeps a chip with an icon the
  * same size as one without — previously the urgency badge's 16px clock made it
  * taller than the text-only category/type chips beside it.
+ *
+ * `leading-none` collapses the text's line-box so its centre lines up with the
+ * centred icon instead of sitting on the line-box's ascender-heavy centre.
  */
 export function CardChip({ tone = "neutral", children, className }: CardChipProps) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 text-[11px] font-semibold uppercase tracking-wide",
+        "inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 text-[11px] font-semibold uppercase tracking-wide leading-none",
         TONES[tone],
         className,
       )}

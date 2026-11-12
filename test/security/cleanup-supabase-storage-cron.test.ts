@@ -33,6 +33,20 @@ vi.mock("@/lib/supabase-storage", () => ({
   BLOG_IMAGE_BUCKET: "blog-images",
   deleteBlogImagePathsAsServiceRole: (paths: string[]) =>
     deleteBlogImagePathsAsServiceRole(paths),
+  // Mirrors the real helper: the public URL is percent-encoded, Storage takes
+  // the decoded key.
+  extractCoverImagePath: (url: string | null | undefined) => {
+    if (!url) return null;
+    const marker = "/public/blog-images/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    const encoded = url.slice(idx + marker.length);
+    try {
+      return decodeURIComponent(encoded);
+    } catch {
+      return encoded;
+    }
+  },
 }));
 
 vi.mock("@/utils/supabase/service", () => ({
@@ -112,6 +126,20 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
     expect(response.status).toBe(200);
     expect(deleteBlogImagePathsAsServiceRole).toHaveBeenCalledWith([
       "users/u1/published/cover/abc/file.png",
+    ]);
+  });
+
+  it("deletes a file whose name contains a space by its decoded key", async () => {
+    // getPublicUrl percent-encodes the path; Storage deletes by raw key.
+    seedOrphan(
+      `${SUPABASE_URL}/storage/v1/object/public/blog-images/users/u1/published/cfp-cover/abc/download%20(2).jpeg`,
+    );
+
+    const response = await get();
+
+    expect(response.status).toBe(200);
+    expect(deleteBlogImagePathsAsServiceRole).toHaveBeenCalledWith([
+      "users/u1/published/cfp-cover/abc/download (2).jpeg",
     ]);
   });
 
