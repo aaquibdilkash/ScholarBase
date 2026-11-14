@@ -7,6 +7,12 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteCallForPaper, getEvent } from "@/app/actions/call-for-papers";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { FeedImage } from "@/components/feed/FeedImage";
@@ -83,6 +89,41 @@ const EventDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.callForPaper,
+              path: `/call-for-papers/${event.id}`,
+              name: event.title,
+              description: event.description,
+              author: {
+                name: event.author?.name,
+                path: event.author?.id ? `/scholars/${event.author.id}` : null,
+              },
+              datePublished: event.createdAt,
+              extra: {
+                genre: "Call for papers",
+                ...(event.publisher
+                  ? {
+                      publisher: {
+                        "@type": "Organization",
+                        name: event.publisher,
+                      },
+                    }
+                  : {}),
+                ...(event.deadline
+                  ? { expires: new Date(event.deadline).toISOString() }
+                  : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Call for Papers", path: "/call-for-papers" },
+              { name: event.title, path: `/call-for-papers/${event.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related events" items={related} />}
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}

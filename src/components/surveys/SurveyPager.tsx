@@ -39,7 +39,7 @@ export function SurveyPager({
   // the three items can never overlap on a narrow card. From `sm` up there is
   // room for the original single row with the label centered between them.
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-4 sm:flex-nowrap sm:gap-3">
+    <div className="flex flex-wrap items-center gap-2 py-4 sm:flex-nowrap sm:gap-3">
       <button
         type="button"
         onClick={onBack}

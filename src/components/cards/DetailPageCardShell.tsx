@@ -89,6 +89,15 @@ export type DetailPageCardShellProps = {
   // correctly via generateMetadata().
   shareTitle?: string;
   shareText?: string;
+
+  /**
+   * Structured-data script for the page.
+   *
+   * Passed as a prop rather than rendered by each page's own JSX so the 17
+   * detail pages that use this shell get one consistent injection point, and
+   * the script sits directly under `<main>` instead of inside the article body.
+   */
+  structuredData?: ReactNode;
 };
 
 export default function DetailPageCardShell({
@@ -128,6 +137,7 @@ export default function DetailPageCardShell({
   createdDate,
   shareTitle,
   shareText,
+  structuredData,
 }: DetailPageCardShellProps) {
   // In current usage, `managementControls` is only passed for owners.
   const isOwner = Boolean(managementControls);
@@ -142,6 +152,8 @@ export default function DetailPageCardShell({
         className,
       )}
     >
+      {structuredData}
+
       <Link
         prefetch={false}
         href={backHref}

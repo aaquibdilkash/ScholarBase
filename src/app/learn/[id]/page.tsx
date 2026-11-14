@@ -9,6 +9,12 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -98,6 +104,49 @@ export default async function CourseDetailPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.course,
+              path: `/learn/${course.id}`,
+              name: course.title,
+              description: course.description,
+              author: {
+                name: course.author?.name,
+                path: course.author?.id
+                  ? `/scholars/${course.author.id}`
+                  : null,
+              },
+              datePublished: course.createdAt,
+              dateModified: course.editedAt,
+              extra: {
+                ...(course.provider
+                  ? {
+                      provider: {
+                        "@type": "Organization",
+                        name: course.provider,
+                      },
+                    }
+                  : {}),
+                ...(typeof course.price === "number" && course.price > 0
+                  ? {
+                      offers: {
+                        "@type": "Offer",
+                        price: course.price,
+                        priceCurrency: course.currency,
+                      },
+                    }
+                  : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Learning Zone", path: "/learn" },
+              { name: course.title, path: `/learn/${course.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related courses" items={related} />}
       isFrozen={course.isFrozen ?? false}
       frozenEntityId={course.id}

@@ -649,7 +649,11 @@ export const CONTENT_LIST_CONFIGS = {
       ...COMMON_TAIL,
       author: AUTHOR,
     } as unknown as Record<string, unknown>,
-    searchFields: [{ field: "name" }],
+    searchFields: [
+      { field: "name" },
+      { field: "university" },
+      { field: "department" },
+    ],
     dateKeys: DATES,
   },
 } as const;

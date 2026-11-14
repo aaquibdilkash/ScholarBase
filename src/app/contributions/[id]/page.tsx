@@ -10,6 +10,12 @@ import {
 } from "@/app/actions/contributions";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { RejectionReason } from "@/components/contributions/RejectionReason";
@@ -105,6 +111,34 @@ const ContributionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.contribution,
+              path: `/contributions/${contribution.id}`,
+              name: contribution.title,
+              // `message` only. The row also carries a UPI id, a screenshot and
+              // a rejection reason; none of that belongs in public markup.
+              description: contribution.message,
+              author: {
+                name: contribution.author?.name,
+                path: contribution.author?.id
+                  ? `/scholars/${contribution.author.id}`
+                  : null,
+              },
+              datePublished: contribution.createdAt,
+            }),
+            buildBreadcrumbList([
+              { name: "Contributions", path: "/contributions" },
+              {
+                name: contribution.title,
+                path: `/contributions/${contribution.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related contributions" items={related} />
       }

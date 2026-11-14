@@ -91,6 +91,18 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
 }
 
 /**
+ * Serialises structured data for injection into a `<script type="application/ld+json">`.
+ *
+ * `<` is escaped so a value can never terminate the surrounding script tag.
+ * This is a security boundary, not formatting: the output is injected with
+ * `dangerouslySetInnerHTML`, and a content title containing `</script>` would
+ * otherwise break out.
+ */
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+/**
  * Organisation + WebSite identity, serialised for the root layout.
  *
  * Google builds the logo tile in its "About the source" panel from the favicon
@@ -132,7 +144,7 @@ export function buildSiteJsonLd(): string {
     ],
   };
 
-  return JSON.stringify(graph).replace(/</g, "\\u003c");
+  return serializeJsonLd(graph);
 }
 
 /** Static, so it is serialised once per server process rather than per request. */

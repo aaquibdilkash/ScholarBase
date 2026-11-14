@@ -20,6 +20,32 @@ function applyCsp(response: NextResponse, nonce: string) {
   return response;
 }
 
+/**
+ * Marks a list page's search-result URL (`/feed?q=…`) as a non-indexable
+ * duplicate of the list page it belongs to.
+ *
+ * `buildMetadata` already canonicalises every `?q=` URL to its parent list
+ * page, but a canonical is a hint. `noindex` is the directive form, and Bing
+ * plus most AI crawlers do not consolidate duplicates as reliably as Google
+ * does. `follow` is deliberate: the rows listed in a result page must keep
+ * passing credit to their own canonical detail pages, which is where the
+ * content actually lives. `noindex, nofollow` would cut that path.
+ *
+ * Scope is a non-empty `q` on a page route, so this can never de-index a
+ * detail page or an endpoint.
+ */
+function applySearchNoindex(response: NextResponse, request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  const query = searchParams.get("q");
+
+  if (!query || !query.trim() || pathname.startsWith("/api")) {
+    return response;
+  }
+
+  response.headers.set("X-Robots-Tag", "noindex, follow");
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   // A fresh nonce per request. Reusing one across responses would let an
   // attacker reuse a nonce they have already seen, which is most of what the
@@ -128,12 +154,17 @@ export async function proxy(request: NextRequest) {
     return applyCsp(redirectResponse, nonce);
   }
 
-  // 2. SEO SHIELD: Tell Googlebot and all web crawlers never to index staging/preview URLs
+  // 2. SEARCH-RESULT URLs: `/feed?q=…` is a duplicate of `/feed` to a crawler.
+  // Applied BEFORE the staging shield below so that, on staging, the stronger
+  // `noindex, nofollow` wins rather than being overwritten by `follow`.
+  applySearchNoindex(response, request);
+
+  // 3. SEO SHIELD: Tell Googlebot and all web crawlers never to index staging/preview URLs
   if (isStagingOrPreview) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
-  // Paths 2 and 3 both arrive here: a page that was never rewritten, and a page
+  // Every remaining path arrives here: one that was never rewritten, and one
   // whose `response` was REPLACED by the token-refresh callback above. Passing the
   // variable (not a saved reference) is what guarantees the header lands on
   // whichever object is actually being returned.

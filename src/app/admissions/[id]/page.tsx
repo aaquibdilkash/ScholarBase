@@ -5,6 +5,12 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -86,6 +92,50 @@ const AdmissionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.admission,
+              path: `/admissions/${admission.id}`,
+              name: `${admission.level} admission — ${admission.university}`,
+              description: admission.description,
+              author: {
+                name: admission.author?.name,
+                path: admission.author?.id
+                  ? `/scholars/${admission.author.id}`
+                  : null,
+              },
+              datePublished: admission.createdAt,
+              extra: {
+                // schema.org has no "admission notice" type, so the honest
+                // generic keeps the page machine-readable without inventing one.
+                genre: "Admission notice",
+                ...(admission.university
+                  ? {
+                      about: {
+                        "@type": "CollegeOrUniversity",
+                        name: admission.university,
+                      },
+                    }
+                  : {}),
+                ...(admission.deadline
+                  ? {
+                      expires: new Date(admission.deadline).toISOString(),
+                    }
+                  : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Admissions", path: "/admissions" },
+              {
+                name: `${admission.level} admission — ${admission.university}`,
+                path: `/admissions/${admission.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related admissions" items={related} />
       }

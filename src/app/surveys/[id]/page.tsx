@@ -13,6 +13,12 @@ import {
 } from "@/app/actions/surveys";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SurveyResponseForm } from "@/components/surveys/SurveyResponseForm";
 import { SurveyOwnerControls } from "@/components/surveys/SurveyOwnerControls";
@@ -102,6 +108,29 @@ const SurveyDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.researchSurvey,
+              path: `/surveys/${survey.id}`,
+              name: survey.title,
+              description: survey.description || survey.title,
+              author: {
+                name: survey.author?.name,
+                path: survey.author?.id ? `/scholars/${survey.author.id}` : null,
+              },
+              datePublished: survey.createdAt,
+              dateModified: survey.editedAt,
+              extra: { genre: "Research survey" },
+            }),
+            buildBreadcrumbList([
+              { name: "Surveys", path: "/surveys" },
+              { name: survey.title, path: `/surveys/${survey.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related surveys" items={related} />
       }

@@ -7,6 +7,12 @@ import { getResearchToolById } from "../../actions/researchTools";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -80,6 +86,32 @@ const ResearchToolDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.researchTool,
+              path: `/research-tools/${tool.id}`,
+              name: tool.name,
+              description: tool.description || tool.use,
+              author: {
+                name: tool.author?.name,
+                path: tool.author?.id ? `/scholars/${tool.author.id}` : null,
+              },
+              datePublished: tool.createdAt,
+              dateModified: tool.editedAt,
+              extra: {
+                applicationCategory: "ResearchApplication",
+                ...(tool.website ? { sameAs: [tool.website] } : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Research Tools", path: "/research-tools" },
+              { name: tool.name, path: `/research-tools/${tool.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related research tools" items={related} />
       }

@@ -1,5 +1,11 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -100,6 +106,51 @@ const JournalDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.journal,
+              path: `/journals/${j.id}`,
+              name: j.title,
+              description: j.about || j.title,
+              author:
+                j.isAnonymous || !j.author?.name
+                  ? null
+                  : {
+                      name: j.author.name,
+                      path: j.author.id ? `/scholars/${j.author.id}` : null,
+                    },
+              datePublished: j.createdAt,
+              dateModified: j.editedAt,
+              extra: {
+                ...(j.issn
+                  ? {
+                      identifier: {
+                        "@type": "PropertyValue",
+                        propertyID: "ISSN",
+                        value: j.issn,
+                      },
+                    }
+                  : {}),
+                ...(j.publisher
+                  ? {
+                      publisher: {
+                        "@type": "Organization",
+                        name: j.publisher,
+                      },
+                    }
+                  : {}),
+                ...(j.website ? { sameAs: [j.website] } : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Journals", path: "/journals" },
+              { name: j.title, path: `/journals/${j.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related journals" items={related} />}
       preservedContent={
         <>

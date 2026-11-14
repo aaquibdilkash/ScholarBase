@@ -7,6 +7,12 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteAcademicPosition, getAcademicPositionById } from "@/app/actions/academic-positions";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { FeedImage } from "@/components/feed/FeedImage";
@@ -85,6 +91,67 @@ const AcademicPositionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.academicPosition,
+              path: `/academic-positions/${academicPosition.id}`,
+              name: academicPosition.title,
+              description: academicPosition.description,
+              author: {
+                name: academicPosition.author?.name,
+                path: academicPosition.author?.id
+                  ? `/scholars/${academicPosition.author.id}`
+                  : null,
+              },
+              datePublished: academicPosition.createdAt,
+              dateModified: academicPosition.editedAt,
+              extra: {
+                // `JobPosting` requires `datePosted` and `description`; the
+                // builder supplies the description, and the site's posting date
+                // is the honest one to advertise.
+                title: academicPosition.title,
+                datePosted: new Date(
+                  academicPosition.createdAt,
+                ).toISOString(),
+                hiringOrganization: {
+                  "@type": "Organization",
+                  name: academicPosition.institution,
+                },
+                ...(academicPosition.deadline
+                  ? {
+                      validThrough: new Date(
+                        academicPosition.deadline,
+                      ).toISOString(),
+                    }
+                  : {}),
+                ...(academicPosition.location
+                  ? {
+                      jobLocation: {
+                        "@type": "Place",
+                        address: {
+                          "@type": "PostalAddress",
+                          addressLocality: academicPosition.location,
+                        },
+                      },
+                    }
+                  : {}),
+                ...(academicPosition.subject
+                  ? { occupationalCategory: academicPosition.subject }
+                  : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Academic Positions", path: "/academic-positions" },
+              {
+                name: academicPosition.title,
+                path: `/academic-positions/${academicPosition.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related academic positions" items={related} />
       }

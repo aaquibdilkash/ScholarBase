@@ -219,6 +219,18 @@ describe("CONTENT_LIST_CONFIGS", () => {
     }
   });
 
+  it("SUPERVISOR searches the institution, not just the professor's name", () => {
+    // Regression: only `name` was declared, so `/supervisor?q=Jamia` returned
+    // nothing even though the card renders `university` and `department`. A new
+    // applicant knows the institution before they know who supervises there.
+    const fields = (
+      CONTENT_LIST_CONFIGS.SUPERVISOR.searchFields ?? []
+    ).map((entry: { field: string }) => entry.field);
+    expect(fields).toEqual(
+      expect.arrayContaining(["name", "university", "department"]),
+    );
+  });
+
   it("RESULT selects the outbound links its list card renders", () => {
     // Regression: `ResultCard` renders "View Notification" and "Check Results"
     // from these columns. Omitting them made the list page drop both buttons

@@ -12,11 +12,18 @@ import {
   getJournalReview,
 } from "@/app/actions/journalReviews";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
+import { SITE_URL } from "@/constants/seo";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
@@ -108,6 +115,50 @@ export default async function JournalReviewDetailPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.journalReview,
+              path: `/journals/${review.journalId}/review/${review.id}`,
+              name: `Review of ${review.journal.title}`,
+              description: review.feedback,
+              author: {
+                name: review.author?.name,
+                path: review.author?.id
+                  ? `/scholars/${review.author.id}`
+                  : null,
+              },
+              datePublished: review.createdAt,
+              dateModified: review.editedAt,
+              extra: {
+                itemReviewed: {
+                  "@type": "Periodical",
+                  name: review.journal.title,
+                  url: `${SITE_URL}/journals/${review.journalId}`,
+                },
+                reviewRating: {
+                  "@type": "Rating",
+                  ratingValue: review.rating,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Journals", path: "/journals" },
+              {
+                name: review.journal.title,
+                path: `/journals/${review.journalId}`,
+              },
+              {
+                name: "Review",
+                path: `/journals/${review.journalId}/review/${review.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related journal reviews" items={related} />
       }

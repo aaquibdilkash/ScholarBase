@@ -54,7 +54,7 @@ export function SupervisorsList({
           onChange={(e) => setQuery(e.target.value)}
           onClear={handleClear}
           loading={isSearching}
-          placeholder="Search by professor's name..."
+          placeholder="Search by name, university, or department..."
           className="mb-4"
         />
       </form>

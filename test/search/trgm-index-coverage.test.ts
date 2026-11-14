@@ -46,6 +46,13 @@ const MIGRATION =
       "prisma/migrations/20261111160000_rename_job_vacancies_to_academic_positions/migration.sql",
     ),
     "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261114130000_supervisor_institution_trgm_indexes/migration.sql",
+    ),
+    "utf8",
   );
 
 function hasIndex(name: string): boolean {

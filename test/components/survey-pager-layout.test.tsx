@@ -52,6 +52,11 @@ describe("SurveyPager layout", () => {
     expect(row.className).toContain("flex-wrap");
     expect(row.className).toContain("sm:flex-nowrap");
 
+    // The row owns its vertical rhythm on both edges. With only `pt-4` the
+    // controls sat flush against whatever the page renders after the form (the
+    // "results are available" banner on the survey detail page).
+    expect(row.className).toContain("py-4");
+
     // DOM order stays Back, label, Submit; `order-*` only changes the visual
     // order inside the wrapping flex container.
     const [back, label, submit] = [

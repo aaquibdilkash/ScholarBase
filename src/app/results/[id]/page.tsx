@@ -7,6 +7,12 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResult, getResult } from "@/app/actions/results";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { Building2, Calendar } from "lucide-react";
 import { RichContent } from "@/components/content/RichContent";
@@ -81,6 +87,29 @@ const ResultDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.result,
+              path: `/results/${result.id}`,
+              name: result.title,
+              description: result.description,
+              author: {
+                name: result.author?.name,
+                path: result.author?.id ? `/scholars/${result.author.id}` : null,
+              },
+              datePublished: result.createdAt,
+              dateModified: result.editedAt,
+              extra: { genre: "Academic result" },
+            }),
+            buildBreadcrumbList([
+              { name: "Results", path: "/results" },
+              { name: result.title, path: `/results/${result.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related results" items={related} />}
       isFrozen={result.isFrozen ?? false}
       frozenEntityId={result.id}

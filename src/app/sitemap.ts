@@ -1,61 +1,111 @@
 import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 import prisma from "@/lib/db";
+import {
+  capSitemap,
+  contentEntries,
+  staticEntries,
+} from "@/lib/sitemap";
 
-// Keep sitemap generation out of the build, where the database may not be
-// reachable. The route can still be refreshed by the platform at runtime.
+// `next build` runs without runtime secrets and the database is unreachable
+// there, so the route must never be prerendered. It stays cheap at runtime
+// because the queries below are wrapped in a 24-hour `unstable_cache`: a
+// crawler gets a freshly serialised XML file, but the database sees at most one
+// round of queries per day. (`export const revalidate` would be dead here —
+// `force-dynamic` disables route-level caching, so the cache lives on the data.)
 export const dynamic = "force-dynamic";
-export const revalidate = 86400;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-
-const staticRoutes = [
-  "",
-  "/feed",
-  "/scholars",
-  "/supervisor",
-  "/surveys",
-  "/admissions",
-  "/academic-positions",
-  "/call-for-papers",
-  "/results",
-  "/blog",
-  "/research-tools",
-  "/grants",
-  "/learn",
-  "/journals",
-  "/publications",
-  "/contributions",
-  "/help",
-  "/shield",
-  "/contact",
-  "/about",
-  "/careers",
-  "/privacy",
-  "/terms",
-];
-
+/**
+ * One query per content table, all in parallel.
+ *
+ * `createdAt` + `editedAt` rather than `updatedAt`: the latter moves on counter
+ * updates, so it would make every post's `lastmod` change each time someone
+ * voted. See `lastModifiedOf` in `@/lib/sitemap`.
+ *
+ * Soft-deleted rows are excluded everywhere. Contributions additionally require
+ * `status: "APPROVED"` — the module's own list applies the same rule, and a
+ * pending contribution is not a public page yet.
+ */
 const getSitemapData = unstable_cache(
-  async () => Promise.all([
-    prisma.article.findMany({ where: { published: true, isDeleted: false }, select: { slug: true, updatedAt: true } }),
-    prisma.researchTool.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.researchGrant.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.course.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.journal.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.publication.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.researchSurvey.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.admission.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.academicPosition.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.callForPaper.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.result.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.helpPost.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.socialPost.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.supervisor.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.contribution.findMany({ where: { status: "APPROVED", isDeleted: false }, select: { id: true, updatedAt: true } }),
-    prisma.recommendation.findMany({ where: { isDeleted: false }, select: { id: true, supervisorId: true, updatedAt: true } }),
-    prisma.user.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
-  ]),
+  async () =>
+    Promise.all([
+      prisma.article.findMany({
+        where: { published: true, isDeleted: false },
+        select: { slug: true, createdAt: true, editedAt: true },
+      }),
+      prisma.researchTool.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.researchGrant.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.course.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.journal.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.publication.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.researchSurvey.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.admission.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.academicPosition.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.callForPaper.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.result.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.helpPost.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.socialPost.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.supervisor.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.contribution.findMany({
+        where: { status: "APPROVED", isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+      prisma.recommendation.findMany({
+        where: { isDeleted: false },
+        select: { id: true, supervisorId: true, createdAt: true, editedAt: true },
+      }),
+      // Journal reviews are a real, indexable page
+      // (`/journals/[id]/review/[reviewId]`) that was missing from this file
+      // entirely. It is discoverable by crawling from the journal page, but a
+      // page absent from the sitemap is a page waiting to be dropped.
+      prisma.journalReview.findMany({
+        where: { isDeleted: false },
+        select: { id: true, journalId: true, createdAt: true, editedAt: true },
+      }),
+      prisma.user.findMany({
+        where: { isDeleted: false },
+        select: { id: true, createdAt: true, editedAt: true },
+      }),
+    ]),
   ["sitemap-content"],
   { revalidate: 86400 },
 );
@@ -78,41 +128,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     supervisors,
     contributions,
     recommendations,
+    journalReviews,
     users,
   ] = await getSitemapData();
 
-  const dynamicRoutes = [
-    ...articles.map((item) => ({ path: `/blog/${item.slug}`, updatedAt: item.updatedAt })),
-    ...researchTools.map((item) => ({ path: `/research-tools/${item.id}`, updatedAt: item.updatedAt })),
-    ...researchGrants.map((item) => ({ path: `/grants/${item.id}`, updatedAt: item.updatedAt })),
-    ...courses.map((item) => ({ path: `/learn/${item.id}`, updatedAt: item.updatedAt })),
-    ...journals.map((item) => ({ path: `/journals/${item.id}`, updatedAt: item.updatedAt })),
-    ...publications.map((item) => ({ path: `/publications/${item.id}`, updatedAt: item.updatedAt })),
-    ...surveys.map((item) => ({ path: `/surveys/${item.id}`, updatedAt: item.updatedAt })),
-    ...admissions.map((item) => ({ path: `/admissions/${item.id}`, updatedAt: item.updatedAt })),
-    ...academicPositions.map((item) => ({ path: `/academic-positions/${item.id}`, updatedAt: item.updatedAt })),
-    ...events.map((item) => ({ path: `/call-for-papers/${item.id}`, updatedAt: item.updatedAt })),
-    ...results.map((item) => ({ path: `/results/${item.id}`, updatedAt: item.updatedAt })),
-    ...helpPosts.map((item) => ({ path: `/help/${item.id}`, updatedAt: item.updatedAt })),
-    ...socialPosts.map((item) => ({ path: `/feed/${item.id}`, updatedAt: item.updatedAt })),
-    ...supervisors.map((item) => ({ path: `/supervisor/${item.id}`, updatedAt: item.updatedAt })),
-    ...contributions.map((item) => ({ path: `/contributions/${item.id}`, updatedAt: item.updatedAt })),
-    ...recommendations.map((item) => ({ path: `/supervisor/${item.supervisorId}/recommendation/${item.id}`, updatedAt: item.updatedAt })),
-    ...users.map((item) => ({ path: `/scholars/${item.id}`, updatedAt: item.updatedAt })),
+  const dynamicRoutes: MetadataRoute.Sitemap = [
+    ...contentEntries(articles, (item) => `/blog/${item.slug}`),
+    ...contentEntries(researchTools, (item) => `/research-tools/${item.id}`),
+    ...contentEntries(researchGrants, (item) => `/grants/${item.id}`),
+    ...contentEntries(courses, (item) => `/learn/${item.id}`),
+    ...contentEntries(journals, (item) => `/journals/${item.id}`),
+    ...contentEntries(publications, (item) => `/publications/${item.id}`),
+    ...contentEntries(surveys, (item) => `/surveys/${item.id}`),
+    ...contentEntries(admissions, (item) => `/admissions/${item.id}`),
+    ...contentEntries(
+      academicPositions,
+      (item) => `/academic-positions/${item.id}`,
+    ),
+    ...contentEntries(events, (item) => `/call-for-papers/${item.id}`),
+    ...contentEntries(results, (item) => `/results/${item.id}`),
+    ...contentEntries(helpPosts, (item) => `/help/${item.id}`),
+    ...contentEntries(socialPosts, (item) => `/feed/${item.id}`),
+    ...contentEntries(supervisors, (item) => `/supervisor/${item.id}`),
+    ...contentEntries(contributions, (item) => `/contributions/${item.id}`),
+    ...contentEntries(
+      recommendations,
+      (item) => `/supervisor/${item.supervisorId}/recommendation/${item.id}`,
+    ),
+    ...contentEntries(
+      journalReviews,
+      (item) => `/journals/${item.journalId}/review/${item.id}`,
+    ),
+    ...contentEntries(users, (item) => `/scholars/${item.id}`),
   ];
 
-  return [
-    ...staticRoutes.map((path) => ({
-      url: `${baseUrl}${path}`,
-      lastModified: new Date(),
-      changeFrequency: "daily" as const,
-      priority: path === "" ? 1 : 0.7,
-    })),
-    ...dynamicRoutes.map((route) => ({
-      url: `${baseUrl}${route.path}`,
-      lastModified: route.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    })),
-  ];
+  return capSitemap([...staticEntries(), ...dynamicRoutes]);
 }

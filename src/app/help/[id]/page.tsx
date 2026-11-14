@@ -6,6 +6,12 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -79,6 +85,29 @@ export default async function HelpPostPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.helpPost,
+              path: `/help/${post.id}`,
+              name: post.title,
+              description: post.message,
+              author: {
+                name: post.author?.name,
+                path: post.author?.id ? `/scholars/${post.author.id}` : null,
+              },
+              datePublished: post.createdAt,
+              dateModified: post.editedAt,
+              extra: { about: post.subject },
+            }),
+            buildBreadcrumbList([
+              { name: "Help", path: "/help" },
+              { name: post.title, path: `/help/${post.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related help posts" items={related} />
       }

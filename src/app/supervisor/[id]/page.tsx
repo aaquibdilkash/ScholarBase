@@ -13,6 +13,12 @@ import {
   getSupervisorRecommendationMeta,
 } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 
@@ -105,6 +111,37 @@ export default async function SupervisorPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.supervisor,
+              path: `/supervisor/${supervisor.id}`,
+              name: supervisor.name,
+              description:
+                supervisor.about ||
+                [supervisor.department, supervisor.university]
+                  .filter(Boolean)
+                  .join(", "),
+              datePublished: supervisor.createdAt,
+              extra: {
+                ...(supervisor.university
+                  ? {
+                      affiliation: {
+                        "@type": "Organization",
+                        name: supervisor.university,
+                      },
+                    }
+                  : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Supervisors", path: "/supervisor" },
+              { name: supervisor.name, path: `/supervisor/${supervisor.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related supervisors" items={related} />
       }

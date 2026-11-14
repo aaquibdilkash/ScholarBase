@@ -10,6 +10,12 @@ import {
   getRecommendation,
 } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
@@ -91,6 +97,49 @@ export default async function RecommendationDetailPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.recommendation,
+              path: `/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}`,
+              name: `Recommendation for ${recommendation.supervisor.name || "Supervisor"}`,
+              description: recommendation.feedback,
+              author: {
+                name: recommendation.author?.name,
+                path: recommendation.author?.id
+                  ? `/scholars/${recommendation.author.id}`
+                  : null,
+              },
+              datePublished: recommendation.createdAt,
+              dateModified: recommendation.editedAt,
+              extra: {
+                itemReviewed: {
+                  "@type": "Person",
+                  name: recommendation.supervisor.name || "Supervisor",
+                },
+                reviewRating: {
+                  "@type": "Rating",
+                  ratingValue: recommendation.rating,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Supervisors", path: "/supervisor" },
+              {
+                name: recommendation.supervisor.name || "Supervisor",
+                path: `/supervisor/${recommendation.supervisor.id}`,
+              },
+              {
+                name: "Recommendation",
+                path: `/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related recommendations" items={related} />
       }

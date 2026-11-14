@@ -17,6 +17,12 @@ import { SEO_PAGES } from "@/constants/seo";
 import { stripHtmlTags } from "@/lib/html";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 
 export async function generateMetadata({
   params,
@@ -66,6 +72,34 @@ export default async function ScholarProfile({
 
   return (
     <main className="mx-auto max-w-5xl px-0 py-3 sm:px-4 sm:py-6">
+      <JsonLd
+        data={[
+          buildContentJsonLd({
+            type: CONTENT_SCHEMA.user,
+            path: `/scholars/${profile.id}`,
+            name: profile.name || "Scholar",
+            description: profile.bio,
+            image: profile.avatarUrl,
+            datePublished: profile.createdAt,
+            extra: {
+              ...(profile.handle
+                ? { alternateName: `@${profile.handle}` }
+                : {}),
+              // ORCID is the one durable identifier a scholar profile can
+              // claim, and `sameAs` is how a search engine connects this page
+              // to the same person elsewhere.
+              ...(profile.orcidUrl ? { sameAs: [profile.orcidUrl] } : {}),
+            },
+          }),
+          buildBreadcrumbList([
+            { name: "Scholars", path: "/scholars" },
+            {
+              name: profile.name || "Scholar",
+              path: `/scholars/${profile.id}`,
+            },
+          ]),
+        ]}
+      />
       <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-x-8 lg:gap-y-0">
         <div className="lg:row-span-2 lg:min-w-0">
           <div className="flex items-center gap-3 sm:gap-6">

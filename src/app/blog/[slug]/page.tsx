@@ -1,5 +1,11 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
@@ -78,6 +84,29 @@ export default async function ArticlePage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.article,
+              path: `/blog/${a.slug}`,
+              name: a.title,
+              description: a.excerpt || a.content,
+              author: {
+                name: a.author?.name,
+                path: a.author?.id ? `/scholars/${a.author.id}` : null,
+              },
+              datePublished: a.createdAt,
+              dateModified: a.editedAt,
+              image: a.imageUrl,
+            }),
+            buildBreadcrumbList([
+              { name: "Blog", path: "/blog" },
+              { name: a.title, path: `/blog/${a.slug}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related articles" items={related} />
       }

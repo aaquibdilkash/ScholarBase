@@ -1,5 +1,11 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -103,6 +109,50 @@ const PublicationDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.publication,
+              path: `/publications/${p.id}`,
+              name: p.title,
+              description: p.abstract || p.title,
+              author: {
+                name: p.authors || p.author?.name,
+                path: p.authors
+                  ? null
+                  : p.author?.id
+                    ? `/scholars/${p.author.id}`
+                    : null,
+              },
+              datePublished: p.createdAt,
+              dateModified: p.editedAt,
+              keywords: p.keywords
+                ? p.keywords
+                    .split(",")
+                    .map((keyword) => keyword.trim())
+                    .filter(Boolean)
+                : null,
+              extra: {
+                ...(p.doi
+                  ? {
+                      identifier: {
+                        "@type": "PropertyValue",
+                        propertyID: "DOI",
+                        value: p.doi,
+                      },
+                    }
+                  : {}),
+                ...(p.url ? { sameAs: [p.url] } : {}),
+              },
+            }),
+            buildBreadcrumbList([
+              { name: "Publications", path: "/publications" },
+              { name: p.title, path: `/publications/${p.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={
         <RelatedContent title="Related publications" items={related} />
       }

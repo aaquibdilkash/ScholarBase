@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+  plainText,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
@@ -85,6 +92,32 @@ export default async function SinglePostPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.socialPost,
+              path: `/feed/${p.id}`,
+              name: plainText(p.content, 58) ?? "Scholar post",
+              description: p.content,
+              author: {
+                name: p.author?.name,
+                path: p.author?.id ? `/scholars/${p.author.id}` : null,
+              },
+              datePublished: p.createdAt,
+              dateModified: p.editedAt,
+              image: p.imageUrl,
+            }),
+            buildBreadcrumbList([
+              { name: "Feed", path: "/feed" },
+              {
+                name: plainText(p.content, 58) ?? "Post",
+                path: `/feed/${p.id}`,
+              },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related posts" items={related} />}
       isFrozen={p.isFrozen ?? false}
       frozenEntityId={p.id}

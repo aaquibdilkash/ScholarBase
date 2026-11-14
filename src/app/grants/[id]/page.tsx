@@ -12,6 +12,12 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  buildBreadcrumbList,
+  buildContentJsonLd,
+  CONTENT_SCHEMA,
+} from "@/lib/schema";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -88,6 +94,28 @@ export default async function ResearchGrantDetailPage({
 
   return (
     <DetailPageCardShell
+      structuredData={
+        <JsonLd
+          data={[
+            buildContentJsonLd({
+              type: CONTENT_SCHEMA.researchGrant,
+              path: `/grants/${grant.id}`,
+              name: grant.title,
+              description: grant.description,
+              author: {
+                name: grant.author?.name,
+                path: grant.author?.id ? `/scholars/${grant.author.id}` : null,
+              },
+              datePublished: grant.createdAt,
+              dateModified: grant.editedAt,
+            }),
+            buildBreadcrumbList([
+              { name: "Grants", path: "/grants" },
+              { name: grant.title, path: `/grants/${grant.id}` },
+            ]),
+          ]}
+        />
+      }
       relatedContent={<RelatedContent title="Related grants" items={related} />}
       isFrozen={grant.isFrozen ?? false}
       frozenEntityId={grant.id}

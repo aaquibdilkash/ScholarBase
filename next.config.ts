@@ -63,8 +63,15 @@ const nextConfig: NextConfig = {
   // the root layout's generic title/image instead of the post's own OG tags
   // (WhatsApp is already in the default list, which is why the two apps showed
   // different previews for the same URL).
+  //
+  // It also adds the AI answer-engine crawlers. They were the largest gap here:
+  // they are not in Next's default list, so they received streamed metadata
+  // that arrives after the body — and most of them read the initial `<head>`
+  // only, which left the canonical and OG titles effectively invisible to
+  // exactly the crawlers that feed AI answers. `Google-Extended` and
+  // `Applebot-Extended` are already covered by `Google-[\w-]+` and `applebot`.
   htmlLimitedBots:
-    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|Telegram/i,
+    /[\w-]+-Google|Google-[\w-]+|GoogleOther|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|Telegram|GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|Amazonbot|Bytespider|meta-externalagent|cohere-ai|YouBot/i,
   // Pins client bundles to the build that served them, so Server Action requests
   // from an already-open tab reach the matching build after a redeploy.
   // SOURCE_COMMIT is set by the Dockerfile from the git commit being built.
