@@ -22,7 +22,7 @@ import {
   MAX_CONTRIBUTION_MESSAGE,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   CONTRIBUTION_TITLE_TIP,
@@ -159,10 +159,7 @@ export default function ContributionForm({
         }
       }
     } catch (err) {
-      toast(
-        err instanceof Error ? err.message : "Failed to submit contribution.",
-        "error",
-      );
+      toast(friendlyActionError(err, "Failed to submit contribution."), "error");
     } finally {
       setSubmitting(false);
     }

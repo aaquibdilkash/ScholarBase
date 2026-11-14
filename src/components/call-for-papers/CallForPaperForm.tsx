@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { updateCallForPaper, createCallForPaper } from "@/app/actions/call-for-papers";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
+import { Select } from "@/components/ui/Select";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
@@ -154,7 +155,7 @@ export default function CallForPaperForm({
 
         <div>
           <label className="sb-label">Call Type</label>
-          <select
+          <Select
             name="category"
             className="sb-input"
             value={draftFields.category}
@@ -165,7 +166,7 @@ export default function CallForPaperForm({
             <option value="JOURNAL">Journal</option>
             <option value="WORKSHOP">Workshop</option>
             <option value="SYMPOSIUM">Symposium</option>
-          </select>
+          </Select>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,9 +1,9 @@
 "use server";
 
 import {
-  deleteBlogImagePaths,
+  deleteContentImagePaths,
   extractCoverImagePath,
-  uploadBlogImage,
+  uploadContentImage,
   type ContentImageKind,
 } from "@/lib/supabase-storage";
 import { getActiveUser, requireCurrentUser } from "@/lib/auth";
@@ -73,7 +73,7 @@ export async function uploadContentImageAction(
       );
     }
 
-    const result = await uploadBlogImage({
+    const result = await uploadContentImage({
       userId: user.id,
       buffer,
       fileName: file.name,
@@ -129,6 +129,6 @@ export async function deleteDraftContentImage(
     return false;
   }
 
-  await deleteBlogImagePaths([path]);
+  await deleteContentImagePaths([path]);
   return true;
 }

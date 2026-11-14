@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 
 /**
  * The server-message preference used by every add-form failure toast.
@@ -64,5 +64,41 @@ describe("actionErrorMessage", () => {
   it("falls through to the fallback when the message itself is empty", () => {
     expect(actionErrorMessage({ success: false, message: "" }, "")).toBe("");
     expect(actionErrorMessage({ success: false, message: "x" }, "")).toBe("x");
+  });
+});
+
+/**
+ * A thrown Server Action error is masked in production. The form must show the
+ * caller's fallback, never React's "Minified React error #441" string.
+ */
+describe("friendlyActionError", () => {
+  it("replaces the masked RSC error with the fallback", () => {
+    const masked = new Error(
+      "Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    );
+    expect(friendlyActionError(masked, "Failed to add research tool.")).toBe(
+      "Failed to add research tool.",
+    );
+  });
+
+  it("replaces the unminified RSC error with the fallback", () => {
+    const rsc = new Error(
+      "An error occurred in the Server Components render. The specific message is omitted in production builds.",
+    );
+    expect(friendlyActionError(rsc, "Failed to add research tool.")).toBe(
+      "Failed to add research tool.",
+    );
+  });
+
+  it("passes a real server message through", () => {
+    expect(
+      friendlyActionError(new Error("Too many requests. Please slow down."), "fallback"),
+    ).toBe("Too many requests. Please slow down.");
+  });
+
+  it("uses the fallback for non-Error and empty values", () => {
+    expect(friendlyActionError(undefined, "fallback")).toBe("fallback");
+    expect(friendlyActionError("boom", "fallback")).toBe("fallback");
+    expect(friendlyActionError(new Error("   "), "fallback")).toBe("fallback");
   });
 });

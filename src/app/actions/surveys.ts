@@ -264,7 +264,8 @@ export async function createSurvey(formData: FormData) {
   const auth = await getActiveUser("Please log in to create a survey.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "survey:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const description = readOptionalFormValue(formData, "description");
@@ -397,7 +398,8 @@ export async function createSurvey(formData: FormData) {
 export async function updateSurvey(formData: FormData, surveyId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this survey.");
-  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -807,7 +809,8 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 export async function deleteSurvey(surveyId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this survey.");
-  await enforceRateLimit({ namespace: "survey:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -859,7 +862,8 @@ export async function deleteSurvey(surveyId: string) {
 
 export async function closeSurvey(surveyId: string) {
   const user = await requireCurrentUser("Log in to close this survey.");
-  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -888,7 +892,8 @@ export async function closeSurvey(surveyId: string) {
 
 export async function reopenSurvey(surveyId: string) {
   const user = await requireCurrentUser("Log in to reopen this survey.");
-  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -917,7 +922,8 @@ export async function reopenSurvey(surveyId: string) {
 
 export async function toggleShareData(surveyId: string) {
   const user = await requireCurrentUser("Log in to manage this survey.");
-  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },

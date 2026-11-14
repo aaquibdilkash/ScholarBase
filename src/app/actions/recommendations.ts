@@ -101,7 +101,8 @@ export async function createRecommendation(
   );
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   // A frozen supervisor profile is read-only, exactly like frozen posts: the
   // banner promises that interactions are disabled, so recommendations must be
@@ -267,7 +268,8 @@ export async function updateRecommendation(
 ) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this recommendation.");
-  await enforceRateLimit({ namespace: "recommendation:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "recommendation:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
@@ -405,7 +407,8 @@ export async function updateRecommendation(
 export async function deleteRecommendation(recommendationId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this recommendation.");
-  await enforceRateLimit({ namespace: "recommendation:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "recommendation:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const recommendation = await prisma.recommendation.findUnique({
     where: { id: recommendationId },

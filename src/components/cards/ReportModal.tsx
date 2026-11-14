@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { friendlyActionError } from "@/lib/utils";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useUser } from "@/hooks/useUser";
 import { submitReport } from "@/app/actions/reports";
@@ -107,8 +108,7 @@ export function ReportModal({
         }
       })
       .catch((err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : "Failed to submit report.";
+        const message = friendlyActionError(err, "Failed to submit report.");
         toast({
           title: "Error",
           description: message,

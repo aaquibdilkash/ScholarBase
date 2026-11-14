@@ -2,6 +2,7 @@
 
 import { createAcademicPosition, updateAcademicPosition } from "@/app/actions/academic-positions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
+import { Select } from "@/components/ui/Select";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { Editor } from "@/components/ui/Editor";
 import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
@@ -207,7 +208,7 @@ return (
           Position Type
           <InfoTooltip message={POSITION_TYPE_TIP} />
         </label>
-        <select
+        <Select
           name="positionType"
           className="sb-input"
           value={draftFields.positionType}
@@ -219,7 +220,7 @@ return (
               {type.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div>
@@ -227,7 +228,7 @@ return (
           Employment Type
           <InfoTooltip message={EMPLOYMENT_TYPE_TIP} />
         </label>
-        <select
+        <Select
           name="employmentType"
           className="sb-input"
           value={draftFields.employmentType}
@@ -239,7 +240,7 @@ return (
               {type.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div>

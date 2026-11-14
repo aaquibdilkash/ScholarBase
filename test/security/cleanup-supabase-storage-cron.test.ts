@@ -1,8 +1,8 @@
 /**
- * `GET /api/cron/cleanup-supabase-storage` — the second half of blog image
+ * `GET /api/cron/cleanup-supabase-storage` — the second half of content image
  * garbage collection.
  *
- * The lifecycle for a blog image is:
+ * The lifecycle for a content image is:
  *
  *   soft delete  -> the row AND its images are kept (30-day recovery window)
  *   30 days pass -> `purge_soft_deleted_records()` hard-deletes the row and
@@ -27,12 +27,12 @@ vi.mock("@/lib/cron", () => ({
   verifyCronSecret: vi.fn(async () => authorized),
 }));
 
-const deleteBlogImagePathsAsServiceRole = vi.fn(async (_paths: string[]) => {});
+const deleteContentImagePathsAsServiceRole = vi.fn(async (_paths: string[]) => {});
 
 vi.mock("@/lib/supabase-storage", () => ({
   CONTENT_IMAGE_BUCKET: "content-images",
-  deleteBlogImagePathsAsServiceRole: (paths: string[]) =>
-    deleteBlogImagePathsAsServiceRole(paths),
+  deleteContentImagePathsAsServiceRole: (paths: string[]) =>
+    deleteContentImagePathsAsServiceRole(paths),
   // Mirrors the real helper: the public URL is percent-encoded, Storage takes
   // the decoded key.
   extractCoverImagePath: (url: string | null | undefined) => {
@@ -79,7 +79,7 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
     const response = await get();
 
     expect(response.status).toBe(401);
-    expect(deleteBlogImagePathsAsServiceRole).not.toHaveBeenCalled();
+    expect(deleteContentImagePathsAsServiceRole).not.toHaveBeenCalled();
   });
 
   it("does nothing when the queue is empty", async () => {
@@ -91,12 +91,12 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
       processedCount: 0,
       supabaseDeletedCount: 0,
     });
-    expect(deleteBlogImagePathsAsServiceRole).not.toHaveBeenCalled();
+    expect(deleteContentImagePathsAsServiceRole).not.toHaveBeenCalled();
   });
 
   it("deletes the queued object from Supabase Storage and clears the queue", async () => {
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/article-cover/abc/file.png`,
     );
 
     const response = await get();
@@ -108,8 +108,8 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
       processedCount: 1,
       supabaseDeletedCount: 1,
     });
-    expect(deleteBlogImagePathsAsServiceRole).toHaveBeenCalledWith([
-      "users/u1/published/cover/abc/file.png",
+    expect(deleteContentImagePathsAsServiceRole).toHaveBeenCalledWith([
+      "users/u1/published/article-cover/abc/file.png",
     ]);
     expect(fakeDb.rows("orphanedAsset")).toHaveLength(0);
   });
@@ -118,14 +118,14 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
     // The deployment serves Storage from a custom domain, not supabase.co —
     // a host-based filter would silently match nothing.
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/article-cover/abc/file.png`,
     );
 
     const response = await get();
 
     expect(response.status).toBe(200);
-    expect(deleteBlogImagePathsAsServiceRole).toHaveBeenCalledWith([
-      "users/u1/published/cover/abc/file.png",
+    expect(deleteContentImagePathsAsServiceRole).toHaveBeenCalledWith([
+      "users/u1/published/article-cover/abc/file.png",
     ]);
   });
 
@@ -138,23 +138,23 @@ describe("GET /api/cron/cleanup-supabase-storage", () => {
     const response = await get();
 
     expect(response.status).toBe(200);
-    expect(deleteBlogImagePathsAsServiceRole).toHaveBeenCalledWith([
+    expect(deleteContentImagePathsAsServiceRole).toHaveBeenCalledWith([
       "users/u1/published/cfp-cover/abc/download (2).jpeg",
     ]);
   });
 
   it("ignores queued assets that belong to another provider", async () => {
-    seedOrphan("https://res.cloudinary.com/demo/image/upload/v1/old.jpg");
+    seedOrphan("https://api.example.com/storage/v1/object/public/other-bucket/x.jpg");
 
     const response = await get();
 
     expect(response.status).toBe(200);
-    expect(deleteBlogImagePathsAsServiceRole).not.toHaveBeenCalled();
+    expect(deleteContentImagePathsAsServiceRole).not.toHaveBeenCalled();
   });
 
   it("clears a queued row whose URL cannot be parsed, so the queue cannot stall", async () => {
     seedOrphan(
-      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/cover/abc/file.png`,
+      `${SUPABASE_URL}/storage/v1/object/public/content-images/users/u1/published/article-cover/abc/file.png`,
     );
     // A second row with a Supabase-looking prefix but an unparseable path.
     fakeDb.seed("orphanedAsset", {

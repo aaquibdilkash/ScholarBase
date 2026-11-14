@@ -6,9 +6,10 @@ import prisma from "@/lib/db";
 import { getCurrentUser, requireCurrentUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
-  deleteCloudinaryAsset,
-  promoteDraftCloudinaryAsset,
-} from "@/lib/cloudinary";
+  deleteContentImagePaths,
+  extractCoverImagePath,
+} from "@/lib/supabase-storage";
+import { promoteContentImages } from "@/lib/content-images";
 import { MAX_PROFILE_BIO, MAX_PROFILE_INTERESTS, MAX_PROFILE_INTEREST_COUNT, MAX_PROFILE_INTEREST_LENGTH, MIN_PROFILE_NAME } from "@/lib/constants";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import {
@@ -395,19 +396,31 @@ export async function updateProfile(formData: FormData) {
     }
   }
 
-  const finalAvatarUrl = newAvatarUrl
-    ? newAvatarUrl === user.avatarUrl
-      ? newAvatarUrl
-      : await promoteDraftCloudinaryAsset(newAvatarUrl, user.id, "avatar")
-    : null;
+  let finalAvatarUrl: string | null = null;
+  if (newAvatarUrl) {
+    if (newAvatarUrl === user.avatarUrl) {
+      finalAvatarUrl = newAvatarUrl;
+    } else {
+      const promoted = await promoteContentImages({
+        coverKind: "avatar",
+        imageUrl: newAvatarUrl,
+        html: "",
+        userId: user.id,
+      });
+      finalAvatarUrl = promoted.ok ? promoted.coverUrl : null;
+    }
+  }
   if (newAvatarUrl && !finalAvatarUrl) {
     throw new Error("Invalid avatar image.");
   }
 
-  // Delete the previous avatar from Cloudinary when it is being replaced OR
-  // explicitly removed (saved with no avatar).
+  // Delete the previous avatar from Supabase Storage when it is being replaced
+  // OR explicitly removed (saved with no avatar).
   if (user.avatarUrl && finalAvatarUrl !== user.avatarUrl) {
-    await deleteCloudinaryAsset(user.avatarUrl);
+    const oldPath = extractCoverImagePath(user.avatarUrl);
+    if (oldPath) {
+      await deleteContentImagePaths([oldPath]);
+    }
   }
 
   const nextName = newName !== null ? newName : user.name;

@@ -85,15 +85,20 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   loadContentPage: vi.fn(async () => []),
 }));
 vi.mock("@/lib/tri-split/modules/survey", () => ({ revalidateSurvey: vi.fn() }));
+const rateLimitState = vi.hoisted(() => ({ denied: false }));
+
 vi.mock("@/lib/rate-limit", () => ({
-  checkRateLimit: vi.fn(async () => ({ allowed: true })),
-  enforceRateLimit: vi.fn(async () => {}),
+  checkRateLimit: vi.fn(async () =>
+    rateLimitState.denied
+      ? { allowed: false, limited: true, degraded: false }
+      : { allowed: true, limited: false, degraded: false },
+  ),
+  enforceRateLimit: vi.fn(async () =>
+    rateLimitState.denied
+      ? { allowed: false, error: "Rate limit exceeded" }
+      : { allowed: true },
+  ),
   RATE_LIMIT_ERROR: "Rate limit exceeded",
-}));
-vi.mock("@/lib/cloudinary", () => ({
-  deleteCloudinaryAsset: vi.fn(async () => {}),
-  promoteDraftCloudinaryAsset: vi.fn(async () => null),
-  extractCloudinaryPublicId: vi.fn(() => null),
 }));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
 vi.mock("@/lib/notifications", async (importOriginal) => {
@@ -296,6 +301,7 @@ const created = (result: { success: boolean; data?: unknown }) => {
 describe("RULE 1: create actions return the complete new object", () => {
   beforeEach(() => {
     resetFakeDb();
+    rateLimitState.denied = false;
     mockCurrentUser = { id: AUTHOR };
     mockIsAdmin = false;
     fakeDb.seed("user", [
@@ -361,6 +367,21 @@ describe("RULE 1: create actions return the complete new object", () => {
       it("rejects an anonymous caller instead of creating a row", async () => {
         mockCurrentUser = null;
         await expect(spec.create(formOf(spec.fields))).rejects.toThrow();
+        expect(fakeDb.rows(spec.model)).toHaveLength(0);
+      });
+
+      it("returns the throttle message instead of throwing when rate limited", async () => {
+        // Regression: `enforceRateLimit` used to throw, so a throttled write
+        // reached the browser as a 500 with "Minified React error #441" (the
+        // production mask) instead of "Too many requests. Please slow down."
+        rateLimitState.denied = true;
+
+        const result = await spec.create(formOf(spec.fields));
+
+        expect(result).toMatchObject({
+          success: false,
+          error: "Rate limit exceeded",
+        });
         expect(fakeDb.rows(spec.model)).toHaveLength(0);
       });
     });

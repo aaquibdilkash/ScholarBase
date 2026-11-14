@@ -10,7 +10,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import Link from "next/link";
 import { deleteContribution } from "@/app/actions/contributions";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import type { ContributionWithAuthor } from "@/types/cards";
 import { stripHtmlTags } from "@/lib/html";
@@ -71,7 +71,7 @@ export function ContributionCard({
                 toast("Contribution deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

@@ -11,8 +11,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  extractBlogImagePathsFromHtml,
-  extractBlogImageUrlsFromHtml,
+  extractContentImagePathsFromHtml,
+  extractContentImageUrlsFromHtml,
   extractCoverImagePath,
 } from "@/lib/supabase-storage";
 
@@ -71,12 +71,12 @@ describe("extractCoverImagePath", () => {
   });
 });
 
-describe("extractBlogImageUrlsFromHtml", () => {
+describe("extractContentImageUrlsFromHtml", () => {
   it("returns the verbatim src for rewriting and the decoded key for Storage", () => {
     const src = publicUrl("users/u1/drafts/article-inline/abc/download%20(2).jpeg");
     const html = `<p>x</p><img src="${src}" alt="fig" />`;
 
-    expect(extractBlogImageUrlsFromHtml(html)).toEqual([
+    expect(extractContentImageUrlsFromHtml(html)).toEqual([
       {
         url: src,
         path: "users/u1/drafts/article-inline/abc/download (2).jpeg",
@@ -90,7 +90,7 @@ describe("extractBlogImageUrlsFromHtml", () => {
       `<img src="${publicUrl("users/u1/drafts/article-inline/b/two%20(1).png")}" />`,
     ].join("");
 
-    expect(extractBlogImagePathsFromHtml(html)).toEqual([
+    expect(extractContentImagePathsFromHtml(html)).toEqual([
       "users/u1/drafts/article-inline/a/one.png",
       "users/u1/drafts/article-inline/b/two (1).png",
     ]);
@@ -99,6 +99,6 @@ describe("extractBlogImageUrlsFromHtml", () => {
   it("ignores images that are not in the content-images bucket", () => {
     const html = `<img src="https://res.cloudinary.com/demo/image/upload/a.jpg" />`;
 
-    expect(extractBlogImageUrlsFromHtml(html)).toEqual([]);
+    expect(extractContentImageUrlsFromHtml(html)).toEqual([]);
   });
 });

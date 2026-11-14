@@ -9,7 +9,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteCallForPaper } from "@/app/actions/call-for-papers";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
@@ -83,7 +83,7 @@ export function CallForPaperCard({
                 toast("Event deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

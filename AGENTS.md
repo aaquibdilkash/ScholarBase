@@ -74,6 +74,7 @@ CI order is `lint -> typecheck -> test:coverage`, then a production build on pul
 - Remote/production database startup requires `SUPABASE_CA_CERT_BASE64` (or `SUPABASE_CA_CERT`); local/internal Docker hosts skip TLS. `next build` is exempt.
 - Inside `prisma.$transaction`, do not call helpers that hit the global client (for example `isUserAdmin`); resolve them before opening the transaction to avoid a second pool checkout/deadlock. `deleteCommentTransaction` is the reference.
 - Coolify database work is done through an SSH tunnel; follow `docs/prisma-coolify-migration-runbook.md`. Migration recovery is in `Prisma.md`.
+- `scripts/deploy-staging.sh` and `scripts/deploy-production.sh` run `scripts/prisma-resolve-failed-migration.mjs` before `migrate deploy`. It aborts on any failed `_prisma_migrations` row and only auto-repairs migrations registered in `KNOWN_REPAIRS`; add an entry there for a new P3018-style incident instead of resolving by hand.
 
 ## Read performance (zero-compute)
 

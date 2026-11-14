@@ -160,7 +160,10 @@ describe("checkRateLimit degraded policy", () => {
 });
 
 describe("enforceRateLimit fails closed (write paths)", () => {
-  it("throws the degraded message when Redis is down", async () => {
+  // These must RETURN the decision, never throw: a thrown Server Action error
+  // is masked in production as "Minified React error #441", so the form shows
+  // an opaque 500 instead of the rate-limit message.
+  it("returns the degraded message when Redis is down", async () => {
     limitMode = "throw";
     await expect(
       enforceRateLimit({
@@ -169,10 +172,10 @@ describe("enforceRateLimit fails closed (write paths)", () => {
         limit: 5,
         window: "10 m",
       }),
-    ).rejects.toThrow(RATE_LIMIT_DEGRADED_ERROR);
+    ).resolves.toEqual({ allowed: false, error: RATE_LIMIT_DEGRADED_ERROR });
   });
 
-  it("throws the throttle message when over the limit", async () => {
+  it("returns the throttle message when over the limit", async () => {
     limitMode = "deny";
     await expect(
       enforceRateLimit({
@@ -181,10 +184,10 @@ describe("enforceRateLimit fails closed (write paths)", () => {
         limit: 5,
         window: "10 m",
       }),
-    ).rejects.toThrow(RATE_LIMIT_ERROR);
+    ).resolves.toEqual({ allowed: false, error: RATE_LIMIT_ERROR });
   });
 
-  it("passes when Redis is healthy", async () => {
+  it("allows when Redis is healthy", async () => {
     await expect(
       enforceRateLimit({
         namespace: "p11:enforce:ok",
@@ -192,7 +195,7 @@ describe("enforceRateLimit fails closed (write paths)", () => {
         limit: 5,
         window: "10 m",
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ allowed: true });
   });
 });
 
@@ -259,6 +262,42 @@ describe("call-site policy declarations (source scan)", () => {
         }
       }
     }
+    expect(violations).toEqual([]);
+  });
+
+  // enforceRateLimit now returns the denial instead of throwing (a throw is
+  // masked as "Minified React error #441" in production). A call site that
+  // ignores the decision would silently allow every write, so pin the shape.
+  it("every enforceRateLimit call site returns the denial to the caller", () => {
+    const violations: string[] = [];
+
+    for (const file of walk("src/app/actions")) {
+      const source = readFileSync(file, "utf8");
+      const calls = [...source.matchAll(/enforceRateLimit\(/g)];
+      if (calls.length === 0) continue;
+
+      const assignments = [
+        ...source.matchAll(
+          /(?:const|let)\s+(\w+)\s*=\s*await\s+enforceRateLimit\(/g,
+        ),
+      ];
+      if (assignments.length !== calls.length) {
+        violations.push(`${file} → an enforceRateLimit call ignores the result`);
+        continue;
+      }
+
+      for (const match of assignments) {
+        const variable = match[1];
+        const rest = source.slice((match.index ?? 0) + match[0].length);
+        const guarded = new RegExp(
+          `if\\s*\\(\\s*!${variable}\\.allowed\\s*\\)\\s*return\\s*\\{\\s*success:\\s*false`,
+        );
+        if (!guarded.test(rest.slice(0, 400))) {
+          violations.push(`${file} → ${variable} is never checked`);
+        }
+      }
+    }
+
     expect(violations).toEqual([]);
   });
 });

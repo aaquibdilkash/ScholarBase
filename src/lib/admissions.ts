@@ -2,18 +2,14 @@ import type { AdmissionLevel } from "@prisma/client";
 
 export const ADMISSION_LEVELS = [
   { value: "PHD", label: "PhD" },
-  { value: "MASTERS", label: "Master's" },
-  { value: "UNDERGRADUATE", label: "Undergraduate" },
-  { value: "MPHIL", label: "MPhil" },
-  { value: "OTHER", label: "Other degree program" },
+  { value: "MS_BY_RESEARCH", label: "MS / MSc by Research" },
+  { value: "OTHER", label: "Other research degree" },
 ] as const satisfies readonly { value: AdmissionLevel; label: string }[];
 
 const LEVEL_LABELS: Record<AdmissionLevel, string> = {
   PHD: "PhD",
-  MASTERS: "Master's",
-  UNDERGRADUATE: "Undergraduate",
-  MPHIL: "MPhil",
-  OTHER: "Other degree program",
+  MS_BY_RESEARCH: "MS / MSc by Research",
+  OTHER: "Other research degree",
 };
 
 export function getAdmissionLevelLabel(

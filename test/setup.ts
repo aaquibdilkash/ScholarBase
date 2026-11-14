@@ -47,7 +47,7 @@ vi.mock("@/lib/db", () => ({ default: blocked }))
 /**
  * Outbound-network guard.
  *
- * The unit suite must not reach Supabase, Resend, Upstash, Cloudinary or QStash.
+ * The unit suite must not reach Supabase, Resend, Upstash or QStash.
  * Rather than enumerate hosts and hope the list is complete, only loopback
  * addresses are permitted; everything else fails the test with the offending
  * URL. A test that legitimately needs HTTP stubs `globalThis.fetch` itself,
@@ -76,8 +76,8 @@ function assertAllowedUrl(input: RequestInfo | URL): void {
   if (!isLoopback) {
     throw new Error(
       `A unit test attempted a real outbound request to "${host}". The unit ` +
-        "suite must stay offline so it never talks to Supabase, Resend, Upstash, " +
-        "Cloudinary or QStash. Stub globalThis.fetch for this test.",
+        "suite must stay offline so it never talks to Supabase, Resend, Upstash " +
+        "or QStash. Stub globalThis.fetch for this test.",
     )
   }
 }

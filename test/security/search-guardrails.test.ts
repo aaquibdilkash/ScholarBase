@@ -32,7 +32,7 @@ vi.mock("@/lib/auth", () => ({
 const checkRateLimitMock = vi.fn(async () => mockOutcome);
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: (...args: never[]) => checkRateLimitMock(...(args as [])),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   getRequestFingerprint: vi.fn(() => "fp-anon"),
   RATE_LIMIT_ERROR: "Too many requests. Please slow down.",
 }));
@@ -47,11 +47,6 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: vi.fn(),
 }));
 vi.mock("@/lib/tri-split/modules/survey", () => ({ revalidateSurvey: vi.fn() }));
-vi.mock("@/lib/cloudinary", () => ({
-  deleteCloudinaryAsset: vi.fn(async () => {}),
-  promoteDraftCloudinaryAsset: vi.fn(async () => null),
-  extractCloudinaryPublicId: vi.fn(() => null),
-}));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
 
 beforeEach(() => {

@@ -3,7 +3,10 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
-import { uploadImage, deleteDraftImage } from "@/app/actions/cloudinary";
+import {
+  uploadContentImageAction,
+  deleteDraftContentImage,
+} from "@/app/actions/content-images";
 import { compressImageToBudget } from "@/utils/image-compression";
 import AvatarCropperDialog from "@/components/profile/AvatarCropperDialog";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -89,7 +92,7 @@ export function ImageUploadField({
       const fd = new FormData();
       fd.append("file", uploadFile);
 
-      const data = await uploadImage(fd, kind, { allowFrozen });
+      const data = await uploadContentImageAction(fd, kind, { allowFrozen });
       if ("success" in data) {
         // Graceful rejection (e.g. frozen account) — surface, don't throw.
         setUploadError(data.message);
@@ -101,7 +104,7 @@ export function ImageUploadField({
       // folder check makes this a no-op for published assets (they live
       // outside /draft/), so this is safe in every create/edit/profile flow.
       if (value && value !== data.url) {
-        await deleteDraftImage(value, { allowFrozen });
+        await deleteDraftContentImage(value, { allowFrozen });
       }
 
       onChange(data.url);
@@ -151,7 +154,7 @@ export function ImageUploadField({
       // call the draft cleanup action for them: frozen owners are allowed to
       // clear/replace images while editing their own content.
       if (value.includes("/draft/")) {
-        const deleted = await deleteDraftImage(value, { allowFrozen });
+        const deleted = await deleteDraftContentImage(value, { allowFrozen });
         if (!deleted) {
           toast("Could not delete the draft image. Please try again.", "error");
           return;

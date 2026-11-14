@@ -3,11 +3,11 @@
  *
  * These are the write paths behind the Research Blog composer:
  *
- *   uploadBlogImageAction  -> uploads a client-compressed file to Supabase
+ *   uploadContentImageAction  -> uploads a client-compressed file to Supabase
  *                             Storage under the uploader's own draft folder
- *   deleteDraftBlogImage   -> removes a draft object, refusing anything that
+ *   deleteDraftContentImage   -> removes a draft object, refusing anything that
  *                             is not inside the caller's own draft folder
- *   promoteBlogImages      -> copies drafts to the published folder and
+ *   promoteContentImages      -> copies drafts to the published folder and
  *                             rewrites the HTML body to the published URLs
  *
  * The security-relevant behaviour is the folder scoping: a user must never be
@@ -44,7 +44,7 @@ vi.mock("@/lib/auth", () => ({
   }),
 }));
 
-const uploadBlogImage = vi.fn(
+const uploadContentImage = vi.fn(
   async ({
     userId,
     buffer,
@@ -63,26 +63,26 @@ const uploadBlogImage = vi.fn(
   }),
 );
 
-const deleteBlogImagePaths = vi.fn(async (_paths: string[]) => {});
-const publishBlogImage = vi.fn(
+const deleteContentImagePaths = vi.fn(async (_paths: string[]) => {});
+const publishContentImage = vi.fn(
   async ({ userId, draftPath, kind }: { userId: string; draftPath: string; kind: string }) =>
     `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${userId}/published/${kind}/${draftPath.split("/").slice(-2).join("/")}`,
 );
 
 vi.mock("@/lib/supabase-storage", () => ({
   CONTENT_IMAGE_BUCKET: "content-images",
-  uploadBlogImage: (args: Parameters<typeof uploadBlogImage>[0]) =>
-    uploadBlogImage(args),
-  deleteBlogImagePaths: (paths: string[]) => deleteBlogImagePaths(paths),
-  publishBlogImage: (args: Parameters<typeof publishBlogImage>[0]) =>
-    publishBlogImage(args),
+  uploadContentImage: (args: Parameters<typeof uploadContentImage>[0]) =>
+    uploadContentImage(args),
+  deleteContentImagePaths: (paths: string[]) => deleteContentImagePaths(paths),
+  publishContentImage: (args: Parameters<typeof publishContentImage>[0]) =>
+    publishContentImage(args),
   extractCoverImagePath: (url: string | null | undefined) => {
     if (!url) return null;
     const match = url.match(/\/public\/content-images\/(.+)$/);
     // The real helper decodes the percent-encoded public URL back to the key.
     return match ? decodeURIComponent(match[1]) : null;
   },
-  extractBlogImageUrlsFromHtml: (html: string) => {
+  extractContentImageUrlsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
     const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
@@ -93,7 +93,7 @@ vi.mock("@/lib/supabase-storage", () => ({
     }
     return refs;
   },
-  extractBlogImagePathsFromHtml: (html: string) => {
+  extractContentImagePathsFromHtml: (html: string) => {
     const refs: { url: string; path: string }[] = [];
     const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
     let match: RegExpExecArray | null;
@@ -129,7 +129,7 @@ beforeEach(() => {
   mockFrozen = false;
 });
 
-describe("uploadBlogImageAction", () => {
+describe("uploadContentImageAction", () => {
   it("uploads an image into the caller's own draft folder", async () => {
     const result = await uploadContentImageAction(
       formWith(imageFile(1024)),
@@ -137,8 +137,8 @@ describe("uploadBlogImageAction", () => {
     );
 
     expect(result).not.toHaveProperty("success");
-    expect(uploadBlogImage).toHaveBeenCalledTimes(1);
-    const args = uploadBlogImage.mock.calls[0][0];
+    expect(uploadContentImage).toHaveBeenCalledTimes(1);
+    const args = uploadContentImage.mock.calls[0][0];
     expect(args.userId).toBe(USER);
     expect(args.kind).toBe("article-cover");
     expect(args.fileName).toBe("photo.png");
@@ -149,7 +149,7 @@ describe("uploadBlogImageAction", () => {
   it("passes the real MIME type so Storage stores it as an image", async () => {
     await uploadContentImageAction(formWith(imageFile(64, "image/jpeg", "a.jpg")), "article-inline");
 
-    expect(uploadBlogImage.mock.calls[0][0].fileType).toBe("image/jpeg");
+    expect(uploadContentImage.mock.calls[0][0].fileType).toBe("image/jpeg");
   });
 
   it("rejects a non-image file type", async () => {
@@ -159,7 +159,7 @@ describe("uploadBlogImageAction", () => {
     );
 
     expect(result).toMatchObject({ success: false });
-    expect(uploadBlogImage).not.toHaveBeenCalled();
+    expect(uploadContentImage).not.toHaveBeenCalled();
   });
 
   it("rejects a file over the raw 5 MB ceiling", async () => {
@@ -169,7 +169,7 @@ describe("uploadBlogImageAction", () => {
     );
 
     expect(result).toMatchObject({ success: false });
-    expect(uploadBlogImage).not.toHaveBeenCalled();
+    expect(uploadContentImage).not.toHaveBeenCalled();
   });
 
   it("rejects a file over the stored-byte budget even when it is under the raw ceiling", async () => {
@@ -179,14 +179,14 @@ describe("uploadBlogImageAction", () => {
     );
 
     expect(result).toMatchObject({ success: false });
-    expect(uploadBlogImage).not.toHaveBeenCalled();
+    expect(uploadContentImage).not.toHaveBeenCalled();
   });
 
   it("rejects a request with no file at all", async () => {
     const result = await uploadContentImageAction(new FormData(), "article-cover");
 
     expect(result).toMatchObject({ success: false });
-    expect(uploadBlogImage).not.toHaveBeenCalled();
+    expect(uploadContentImage).not.toHaveBeenCalled();
   });
 
   it("refuses a frozen account", async () => {
@@ -195,7 +195,7 @@ describe("uploadBlogImageAction", () => {
     const result = await uploadContentImageAction(formWith(imageFile(64)), "article-cover");
 
     expect(result).toMatchObject({ success: false });
-    expect(uploadBlogImage).not.toHaveBeenCalled();
+    expect(uploadContentImage).not.toHaveBeenCalled();
   });
 
   it("allows a frozen account when the caller opts in", async () => {
@@ -206,21 +206,21 @@ describe("uploadBlogImageAction", () => {
     });
 
     expect(result).not.toHaveProperty("success");
-    expect(uploadBlogImage).toHaveBeenCalledTimes(1);
+    expect(uploadContentImage).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("deleteDraftBlogImage", () => {
+describe("deleteDraftContentImage", () => {
   it("is a no-op for a null url", async () => {
     await expect(deleteDraftContentImage(null)).resolves.toBe(true);
-    expect(deleteBlogImagePaths).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 
   it("deletes an object inside the caller's own draft folder", async () => {
     const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cover/uuid/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(true);
-    expect(deleteBlogImagePaths).toHaveBeenCalledWith([
+    expect(deleteContentImagePaths).toHaveBeenCalledWith([
       `users/${USER}/drafts/cover/uuid/photo.png`,
     ]);
   });
@@ -229,14 +229,14 @@ describe("deleteDraftBlogImage", () => {
     const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${OTHER}/drafts/cover/uuid/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(false);
-    expect(deleteBlogImagePaths).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 
   it("refuses to delete an already-published object", async () => {
     const url = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/published/cover/photo.png`;
 
     await expect(deleteDraftContentImage(url)).resolves.toBe(false);
-    expect(deleteBlogImagePaths).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 });
 
@@ -311,7 +311,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).toHaveBeenCalledWith({
+    expect(publishContentImage).toHaveBeenCalledWith({
       userId: USER,
       draftPath: `users/${USER}/drafts/cover/uuid/photo.png`,
       kind: "article-cover",
@@ -335,7 +335,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).toHaveBeenCalledWith({
+    expect(publishContentImage).toHaveBeenCalledWith({
       userId: USER,
       draftPath: `users/${USER}/drafts/cfp-cover/uuid/download (2).jpeg`,
       kind: "cfp-cover",
@@ -351,7 +351,7 @@ describe("promoteContentImages", () => {
     });
 
     expect(result.coverUrl).toBe("https://res.cloudinary.com/demo/image/upload/old.jpg");
-    expect(publishBlogImage).not.toHaveBeenCalled();
+    expect(publishContentImage).not.toHaveBeenCalled();
   });
 
   it("does not re-publish an already published cover image", async () => {
@@ -367,7 +367,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).not.toHaveBeenCalled();
+    expect(publishContentImage).not.toHaveBeenCalled();
     expect(result.coverUrl).toBe(publishedCover);
   });
 
@@ -383,7 +383,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).not.toHaveBeenCalled();
+    expect(publishContentImage).not.toHaveBeenCalled();
     expect(result.publishedHtml).toBe(html);
   });
 
@@ -399,7 +399,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).toHaveBeenCalledWith({
+    expect(publishContentImage).toHaveBeenCalledWith({
       userId: USER,
       draftPath: `users/${USER}/drafts/inline/uuid/fig.png`,
       kind: "article-inline",
@@ -428,7 +428,7 @@ describe("promoteContentImages", () => {
     // surfaced as an opaque 500 on submit. It must come back as a normal
     // failure so the action can tell the user something.
     const coverUrl = `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${USER}/drafts/cover/uuid/photo.png`;
-    publishBlogImage.mockRejectedValueOnce(
+    publishContentImage.mockRejectedValueOnce(
       new Error(
         "Failed to publish image: new row violates row-level security policy",
       ),
@@ -461,7 +461,7 @@ describe("promoteContentImages", () => {
       userId: USER,
     });
 
-    expect(publishBlogImage).not.toHaveBeenCalled();
+    expect(publishContentImage).not.toHaveBeenCalled();
     expect(result.ok).toBe(false);
     errorSpy.mockRestore();
   });

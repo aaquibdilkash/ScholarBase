@@ -45,7 +45,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true })),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   RATE_LIMIT_ERROR: "Rate limit exceeded",
 }));
 

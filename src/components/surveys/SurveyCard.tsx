@@ -10,7 +10,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import Link from "next/link";
 import { BarChart2 } from "lucide-react";
 import type { SurveyWithAuthor } from "@/types/cards";
@@ -80,7 +80,7 @@ export function SurveyCard({
                 toast("Survey deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

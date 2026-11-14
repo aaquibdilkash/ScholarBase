@@ -20,7 +20,7 @@ import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/
 import { hideContentActivity } from "@/lib/activity";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { repairLegacyInlineImages } from "@/lib/article-content";
-import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
+import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 import type { ArticleWithAuthor } from "@/types/cards";
 
 /**
@@ -130,7 +130,8 @@ export async function createArticle(formData: FormData) {
   const auth = await getActiveUser("Log in to publish an article.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "article:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "article:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
@@ -242,7 +243,8 @@ export async function createArticle(formData: FormData) {
 export async function updateArticle(formData: FormData, articleId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this article.");
-  await enforceRateLimit({ namespace: "article:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "article:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
@@ -285,7 +287,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
   // Work out which images this edit removes, but do NOT delete them yet.
   //
   // The feed deletes a replaced post image as soon as it is replaced
-  // (`deleteCloudinaryAsset` on save). This does the same for the blog and
+  // (`deleteContentImagePaths` on save). This does the same for the blog and
   // extends it to INLINE body images, which the feed never had: every image
   // that was in the stored body and is no longer in the new body is collected.
   //
@@ -326,7 +328,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
   // leave the article pointing at objects that are already gone if the write
   // failed — the same ordering the feed uses for a replaced post image.
   if (removedPaths.length > 0) {
-    await deleteBlogImagePaths(removedPaths);
+    await deleteContentImagePaths(removedPaths);
   }
 
   // The edited title/excerpt/slug are part of the cached public payload.
@@ -338,7 +340,8 @@ export async function updateArticle(formData: FormData, articleId: string) {
 export async function deleteArticle(articleId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this article.");
-  await enforceRateLimit({ namespace: "article:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "article:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },

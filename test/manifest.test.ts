@@ -105,7 +105,6 @@ const PENDING_ACTION_TESTS = [
   // Everything else that used to sit here now has a test; the gate below fails
   // if one of these gains a test and is not removed from this list.
   "adminInvite",
-  "cloudinary",
   "comments.clientWrappers",
   "notifications",
 ]

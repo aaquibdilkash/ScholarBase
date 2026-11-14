@@ -4,8 +4,10 @@ import { createClient } from "@/utils/supabase/server";
 import { createServiceClient } from "@/utils/supabase/service";
 
 /**
- * Supabase Storage bucket used for content images (blog articles, call for
- * papers). Public bucket: URLs resolve directly without signed URLs.
+ * Supabase Storage bucket used for all content images (blog articles, call for
+ * papers, academic positions, admissions, feed posts, contribution
+ * screenshots, profile avatars). Public bucket: URLs resolve directly without
+ * signed URLs.
  */
 export const CONTENT_IMAGE_BUCKET = "content-images";
 
@@ -19,6 +21,9 @@ export const CONTENT_IMAGE_BUCKET = "content-images";
  * Modules whose editor does not offer inline uploads still declare an inline
  * kind, so a draft image that somehow reaches the body is promoted rather
  * than left pointing at a draft object that gets collected.
+ *
+ * Single-image modules (avatar, social post, contribution) use a cover-only
+ * kind — no inline variant — since they store one image URL on the row.
  */
 export type ContentImageKind =
   | "article-cover"
@@ -28,7 +33,10 @@ export type ContentImageKind =
   | "position-cover"
   | "position-inline"
   | "admission-cover"
-  | "admission-inline";
+  | "admission-inline"
+  | "avatar"
+  | "social"
+  | "contribution";
 
 /**
  * Returns a server-side Supabase client for Storage operations.
@@ -38,16 +46,16 @@ async function getSupabase() {
 }
 
 /**
- * Uploads a blog image buffer to Supabase Storage under a user's draft folder.
+ * Uploads a content image buffer to Supabase Storage under a user's draft folder.
  * Path: `users/{userId}/drafts/{kind}/{uuid}/{fileName}`
  *
  * @param userId - Owner of the image (used for folder isolation).
  * @param buffer - Image file bytes.
  * @param fileName - Original file name (extension preserved).
- * @param kind - "cover" or "inline" — determines subfolder.
+ * @param kind - Module-scoped kind (cover, inline, avatar, social, contribution).
  * @returns { url, path, bytes }
  */
-export async function uploadBlogImage({
+export async function uploadContentImage({
   userId,
   buffer,
   fileName,
@@ -99,7 +107,7 @@ export async function uploadBlogImage({
  * @param kind - "cover" or "inline".
  * @returns The public URL of the published object.
  */
-export async function publishBlogImage({
+export async function publishContentImage({
   userId,
   draftPath,
   kind,
@@ -139,14 +147,14 @@ export async function publishBlogImage({
  *
  * @param paths - Full storage paths to delete.
  */
-export async function deleteBlogImagePaths(paths: string[]): Promise<void> {
+export async function deleteContentImagePaths(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
 
   const supabase = await getSupabase();
   const { error } = await supabase.storage.from(CONTENT_IMAGE_BUCKET).remove(paths);
 
   if (error) {
-    console.error("[deleteBlogImagePaths] Supabase Storage remove error:", error.message);
+    console.error("[deleteContentImagePaths] Supabase Storage remove error:", error.message);
     // Don't throw — cleanup should be idempotent and non-blocking.
   }
 }
@@ -159,7 +167,7 @@ export async function deleteBlogImagePaths(paths: string[]): Promise<void> {
  * those deletes. The paths always come from the `OrphanedAsset` queue, which
  * the trim cron populates from the content's own stored rows.
  */
-export async function deleteBlogImagePathsAsServiceRole(
+export async function deleteContentImagePathsAsServiceRole(
   paths: string[],
 ): Promise<void> {
   if (paths.length === 0) return;
@@ -169,7 +177,7 @@ export async function deleteBlogImagePathsAsServiceRole(
 
   if (error) {
     console.error(
-      "[deleteBlogImagePathsAsServiceRole] Supabase Storage remove error:",
+      "[deleteContentImagePathsAsServiceRole] Supabase Storage remove error:",
       error.message,
     );
   }
@@ -215,7 +223,7 @@ function storageKeyFromPathname(pathname: string): string | null {
  * @param html - HTML content (e.g., article.description).
  * @returns Array of { url, path }.
  */
-export function extractBlogImageUrlsFromHtml(
+export function extractContentImageUrlsFromHtml(
   html: string,
 ): { url: string; path: string }[] {
   const refs: { url: string; path: string }[] = [];
@@ -250,8 +258,8 @@ export function extractBlogImageUrlsFromHtml(
  * @param html - HTML content (e.g., article.description).
  * @returns Array of storage paths.
  */
-export function extractBlogImagePathsFromHtml(html: string): string[] {
-  return extractBlogImageUrlsFromHtml(html).map((ref) => ref.path);
+export function extractContentImagePathsFromHtml(html: string): string[] {
+  return extractContentImageUrlsFromHtml(html).map((ref) => ref.path);
 }
 
 /**

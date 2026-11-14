@@ -24,3 +24,18 @@ export function actionErrorMessage(result: unknown, fallback: string): string {
     return fallback;
 }
 
+/**
+ * Production React masks every uncaught Server Action / RSC error as
+ * "Minified React error #441; visit https://react.dev/errors/441 ..." so the
+ * browser never sees the real reason (it only exists in the server log next to
+ * the error digest). Showing that string in a toast is worse than useless, so
+ * map it to the caller's fallback. Real action messages pass through.
+ */
+export function friendlyActionError(err: unknown, fallback: string): string {
+    const message = err instanceof Error ? err.message.trim() : "";
+    if (!message) return fallback;
+    if (/^Minified React error #\d+/.test(message)) return fallback;
+    if (message.includes("An error occurred in the Server Components render")) return fallback;
+    return message;
+}
+

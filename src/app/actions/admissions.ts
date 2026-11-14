@@ -21,7 +21,7 @@ import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
-import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
+import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Loads one page of admission rows for the
@@ -119,7 +119,8 @@ export async function createAdmission(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "admission:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "admission:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -211,7 +212,8 @@ export async function updateAdmission(
 ) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this admission.");
-  await enforceRateLimit({ namespace: "admission:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "admission:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -287,7 +289,7 @@ export async function updateAdmission(
 
   // Persist the edit FIRST, then collect the images the edit replaced.
   if (removedPaths.length > 0) {
-    await deleteBlogImagePaths(removedPaths);
+    await deleteContentImagePaths(removedPaths);
   }
 
   // Purge the cached admission pages: edit must be visible at once, not after the TTL.
@@ -299,7 +301,8 @@ export async function updateAdmission(
 export async function deleteAdmission(admissionId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this admission.");
-  await enforceRateLimit({ namespace: "admission:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "admission:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const admission = await prisma.admission.findUnique({
     where: { id: admissionId },

@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { removeFromList } from "@/utils/cacheMutation";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { stripHtmlTags } from "@/lib/html";
@@ -113,7 +113,7 @@ export function PublicationCard({
                 toast("Publication deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

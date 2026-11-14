@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { submitAppeal } from "@/app/actions/appeals";
 import { useToast } from "@/components/ui/Toast";
+import { friendlyActionError } from "@/lib/utils";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useUser } from "@/hooks/useUser";
 import { MAX_APPEAL_REASON, APPEAL_CATEGORIES } from "@/lib/constants";
@@ -70,8 +71,7 @@ export function AppealButton({
       setSelectedReason(APPEAL_CATEGORIES[0].value);
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error ? err.message : "Failed to submit appeal.";
+      const message = friendlyActionError(err, "Failed to submit appeal.");
       toast({ title: "Error", description: message, variant: "destructive" });
     },
   });

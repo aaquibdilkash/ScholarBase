@@ -255,7 +255,8 @@ export async function createSupervisor(formData: FormData) {
   const auth = await getActiveUser("Log in to add a supervisor entry.");
   if (auth.frozen) return { success: false as const, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "supervisor:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "supervisor:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const name = readFormValue(formData, "name");
   const university = readFormValue(formData, "university");
@@ -338,7 +339,8 @@ export async function updateSupervisor(
 ) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this supervisor.");
-  await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const name = readFormValue(formData, "name");
   const university = readFormValue(formData, "university");
@@ -443,7 +445,8 @@ export async function updateSupervisor(
 export async function deleteSupervisor(supervisorId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this supervisor.");
-  await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },

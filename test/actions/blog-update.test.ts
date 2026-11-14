@@ -44,7 +44,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   checkRateLimit: vi.fn(async () => ({ allowed: true, limited: false, degraded: false })),
 }));
 
@@ -62,46 +62,29 @@ vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
 
 /** Records the order of storage deletes vs the database write. */
 const callOrder: string[] = [];
-const deleteBlogImagePaths = vi.fn(async (_paths: string[]) => {
+const deleteContentImagePaths = vi.fn(async (_paths: string[]) => {
   callOrder.push("delete");
 });
-const publishBlogImage = vi.fn(
+const publishContentImage = vi.fn(
   async ({ userId, draftPath, kind }: { userId: string; draftPath: string; kind: string }) =>
     `${SUPABASE_URL}/storage/v1/object/public/content-images/users/${userId}/published/${kind}/${draftPath.split("/").pop()}`,
 );
 
-vi.mock("@/lib/supabase-storage", () => ({
-  CONTENT_IMAGE_BUCKET: "content-images",
-  deleteBlogImagePaths: (paths: string[]) => deleteBlogImagePaths(paths),
-  publishBlogImage: (args: Parameters<typeof publishBlogImage>[0]) =>
-    publishBlogImage(args),
-  extractCoverImagePath: (url: string | null | undefined) => {
-    if (!url) return null;
-    const match = url.match(/\/public\/content-images\/(.+)$/);
-    // The real helper decodes the percent-encoded public URL back to the key.
-    return match ? decodeURIComponent(match[1]) : null;
-  },
-  extractBlogImagePathsFromHtml: (html: string) => {
-    const paths: string[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(html)) !== null) {
-      const path = match[1].match(/\/public\/content-images\/(.+)$/);
-      if (path) paths.push(decodeURIComponent(path[1]));
-    }
-    return paths;
-  },
-  extractBlogImageUrlsFromHtml: (html: string) => {
-    const refs: { url: string; path: string }[] = [];
-    const regex = /<img[^>]+src="([^"]*storage\/v1\/object\/public\/content-images\/[^"]+)"/gi;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(html)) !== null) {
-      const path = match[1].match(/\/public\/content-images\/(.+)$/);
-      if (path) refs.push({ url: match[1], path: decodeURIComponent(path[1]) });
-    }
-    return refs;
-  },
-}));
+vi.mock("@/lib/supabase-storage", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/supabase-storage")>();
+
+  // Keep the real URL -> storage-key parsers: the assertions below depend on
+  // the same percent-decoding the production code relies on. Only the two
+  // functions that talk to Storage are replaced.
+  return {
+    ...actual,
+    deleteContentImagePaths: (paths: string[]) =>
+      deleteContentImagePaths(paths),
+    publishContentImage: (args: Parameters<typeof publishContentImage>[0]) =>
+      publishContentImage(args),
+  };
+});
 
 const pub = (path: string) =>
   `${SUPABASE_URL}/storage/v1/object/public/content-images/${path}`;
@@ -147,19 +130,19 @@ beforeEach(() => {
 
 describe("updateArticle garbage-collects the images the edit removed", () => {
   it("collects an inline image that was deleted from the body", async () => {
-    const inline = pub(`users/${AUTHOR}/published/inline/fig.png`);
+    const inline = pub(`users/${AUTHOR}/published/article-inline/fig.png`);
     seedArticle({ content: `<p>body</p><img src="${inline}" alt="fig" />` });
 
     await updateArticle(form({ title: "Post", excerpt: "Excerpt", content: "<p>body</p>" }), "art-1");
 
-    expect(deleteBlogImagePaths).toHaveBeenCalledTimes(1);
-    expect(deleteBlogImagePaths.mock.calls[0][0]).toEqual([
-      `users/${AUTHOR}/published/inline/fig.png`,
+    expect(deleteContentImagePaths).toHaveBeenCalledTimes(1);
+    expect(deleteContentImagePaths.mock.calls[0][0]).toEqual([
+      `users/${AUTHOR}/published/article-inline/fig.png`,
     ]);
   });
 
   it("keeps an inline image that is still in the body", async () => {
-    const inline = pub(`users/${AUTHOR}/published/inline/fig.png`);
+    const inline = pub(`users/${AUTHOR}/published/article-inline/fig.png`);
     seedArticle({ content: `<p>body</p><img src="${inline}" alt="fig" />` });
 
     await updateArticle(
@@ -171,14 +154,14 @@ describe("updateArticle garbage-collects the images the edit removed", () => {
       "art-1",
     );
 
-    expect(deleteBlogImagePaths).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 
   it("collects the old cover when it is replaced", async () => {
-    const cover = pub(`users/${AUTHOR}/published/cover/old.png`);
+    const cover = pub(`users/${AUTHOR}/published/article-cover/old.png`);
     seedArticle({ imageUrl: cover, content: "<p>body</p>" });
 
-    const next = pub(`users/${AUTHOR}/published/cover/new.png`);
+    const next = pub(`users/${AUTHOR}/published/article-cover/new.png`);
     await updateArticle(
       form({
         title: "Post",
@@ -189,13 +172,13 @@ describe("updateArticle garbage-collects the images the edit removed", () => {
       "art-1",
     );
 
-    expect(deleteBlogImagePaths).toHaveBeenCalledWith([
-      `users/${AUTHOR}/published/cover/old.png`,
+    expect(deleteContentImagePaths).toHaveBeenCalledWith([
+      `users/${AUTHOR}/published/article-cover/old.png`,
     ]);
   });
 
   it("collects the old cover when it is removed entirely", async () => {
-    const cover = pub(`users/${AUTHOR}/published/cover/old.png`);
+    const cover = pub(`users/${AUTHOR}/published/article-cover/old.png`);
     seedArticle({ imageUrl: cover, content: "<p>body</p>" });
 
     await updateArticle(
@@ -203,13 +186,13 @@ describe("updateArticle garbage-collects the images the edit removed", () => {
       "art-1",
     );
 
-    expect(deleteBlogImagePaths).toHaveBeenCalledWith([
-      `users/${AUTHOR}/published/cover/old.png`,
+    expect(deleteContentImagePaths).toHaveBeenCalledWith([
+      `users/${AUTHOR}/published/article-cover/old.png`,
     ]);
   });
 
   it("does not collect a cover that was left alone", async () => {
-    const cover = pub(`users/${AUTHOR}/published/cover/same.png`);
+    const cover = pub(`users/${AUTHOR}/published/article-cover/same.png`);
     seedArticle({ imageUrl: cover, content: "<p>body</p>" });
 
     await updateArticle(
@@ -222,11 +205,11 @@ describe("updateArticle garbage-collects the images the edit removed", () => {
       "art-1",
     );
 
-    expect(deleteBlogImagePaths).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 
   it("collects the images only AFTER the database write", async () => {
-    const inline = pub(`users/${AUTHOR}/published/inline/fig.png`);
+    const inline = pub(`users/${AUTHOR}/published/article-inline/fig.png`);
     seedArticle({ content: `<p>body</p><img src="${inline}" alt="fig" />` });
 
     const originalUpdate = fakeDb.client.article.update.bind(
@@ -253,7 +236,7 @@ describe("updateArticle reports a failed image publish instead of throwing", () 
     // and must not touch the row: the body would otherwise keep drafts/ URLs
     // that only its owner can read.
     seedArticle({ title: "Original" });
-    publishBlogImage.mockRejectedValueOnce(
+    publishContentImage.mockRejectedValueOnce(
       new Error(
         "Failed to publish image: new row violates row-level security policy",
       ),

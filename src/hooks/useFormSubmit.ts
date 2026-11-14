@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { invalidateProfileTabs } from "@/utils/cacheMutation";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import type {
     SubmitOptions,
     SubmitResult,
@@ -84,9 +84,7 @@ export function useFormSubmit(
                 // If no result (action did redirect or threw), the catch block handles it
             } catch (err: unknown) {
                 // ❌ Error — draft is NOT reset, values preserved
-                const message =
-                    err instanceof Error ? err.message : errorMessage;
-                toast(message, "error");
+                toast(friendlyActionError(err, errorMessage), "error");
             } finally {
                 setSubmitting(false);
             }

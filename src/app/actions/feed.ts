@@ -35,9 +35,10 @@ import {
   deleteAllNotificationsForContent,
 } from "@/lib/notifications";
 import {
-  deleteCloudinaryAsset,
-  promoteDraftCloudinaryAsset,
-} from "@/lib/cloudinary";
+  deleteContentImagePaths,
+  extractCoverImagePath,
+} from "@/lib/supabase-storage";
+import { promoteContentImages } from "@/lib/content-images";
 import { queueNotification } from "@/lib/qstash";
 import type { SocialPostWithAuthor } from "@/types/cards";
 import type { MentionUser } from "@/components/interactions/CommentThread";
@@ -288,12 +289,14 @@ export async function createSocialPost(formData: FormData) {
   const mentions = await resolveMentionedUsers(content);
   let publishedImageUrl: string | null = null;
   if (imageUrl) {
-    publishedImageUrl = await promoteDraftCloudinaryAsset(
+    const promoted = await promoteContentImages({
+      coverKind: "social",
       imageUrl,
-      authUser.id,
-      "social",
-    );
-    if (!publishedImageUrl) throw new Error("Invalid post image.");
+      html: "",
+      userId: authUser.id,
+    });
+    if (!promoted.ok) throw new Error("Invalid post image.");
+    publishedImageUrl = promoted.coverUrl;
   }
 
   const post = await prisma.$transaction(async (tx) => {
@@ -400,17 +403,26 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   const mentions = await resolveMentionedUsers(content);
 
   // Persist the edit first so the DB is the source of truth. Then delete the
-  // old image from Cloudinary only after the update has succeeded — so if the
+  // old image from Storage only after the update has succeeded — so if the
   // user changes their mind before saving, the original image is preserved,
   // and if the update fails, the old image is never deleted.
   const oldImage = post.imageUrl;
-  const newImage = !hasImageField
-    ? oldImage
-    : requestedImageUrl
-      ? requestedImageUrl === oldImage
-        ? requestedImageUrl
-        : await promoteDraftCloudinaryAsset(requestedImageUrl, user.id, "social")
-      : null;
+  let newImage: string | null = null;
+  if (!hasImageField) {
+    newImage = oldImage;
+  } else if (requestedImageUrl) {
+    if (requestedImageUrl === oldImage) {
+      newImage = requestedImageUrl;
+    } else {
+      const promoted = await promoteContentImages({
+        coverKind: "social",
+        imageUrl: requestedImageUrl,
+        html: "",
+        userId: user.id,
+      });
+      newImage = promoted.ok ? promoted.coverUrl : null;
+    }
+  }
 
   if (requestedImageUrl && !newImage) {
     throw new Error("Invalid post image.");
@@ -441,7 +453,10 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   });
 
   if (oldImage && oldImage !== newImage) {
-    await deleteCloudinaryAsset(oldImage);
+    const oldPath = extractCoverImagePath(oldImage);
+    if (oldPath) {
+      await deleteContentImagePaths([oldPath]);
+    }
   }
 
   // The edited body/mentions/editedAt are part of the cached public payload.

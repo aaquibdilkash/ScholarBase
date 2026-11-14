@@ -14,7 +14,7 @@ import { CardChip } from "@/components/cards/CardChip";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deleteAcademicPosition } from "@/app/actions/academic-positions";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import type { AcademicPositionWithAuthor } from "@/types/cards";
@@ -99,7 +99,7 @@ export function AcademicPositionCard({ academicPosition,
                 toast("Position deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

@@ -5,6 +5,7 @@ import {
   createAdmission,
 } from "@/app/actions/admissions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
+import { Select } from "@/components/ui/Select";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
@@ -169,7 +170,7 @@ export default function AdmissionForm({
           Degree Level
           <InfoTooltip message={ADMISSION_LEVEL_TIP} />
         </label>
-        <select
+        <Select
           name="level"
           className="sb-input"
           value={draftFields.level}
@@ -180,7 +181,7 @@ export default function AdmissionForm({
               {level.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div>

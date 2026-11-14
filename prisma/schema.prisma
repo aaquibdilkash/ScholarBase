@@ -170,13 +170,12 @@ enum CallForPaperCategory {
   SYMPOSIUM
 }
 
-/// Degree level of an admission notice. `PHD` is the backfill for rows created
-/// before admissions were generalized beyond PhD programs.
+/// Degree level of an admission notice. Admissions are research-only: PhD, an
+/// MS/MSc by Research (IIT/IISc "MSR"), or another research degree. The
+/// migration remaps legacy taught-degree rows into these values.
 enum AdmissionLevel {
   PHD
-  MASTERS
-  UNDERGRADUATE
-  MPHIL
+  MS_BY_RESEARCH
   OTHER
 }
 

@@ -122,7 +122,8 @@ export async function createHelpPost(formData: FormData) {
   const auth = await getActiveUser("You must be logged in to create a post.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "help:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "help:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
   const title = formData.get("title") as string;
   const subject = formData.get("subject") as string;
   const category = formData.get("category") as string;
@@ -196,7 +197,8 @@ export async function createHelpPost(formData: FormData) {
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("You must be logged in to update a post.");
-  await enforceRateLimit({ namespace: "help:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "help:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = formData.get("title") as string;
   const subject = formData.get("subject") as string;
@@ -234,7 +236,8 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 export async function deleteHelpPost(helpPostId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this help post.");
-  await enforceRateLimit({ namespace: "help:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "help:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const post = await prisma.helpPost.findUnique({
     where: { id: helpPostId },

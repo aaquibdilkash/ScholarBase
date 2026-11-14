@@ -228,12 +228,13 @@ export async function createJournalReview(
   );
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({
+  const writeLimit = await enforceRateLimit({
     namespace: "journalReview:create",
     key: user.id,
     limit: 10,
     window: "10 m",
   });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   // Deleted journals are read-only: the add-review page already 404s, but the
   // action is reachable directly, so reject it here too.
@@ -386,12 +387,13 @@ export async function updateJournalReview(
 ) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this review.");
-  await enforceRateLimit({
+  const writeLimit = await enforceRateLimit({
     namespace: "journalReview:edit",
     key: user.id,
     limit: 20,
     window: "10 m",
   });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
@@ -536,12 +538,13 @@ export async function updateJournalReview(
 export async function deleteJournalReview(reviewId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this review.");
-  await enforceRateLimit({
+  const writeLimit = await enforceRateLimit({
     namespace: "journalReview:delete",
     key: user.id,
     limit: 20,
     window: "10 m",
   });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const review = await prisma.journalReview.findUnique({
     where: { id: reviewId },

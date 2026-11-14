@@ -11,7 +11,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteCourse } from "@/app/actions/courses";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { CourseWithAuthor } from "@/types/cards";
 import { formatCoursePrice } from "@/lib/course-currency";
@@ -83,7 +83,7 @@ export function CourseCard({
                 toast("Course deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

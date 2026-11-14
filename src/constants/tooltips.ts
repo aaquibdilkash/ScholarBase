@@ -47,7 +47,7 @@ export const JOURNAL_REVIEW_ANONYMOUS_TIP = "Post this review without revealing 
 // -----------------------------------------------------------------------------
 export const ADMISSION_UNIVERSITY_TIP = "The full name of the university or institute offering the program.";
 export const ADMISSION_DEPARTMENT_TIP = "The specific department, faculty, or school within the university.";
-export const ADMISSION_LEVEL_TIP = "The degree level this admission is for: PhD, Master's, undergraduate, MPhil, or another program.";
+export const ADMISSION_LEVEL_TIP = "The research degree this admission is for: PhD, MS/MSc by Research, or another research degree.";
 export const ADMISSION_DEADLINE_TIP = "The last date to submit the application for this admission cycle.";
 export const ADMISSION_DESCRIPTION_TIP = "Seat matrix, eligibility criteria, and any special notes about the program.";
 export const ADMISSION_NOTIFICATION_LINK_TIP = "URL to the official admission notification or information brochure.";

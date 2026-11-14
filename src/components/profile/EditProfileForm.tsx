@@ -9,7 +9,7 @@ import {
 import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { KeywordChipsInput } from "@/components/publications/KeywordChipsInput";
 import { Editor } from "@/components/ui/Editor";
@@ -96,7 +96,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const [submitting, setSubmitting] = useState(false);
 
   // Persist the pending draft avatar across navigation (the asset lives in
-  // the user's Cloudinary draft folder until Save promotes it). Restored on
+  // the user's Storage draft folder until Save promotes it). Restored on
   // mount so returning to the form shows the draft instead of the published
   // avatar, and the replace-cleanup deletes the previous draft correctly.
   const avatarDraftKey = `draft_profile_avatar_${user.id}`;
@@ -185,7 +185,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         toast(msg, "error");
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to update profile.";
+      const msg = friendlyActionError(e, "Failed to update profile.");
       setError(msg);
       toast(msg, "error");
     } finally {

@@ -55,7 +55,7 @@ vi.mock("@/lib/turnstile", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: rateLimitAllowed, degraded })),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   getRequestFingerprint: (h: unknown) => getRequestFingerprint(h),
   getRequestIpKey: vi.fn(() => "ip"),
   hashRateLimitKey: vi.fn((v: string) => v),

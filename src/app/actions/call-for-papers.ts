@@ -21,7 +21,7 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
-import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
+import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Loads one page of research event rows for the
@@ -123,7 +123,8 @@ export async function createCallForPaper(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "event:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "event:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const category = readFormValue(formData, "category");
@@ -245,7 +246,8 @@ export async function createCallForPaper(formData: FormData) {
 export async function updateCallForPaper(formData: FormData, eventId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this event.");
-  await enforceRateLimit({ namespace: "event:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "event:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const category = readFormValue(formData, "category");
@@ -335,7 +337,7 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
 
   // Persist the edit FIRST, then collect the images the edit replaced.
   if (removedPaths.length > 0) {
-    await deleteBlogImagePaths(removedPaths);
+    await deleteContentImagePaths(removedPaths);
   }
 
   // Purge the cached research event pages: edit must be visible at once, not after the TTL.
@@ -347,7 +349,8 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
 export async function deleteCallForPaper(eventId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this event.");
-  await enforceRateLimit({ namespace: "event:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "event:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const event = await prisma.callForPaper.findUnique({
     where: { id: eventId },

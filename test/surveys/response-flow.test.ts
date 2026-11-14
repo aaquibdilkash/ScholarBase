@@ -66,7 +66,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: rateLimitAllowed, degraded: false })),
-  enforceRateLimit: vi.fn(async () => undefined),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   RATE_LIMIT_ERROR: "Too many requests. Please slow down.",
 }));
 vi.mock("@/lib/notifications", async (importOriginal) => {

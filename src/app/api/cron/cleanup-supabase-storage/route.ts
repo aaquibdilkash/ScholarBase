@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyCronSecret } from '@/lib/cron';
 import {
-  deleteBlogImagePathsAsServiceRole,
+  deleteContentImagePathsAsServiceRole,
   extractCoverImagePath,
 } from '@/lib/supabase-storage';
 import { hasServiceRoleCredentials } from '@/utils/supabase/service';
@@ -81,7 +81,7 @@ export async function GET() {
 
     // 3. Delete from Supabase Storage in a single batch call
     if (paths.length > 0) {
-      await deleteBlogImagePathsAsServiceRole(paths);
+      await deleteContentImagePathsAsServiceRole(paths);
     }
 
     // 4. Remove processed rows from the database (including unparseable URLs to prevent stuck queues)

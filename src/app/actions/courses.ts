@@ -32,7 +32,8 @@ export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -136,7 +137,8 @@ export async function createCourse(formData: FormData) {
 export async function updateCourse(formData: FormData, courseId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this course.");
-  await enforceRateLimit({ namespace: "course:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "course:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -224,7 +226,8 @@ export async function updateCourse(formData: FormData, courseId: string) {
 export async function deleteCourse(courseId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this course.");
-  await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },

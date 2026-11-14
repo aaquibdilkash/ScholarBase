@@ -25,7 +25,8 @@ export async function createResearchTool(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "research-tool:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "research-tool:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
@@ -100,7 +101,8 @@ export async function createResearchTool(formData: FormData) {
 export async function updateResearchTool(formData: FormData, toolId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this research tool.");
-  await enforceRateLimit({ namespace: "research-tool:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "research-tool:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
@@ -140,7 +142,8 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 export async function deleteResearchTool(toolId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this research tool.");
-  await enforceRateLimit({ namespace: "research-tool:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "research-tool:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const tool = await prisma.researchTool.findUnique({
     where: { id: toolId },

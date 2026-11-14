@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -117,9 +117,7 @@ export function CreateSocialPostForm() {
       formRef.current?.reset();
       toast("Post published successfully!", "success");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to create post.";
-      toast(message, "error");
+      toast(friendlyActionError(error, "Failed to create post."), "error");
     } finally {
       setSubmitting(false);
     }

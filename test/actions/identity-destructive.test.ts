@@ -113,7 +113,7 @@ vi.mock("next/headers", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true })),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   getRequestFingerprint: vi.fn(async () => "fp"),
   getRequestIpKey: vi.fn(() => "203.0.113.7"),
   hashRateLimitKey: vi.fn((v: string) => v),

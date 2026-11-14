@@ -23,7 +23,7 @@ import {
   MAX_ARTICLE_CONTENT,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import type { Article } from "@prisma/client";
 import { upsertToList } from "@/utils/cacheMutation";
 import type { ArticleWithAuthor } from "@/types/cards";
@@ -111,7 +111,7 @@ export function ArticleComposer({
       router.push(`/blog/${newArticle.slug}`);
     },
     onError: (error) => {
-      toast(error.message, "error");
+      toast(friendlyActionError(error, "Failed to publish article."), "error");
     },
   });
 
@@ -145,7 +145,7 @@ export function ArticleComposer({
       router.push(`/blog/${updatedArticle.slug}`);
     },
     onError: (error) => {
-      toast(error.message, "error");
+      toast(friendlyActionError(error, "Failed to update article."), "error");
     },
   });
 
@@ -306,7 +306,7 @@ export function ArticleComposer({
               : "Publishing..."
             : mode === "edit"
               ? "Save Changes"
-              : "Publish Article"}
+              : "Publish Blog"}
         </SubmitBtnWithAuth>
       </div>
     </form>

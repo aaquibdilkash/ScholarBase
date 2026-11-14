@@ -18,6 +18,7 @@ import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
+import { friendlyActionError } from "@/lib/utils";
 import { MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import {
   MentionComposer,
@@ -362,8 +363,10 @@ function CommentCard({
     } catch (e: unknown) {
       // Surface the real guard (Not authorized / Comment not found / rate limit)
       // instead of masking it behind a generic fallback.
-      const message =
-        e instanceof Error && e.message ? e.message : "Failed to update comment. Please try again.";
+      const message = friendlyActionError(
+        e,
+        "Failed to update comment. Please try again.",
+      );
       toast({
         title: "Error",
         description: message,

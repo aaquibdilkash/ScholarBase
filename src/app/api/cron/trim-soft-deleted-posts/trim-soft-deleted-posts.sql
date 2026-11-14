@@ -29,9 +29,12 @@ DECLARE
   ];
 BEGIN
   -- -----------------------------------------------------------
-  -- 1. QUEUE ORPHANED CLOUDINARY IMAGES BEFORE HARD DELETIONS
+  -- 1. QUEUE ORPHANED CONTENT IMAGES BEFORE HARD DELETIONS
   -- -----------------------------------------------------------
-  
+  -- Every filter matches the URL PATH, not the host: this deployment serves
+  -- Supabase Storage from a custom domain (api.staging.scholarbase.app), so a
+  -- `supabase.co` pattern would never match anything.
+
   -- From Users (avatarUrl)
   INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
   SELECT gen_random_uuid()::text, "avatarUrl", NOW()
@@ -39,7 +42,7 @@ BEGIN
   WHERE "isDeleted" = true 
     AND "updatedAt" < NOW() - INTERVAL '30 days'
     AND "avatarUrl" IS NOT NULL
-    AND "avatarUrl" LIKE '%res.cloudinary.com%';
+    AND "avatarUrl" LIKE '%/storage/v1/object/public/content-images/%';
   GET DIAGNOSTICS assets_count = ROW_COUNT;
   total_assets_queued := total_assets_queued + assets_count;
 
@@ -51,7 +54,36 @@ BEGIN
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
       AND "imageUrl" IS NOT NULL
-      AND "imageUrl" LIKE '%res.cloudinary.com%';
+      AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From SocialPost (imageUrls array)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, unnested_url, NOW()
+    FROM (
+      SELECT unnest("imageUrls") AS unnested_url
+      FROM "SocialPost"
+      WHERE "isDeleted" = true
+        AND "updatedAt" < NOW() - INTERVAL '30 days'
+        AND "imageUrls" IS NOT NULL
+    ) s
+    WHERE unnested_url LIKE '%/storage/v1/object/public/content-images/%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From Contribution (screenshotUrl)
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, "screenshotUrl", NOW()
+    FROM "Contribution"
+    WHERE "isDeleted" = true
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "screenshotUrl" IS NOT NULL
+      AND "screenshotUrl" LIKE '%/storage/v1/object/public/content-images/%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;

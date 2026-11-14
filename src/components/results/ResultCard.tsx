@@ -9,7 +9,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResult } from "@/app/actions/results";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -76,7 +76,7 @@ export function ResultCard({
                 toast("Result deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast(message, "error");
                 return { refresh: false };
               }

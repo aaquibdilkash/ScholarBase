@@ -48,7 +48,7 @@ vi.mock("@/lib/auth", () => ({
 const checkRateLimitMock = vi.fn(async () => mockOutcome);
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: (...args: never[]) => checkRateLimitMock(...(args as [])),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   getRequestFingerprint: vi.fn(() => "fp-anon"),
   hashRateLimitKey: vi.fn((v: string) => v),
   RATE_LIMIT_ERROR: "Too many requests. Please slow down.",

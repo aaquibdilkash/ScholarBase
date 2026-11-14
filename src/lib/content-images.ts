@@ -1,10 +1,10 @@
 import "server-only";
 
 import {
-  extractBlogImagePathsFromHtml,
-  extractBlogImageUrlsFromHtml,
+  extractContentImagePathsFromHtml,
+  extractContentImageUrlsFromHtml,
   extractCoverImagePath,
-  publishBlogImage,
+  publishContentImage,
   type ContentImageKind,
 } from "@/lib/supabase-storage";
 import { repairLegacyInlineImages } from "@/lib/article-content";
@@ -25,10 +25,10 @@ export function findRemovedImagePaths(
   newHtml: string,
 ): string[] {
   const oldPaths = new Set(
-    extractBlogImagePathsFromHtml(repairLegacyInlineImages(oldHtml)),
+    extractContentImagePathsFromHtml(repairLegacyInlineImages(oldHtml)),
   );
   const newPaths = new Set(
-    extractBlogImagePathsFromHtml(repairLegacyInlineImages(newHtml)),
+    extractContentImagePathsFromHtml(repairLegacyInlineImages(newHtml)),
   );
 
   const removed: string[] = [];
@@ -128,7 +128,7 @@ async function promoteContentImagesOrThrow({
       if (!coverPath.startsWith(`users/${userId}/drafts/`)) {
         throw new Error("Cover image is not owned by the current user.");
       }
-      coverUrl = await publishBlogImage({
+      coverUrl = await publishContentImage({
         userId,
         draftPath: coverPath,
         kind: coverKind,
@@ -144,7 +144,7 @@ async function promoteContentImagesOrThrow({
   // The replacement uses the EXACT url string found in the HTML, so it does
   // not depend on the storage origin in the environment matching the one the
   // url was minted with.
-  const inlineRefs = extractBlogImageUrlsFromHtml(html);
+  const inlineRefs = extractContentImageUrlsFromHtml(html);
   let publishedHtml = html;
 
   if (inlineKind) {
@@ -156,7 +156,7 @@ async function promoteContentImagesOrThrow({
       // read back) somebody else's draft object.
       if (!path.startsWith(`users/${userId}/drafts/`)) continue;
 
-      const publishedUrl = await publishBlogImage({
+      const publishedUrl = await publishContentImage({
         userId,
         draftPath: path,
         kind: inlineKind,

@@ -26,8 +26,7 @@ const USER = "u-author";
 
 let mockCurrentUser: { id: string } | null = null;
 const revalidateContent = vi.fn();
-const deleteCloudinaryAsset = vi.fn(async (_url: string) => {});
-const promoteDraftCloudinaryAsset = vi.fn(async (url: string) => url);
+const deleteContentImagePaths = vi.fn(async (_paths: string[]) => {});
 
 vi.mock("@/lib/auth", () => ({
   requireActiveUser: vi.fn(async () => {
@@ -49,11 +48,24 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: (...args: unknown[]) => revalidateContent(...(args as [])),
   loadContentPage: vi.fn(async () => []),
 }));
-vi.mock("@/lib/cloudinary", () => ({
-  deleteCloudinaryAsset: (url: string) => deleteCloudinaryAsset(url),
-  promoteDraftCloudinaryAsset: (url: string) =>
-    promoteDraftCloudinaryAsset(url),
-  extractCloudinaryPublicId: vi.fn(() => null),
+vi.mock("@/lib/supabase-storage", () => ({
+  deleteContentImagePaths: (paths: string[]) => deleteContentImagePaths(paths),
+  extractCoverImagePath: vi.fn((url: string) => {
+    // Extract the path from a content-images URL
+    const match = url.match(/\/public\/content-images\/(.+)$/);
+    return match ? match[1] : null;
+  }),
+  publishContentImage: vi.fn(async ({ draftPath }: { draftPath: string }) => {
+    // Return a published URL based on the draft path
+    const publishedPath = draftPath.replace("/drafts/", "/published/");
+    return `https://api.staging.scholarbase.app/storage/v1/object/public/content-images/${publishedPath}`;
+  }),
+}));
+vi.mock("@/lib/content-images", () => ({
+  promoteContentImages: vi.fn(async ({ imageUrl }: { imageUrl?: string | null }) => {
+    if (!imageUrl) return { ok: false, error: "no image" };
+    return { ok: true, coverUrl: imageUrl.replace("/drafts/", "/published/"), publishedHtml: "" };
+  }),
 }));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
 
@@ -68,8 +80,7 @@ const row = () => fakeDb.rows("user").find((u) => u.id === USER)!;
 beforeEach(() => {
   resetFakeDb();
   revalidateContent.mockClear();
-  deleteCloudinaryAsset.mockClear();
-  promoteDraftCloudinaryAsset.mockClear();
+  deleteContentImagePaths.mockClear();
   mockCurrentUser = { id: USER };
   fakeDb.seed("user", {
     id: USER,
@@ -169,26 +180,22 @@ describe("updateProfile", () => {
     expect(typeof (result as { success: false; message: string }).message).toBe("string");
   });
 
-  it("deletes the replaced avatar from Cloudinary", async () => {
-    // Mutate the seeded row rather than re-seeding: seeding a second row with
-    // the same id does not overwrite the first, so the assertion would pass for
-    // the wrong reason.
-    row().avatarUrl = "https://res.cloudinary.com/x/old.jpg";
+  it("promotes the replacement avatar to Supabase Storage", async () => {
+    row().avatarUrl = "https://api.staging.scholarbase.app/storage/v1/object/public/content-images/users/u-author/drafts/avatar/uuid/old.jpg";
 
-    await updateProfile(form({ avatarUrl: "https://res.cloudinary.com/x/new.jpg" }));
+    await updateProfile(form({ avatarUrl: "https://api.staging.scholarbase.app/storage/v1/object/public/content-images/users/u-author/drafts/avatar/uuid/new.jpg" }));
 
-    expect(promoteDraftCloudinaryAsset).toHaveBeenCalled();
-    expect(deleteCloudinaryAsset).toHaveBeenCalledWith(
-      "https://res.cloudinary.com/x/old.jpg",
-    );
+    expect(deleteContentImagePaths).toHaveBeenCalledWith([
+      "users/u-author/drafts/avatar/uuid/old.jpg",
+    ]);
   });
 
-  it("does not delete a Cloudinary asset when the avatar is unchanged", async () => {
-    row().avatarUrl = "https://res.cloudinary.com/x/same.jpg";
+  it("does not delete a Supabase Storage asset when the avatar is unchanged", async () => {
+    row().avatarUrl = "https://api.staging.scholarbase.app/storage/v1/object/public/content-images/users/u-author/published/avatar/uuid/same.jpg";
 
-    await updateProfile(form({ avatarUrl: "https://res.cloudinary.com/x/same.jpg" }));
+    await updateProfile(form({ avatarUrl: "https://api.staging.scholarbase.app/storage/v1/object/public/content-images/users/u-author/published/avatar/uuid/same.jpg" }));
 
-    expect(deleteCloudinaryAsset).not.toHaveBeenCalled();
+    expect(deleteContentImagePaths).not.toHaveBeenCalled();
   });
 
   it("rejects an anonymous caller and writes nothing", async () => {

@@ -161,17 +161,30 @@ export async function checkRateLimit({
     }
 }
 
-export async function enforceRateLimit(config: RateLimitConfig): Promise<void> {
+export type RateLimitDecision =
+    | { allowed: true }
+    | { allowed: false; error: string }
+
+export async function enforceRateLimit(
+    config: RateLimitConfig,
+): Promise<RateLimitDecision> {
     // enforce* is only ever called on WRITE paths (create/edit/delete across
-    // all 17 content modules), so it defaults to fail-closed: a Redis outage
+    // all content modules), so it defaults to fail-closed: a Redis outage
     // must not silently unlock unlimited writes against the Supabase pool.
     // Read paths use checkRateLimit directly and keep the fail-open default.
     const result = await checkRateLimit({ ...config, onDegraded: 'closed' })
-    if (!result.allowed) {
-        // Degraded-denied is a transient infra outage, not user abuse — give
-        // it a retryable message instead of the throttle copy.
-        if (result.degraded) throw new Error(RATE_LIMIT_DEGRADED_ERROR)
-        throw new Error(RATE_LIMIT_ERROR)
+    if (result.allowed) return { allowed: true }
+
+    // Degraded-denied is a transient infra outage, not user abuse — give it a
+    // retryable message instead of the throttle copy.
+    //
+    // Never throw from here: a thrown Server Action error is masked in
+    // production as "Minified React error #441", so the caller's form shows an
+    // opaque 500 instead of this message. Every call site returns the decision
+    // as `{ success: false, error }` (see the source-scan test).
+    return {
+        allowed: false,
+        error: result.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
     }
 }
 

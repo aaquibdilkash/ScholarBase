@@ -30,7 +30,7 @@ import {
 import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
-import { extractCoverImagePath, deleteBlogImagePaths } from "@/lib/supabase-storage";
+import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 
 /**
  * Normalizes an optional short-text field: trims, enforces the max length,
@@ -169,7 +169,8 @@ export async function createAcademicPosition(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "academicPosition:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "academicPosition:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -313,7 +314,8 @@ export async function createAcademicPosition(formData: FormData) {
 export async function updateAcademicPosition(formData: FormData, academicPositionId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this position.");
-  await enforceRateLimit({ namespace: "academicPosition:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "academicPosition:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -436,7 +438,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
 
   // Persist the edit FIRST, then collect the images the edit replaced.
   if (removedPaths.length > 0) {
-    await deleteBlogImagePaths(removedPaths);
+    await deleteContentImagePaths(removedPaths);
   }
 
   // Purge the cached academic position pages: edit must be visible at once, not after the TTL.
@@ -448,7 +450,8 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
 export async function deleteAcademicPosition(academicPositionId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this position.");
-  await enforceRateLimit({ namespace: "academicPosition:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "academicPosition:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const academicPosition = await prisma.academicPosition.findUnique({
     where: { id: academicPositionId },

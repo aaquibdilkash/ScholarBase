@@ -57,7 +57,7 @@ vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true })),
-  enforceRateLimit: vi.fn(async () => {}),
+  enforceRateLimit: vi.fn(async () => ({ allowed: true })),
   RATE_LIMIT_ERROR: "Rate limit exceeded",
 }));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));

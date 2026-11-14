@@ -27,10 +27,6 @@ vi.mock("@/lib/auth", () => ({
 
 // `profile.ts` imports these for the edit-profile path, which none of these
 // tests touch; they pull in `server-only` and the scholars cache respectively.
-vi.mock("@/lib/cloudinary", () => ({
-  deleteCloudinaryAsset: vi.fn(async () => {}),
-  promoteDraftCloudinaryAsset: vi.fn(async () => null),
-}));
 vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: vi.fn(),
 }));

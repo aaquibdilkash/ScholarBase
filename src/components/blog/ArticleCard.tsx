@@ -10,7 +10,7 @@ import type { ArticleWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
-import { actionErrorMessage } from "@/lib/utils";
+import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 
 export function ArticleCard({
   article,
@@ -69,7 +69,7 @@ export function ArticleCard({
                 toast({ title: "Success", description: "Article deleted successfully." });
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message = friendlyActionError(error, "Unknown error");
                 toast({ title: "Error", description: message, variant: "destructive" });
                 return { refresh: false };
               }

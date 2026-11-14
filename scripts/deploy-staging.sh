@@ -87,6 +87,10 @@ fi
 export DIRECT_URL="postgresql://postgres:${DB_PASSWORD}@127.0.0.1:${LOCAL_PORT}/postgres"
 
 echo ""
+echo "Checking for failed migrations..."
+node scripts/prisma-resolve-failed-migration.mjs
+
+echo ""
 echo "Running prisma migrate deploy..."
 npx prisma migrate deploy
 

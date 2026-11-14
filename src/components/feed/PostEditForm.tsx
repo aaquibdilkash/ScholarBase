@@ -11,6 +11,7 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { Loader2 } from "lucide-react";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
+import { friendlyActionError } from "@/lib/utils";
 import type { SocialPostWithAuthor } from "@/types/cards";
 
 type PostEditFormProps = {
@@ -76,7 +77,7 @@ export default function PostEditForm({ postId, initialValues }: PostEditFormProp
         toast((result && result.message) || "Failed to update post.", "error");
       }
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to update post.", "error");
+      toast(friendlyActionError(err, "Failed to update post."), "error");
     } finally {
       setSubmitting(false);
     }

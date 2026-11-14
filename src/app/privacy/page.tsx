@@ -205,9 +205,6 @@ export default function PrivacyPolicyPage() {
                   and file storage
                 </li>
                 <li>
-                  <strong>Cloudinary</strong> &mdash; Image and media hosting
-                </li>
-                <li>
                   <strong>Vercel</strong> &mdash; Hosting and infrastructure
                 </li>
                 <li>

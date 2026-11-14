@@ -56,7 +56,8 @@ export const SEO_SITE = {
         "scholar network",
         "phd supervisors",
         "phd admissions",
-        "masters admissions",
+        "research degree admissions",
+        "ms by research admissions",
         "academic positions",
         "postdoctoral positions",
         "call for papers",
@@ -200,7 +201,7 @@ export const SEO_PAGES = {
     admissions: {
         title: "Admissions | ScholarBase",
         description:
-            "Discover PhD, Master's, undergraduate, and MPhil admissions, funding opportunities, and intake information from the academic community.",
+            "Discover PhD, MS/MSc by Research, and other research-degree admissions, funding opportunities, and intake information from the academic community.",
         path: "/admissions",
         section: "Admissions",
     },
@@ -276,7 +277,7 @@ export const SEO_CREATE_PAGES = {
     admissions: {
         title: "Post an admission | ScholarBase",
         description:
-            "Share PhD, Master's, undergraduate, MPhil, and other degree admissions with researchers and scholars.",
+            "Share PhD, MS/MSc by Research, and other research-degree admissions with researchers and scholars.",
     },
     callForPapers: {
         title: "List an academic event | ScholarBase",
@@ -347,7 +348,7 @@ export const CREATE_PAGE_TEXT = {
     admissions: {
         title: "Post an Admission",
         description:
-            "Share PhD, Master's, undergraduate, MPhil, and other degree admissions with researchers and scholars.",
+            "Share PhD, MS/MSc by Research, and other research-degree admissions with researchers and scholars.",
     },
     callForPapers: {
         title: "List an Academic Event",
@@ -469,7 +470,7 @@ export const EDIT_PAGE_TEXT = {
     admissions: {
         title: "Edit Admission Notification",
         description:
-            "Update the degree level, admission criteria, deadlines, or seat matrix requirements.",
+            "Update the research degree level, admission criteria, deadlines, or seat matrix requirements.",
     },
     feed: {
         title: "Edit Post",
@@ -549,7 +550,7 @@ export const LIST_PAGE_TEXT = {
     admissions: {
         title: "Admissions",
         description:
-            "PhD, Master's, undergraduate, and MPhil admissions from universities.",
+            "PhD, MS/MSc by Research, and other research-degree admissions from universities.",
     },
     contributions: {
         title: "Contributions",

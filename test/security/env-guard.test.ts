@@ -24,11 +24,10 @@ describe("unit tier is offline by construction", () => {
     ).rejects.toThrow(/never talks to Supabase|real outbound request/i)
   })
 
-  it("blocks Resend, Upstash and Cloudinary equally", async () => {
+  it("blocks Resend and Upstash equally", async () => {
     for (const url of [
       "https://api.resend.com/emails",
       "https://us1-upstash.example/20000/get",
-      "https://res.cloudinary.com/demo/image/upload",
       "https://qstash.upstash.io/v2/publish/https%3A%2F%2Fexample.com",
     ]) {
       await expect(fetch(url)).rejects.toThrow(/real outbound request/i)
@@ -57,7 +56,6 @@ describe("no production credentials in the test environment", () => {
     "SUPABASE_SERVICE_ROLE_KEY",
     "RESEND_API_KEY",
     "UPSTASH_REDIS_REST_TOKEN",
-    "CLOUDINARY_URL",
     "CRON_SECRET",
     "QSTASH_TOKEN",
     "VAPID_PRIVATE_KEY",

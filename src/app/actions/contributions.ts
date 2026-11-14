@@ -17,9 +17,10 @@ import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/au
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
-  deleteCloudinaryAsset,
-  promoteDraftCloudinaryAsset,
-} from "@/lib/cloudinary";
+  deleteContentImagePaths,
+  extractCoverImagePath,
+} from "@/lib/supabase-storage";
+import { promoteContentImages } from "@/lib/content-images";
 import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -142,7 +143,8 @@ export async function createContribution(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit a contribution.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "contribution:create", key: user.id, limit: 10, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "contribution:create", key: user.id, limit: 10, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
   const message = readFormValue(formData, "message");
@@ -157,9 +159,16 @@ export async function createContribution(formData: FormData) {
   if (amount !== null && (isNaN(amount) || amount < 1))
     throw new Error("Amount must be at least ₹1.");
 
-  const publishedScreenshotUrl = screenshotUrl
-    ? await promoteDraftCloudinaryAsset(screenshotUrl, user.id, "contribution")
-    : null;
+  let publishedScreenshotUrl: string | null = null;
+  if (screenshotUrl) {
+    const promoted = await promoteContentImages({
+      coverKind: "contribution",
+      imageUrl: screenshotUrl,
+      html: "",
+      userId: user.id,
+    });
+    publishedScreenshotUrl = promoted.ok ? promoted.coverUrl : null;
+  }
   if (screenshotUrl && !publishedScreenshotUrl) {
     throw new Error("Invalid contribution image.");
   }
@@ -229,7 +238,8 @@ export async function updateContribution(
 ) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this contribution.");
-  await enforceRateLimit({ namespace: "contribution:edit", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "contribution:edit", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const existingContribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
@@ -261,15 +271,20 @@ export async function updateContribution(
   const amount = amountStr ? parseFloat(amountStr) : null;
 
   const oldScreenshot = existingContribution.screenshotUrl;
-  const newScreenshot = screenshotUrl
-    ? screenshotUrl === oldScreenshot
-      ? screenshotUrl
-      : await promoteDraftCloudinaryAsset(
-          screenshotUrl,
-          user.id,
-          "contribution",
-        )
-    : null;
+  let newScreenshot: string | null = null;
+  if (screenshotUrl) {
+    if (screenshotUrl === oldScreenshot) {
+      newScreenshot = screenshotUrl;
+    } else {
+      const promoted = await promoteContentImages({
+        coverKind: "contribution",
+        imageUrl: screenshotUrl,
+        html: "",
+        userId: user.id,
+      });
+      newScreenshot = promoted.ok ? promoted.coverUrl : null;
+    }
+  }
 
   if (screenshotUrl && !newScreenshot) {
     throw new Error("Invalid contribution image.");
@@ -294,7 +309,10 @@ export async function updateContribution(
   });
 
   if (oldScreenshot && oldScreenshot !== newScreenshot) {
-    await deleteCloudinaryAsset(oldScreenshot);
+    const oldPath = extractCoverImagePath(oldScreenshot);
+    if (oldPath) {
+      await deleteContentImagePaths([oldPath]);
+    }
   }
 
   // Purge the cached contribution pages: edit must be visible at once, not after the TTL.
@@ -306,7 +324,8 @@ export async function updateContribution(
 export async function deleteContribution(contributionId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this contribution.");
-  await enforceRateLimit({ namespace: "contribution:delete", key: user.id, limit: 20, window: "10 m" });
+  const writeLimit = await enforceRateLimit({ namespace: "contribution:delete", key: user.id, limit: 20, window: "10 m" });
+  if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
@@ -347,7 +366,7 @@ export async function deleteContribution(contributionId: string) {
     await deleteAllNotificationsForContent(tx, "CONTRIBUTION", contributionId)
   });
 
-  // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.
+  // The screenshot is intentionally NOT deleted from Supabase Storage on soft delete.
   // Purge the cached contribution pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("CONTRIBUTION", contribution.authorId);
 
