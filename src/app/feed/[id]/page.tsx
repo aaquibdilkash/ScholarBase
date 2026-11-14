@@ -171,13 +171,7 @@ export default async function SinglePostPage({
 
       {isValidImageUrl(p.imageUrl) && (
         <div className="mt-4 sm:mt-6">
-          <FeedImage
-            src={p.imageUrl}
-            width={800}
-            height={416}
-            unoptimized
-            className="block w-full h-auto rounded-xl object-contain"
-          />
+          <FeedImage src={p.imageUrl} />
         </div>
       )}
     </DetailPageCardShell>

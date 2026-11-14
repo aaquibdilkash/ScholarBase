@@ -272,7 +272,6 @@ const AcademicPositionDetailPage = async ({
           <FeedImage
             src={academicPosition.imageUrl}
             alt={academicPosition.title}
-            className="block w-full object-cover rounded-xl"
           />
         </div>
       )}

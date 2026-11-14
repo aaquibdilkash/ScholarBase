@@ -140,7 +140,6 @@ export function AdmissionCard({
       <CollapsibleMediaBody
         href={`/admissions/${admission.id}`}
         imageUrl={admission.imageUrl}
-        layout="stacked"
         contentKey={`${admission.description}|${admission.imageUrl ?? ""}`}
         header={
           <>

@@ -252,7 +252,6 @@ const EventDetailPage = async ({
           <FeedImage
             src={event.imageUrl}
             alt={event.title}
-            className="block w-full object-cover rounded-xl"
           />
         </div>
       )}

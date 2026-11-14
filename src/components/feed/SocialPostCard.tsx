@@ -127,14 +127,13 @@ export function SocialPostCard({
           hasActiveAppeal={post.hasActiveAppeal ?? false}
         />
       )}
-      // The text + image are a row collapsed; the card wraps this row in its
-      // own <Link> (so clicks here navigate), but the expansion toggle and the
-      // lightbox button are siblings OUTSIDE that Link so they never navigate.
+      // The text + image always stack. The card wraps this in its own <Link>
+      // (so clicks here navigate), but the expansion toggle and the lightbox
+      // button are siblings OUTSIDE that Link so they never navigate.
       noBodyLink={true}
       constrainBody={false}
     >
-      {/* Expanded always stacks (text first, image below) on every breakpoint,
-          matching the mobile behaviour instead of switching to a row on md+. */}
+      {/* Text first, cover below, in both collapse states on every breakpoint. */}
       <CollapsibleMediaBody
         href={`/feed/${post.id}`}
         imageUrl={post.imageUrl}

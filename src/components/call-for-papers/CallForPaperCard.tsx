@@ -151,7 +151,6 @@ export function CallForPaperCard({
       <CollapsibleMediaBody
         href={`/call-for-papers/${callForPaper.id}`}
         imageUrl={callForPaper.imageUrl}
-        layout="stacked"
         contentKey={`${callForPaper.description}|${callForPaper.imageUrl ?? ""}`}
         header={
           <>

@@ -164,7 +164,6 @@ export function AcademicPositionCard({ academicPosition,
       <CollapsibleMediaBody
         href={`/academic-positions/${academicPosition.id}`}
         imageUrl={academicPosition.imageUrl}
-        layout="stacked"
         contentKey={`${academicPosition.description}|${academicPosition.imageUrl ?? ""}`}
         header={
           <>

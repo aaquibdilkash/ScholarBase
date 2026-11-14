@@ -211,7 +211,6 @@ const AdmissionDetailPage = async ({
           <FeedImage
             src={admission.imageUrl}
             alt={`${admission.university} — ${admission.department}`}
-            className="block w-full object-cover rounded-xl"
           />
         </div>
       )}

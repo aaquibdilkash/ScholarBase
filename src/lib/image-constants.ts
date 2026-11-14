@@ -25,6 +25,20 @@ export const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 /**
+ * Display height cap (px) for a content cover. The expanded list card and every
+ * detail page share it so a cover reads identically in both places. The cover
+ * is contained (aspect ratio preserved) and the box shrinks to the image when
+ * the image is shorter than the cap.
+ */
+export const CONTENT_IMAGE_MAX_HEIGHT = 300;
+
+/**
+ * Fraction of a content cover that stays visible in a collapsed list card. The
+ * rest is hidden below and revealed by "View more".
+ */
+export const CONTENT_IMAGE_COLLAPSED_RATIO = 0.25;
+
+/**
  * Type guard: true when `url` is a non-empty string that parses as an absolute
  * http(s) URL. Feed components use it to filter out local paths like
  * "image.png" before rendering <Image>/lightbox assets.

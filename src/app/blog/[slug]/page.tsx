@@ -182,7 +182,6 @@ export default async function ArticlePage({
           <FeedImage
             src={article.imageUrl}
             alt={article.title}
-            className="block w-full object-cover rounded-xl"
           />
         </div>
       )}
