@@ -16,6 +16,13 @@ export function isCourseDurationUnit(
   return COURSE_DURATION_UNIT_SET.has(value);
 }
 
+/**
+ * Size of the longest legal duration string ("999.99"). HTML's maxLength is
+ * ignored by `type="number"`, so the form truncates in onChange and the server
+ * rejects anything longer.
+ */
+export const COURSE_DURATION_MAX_LENGTH = 6;
+
 export function formatCourseDuration(
   value: number | null | undefined,
   unit: string | null | undefined,

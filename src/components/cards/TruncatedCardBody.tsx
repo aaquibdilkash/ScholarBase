@@ -81,7 +81,11 @@ export function TruncatedCardBody({
   }, [isExpanded]);
 
   const content = constrainBody ? (
-    <div className="relative min-w-0 w-full whitespace-normal break-words">
+    // `overflow-clip` keeps the hidden measurement copy (below) from adding
+    // scrollable overflow to the page: it is absolutely positioned at full
+    // natural height, so without clipping it stretches the document past the
+    // footer and leaves a blank strip under it.
+    <div className="relative min-w-0 w-full overflow-clip whitespace-normal break-words">
       <div
         ref={bodyRef}
         className="min-w-0 w-full whitespace-normal break-words"

@@ -1,8 +1,8 @@
-export const MAX_ARTICLE_TITLE = 64;
+export const MAX_ARTICLE_TITLE = 128;
 export const MAX_ARTICLE_EXCERPT = 128;
 export const MAX_ARTICLE_CONTENT = 8192;
 
-export const MAX_PUBLICATION_TITLE = 64;
+export const MAX_PUBLICATION_TITLE = 128;
 export const MAX_PUBLICATION_AUTHORS = 128;
 export const MAX_PUBLICATION_JOURNAL = 64;
 export const MAX_PUBLICATION_PUBLISHER = 64;
@@ -18,40 +18,40 @@ export const MAX_PUBLICATION_VOLUME = 4;
 export const MAX_PUBLICATION_ISSUE = 4;
 export const MAX_PUBLICATION_PAGES = 12;
 
-export const MAX_POSITION_TITLE = 64;
-export const MAX_POSITION_INSTITUTION = 64;
-export const MAX_POSITION_DEPARTMENT = 64;
+export const MAX_POSITION_TITLE = 128;
+export const MAX_POSITION_INSTITUTION = 128;
+export const MAX_POSITION_DEPARTMENT = 128;
 export const MAX_POSITION_SUBJECT = 32;
 export const MAX_POSITION_SALARY = 64;
 export const MAX_POSITION_DURATION = 32;
 export const MAX_POSITION_LOCATION = 64;
 export const MAX_POSITION_NOTIFICATION_LINK = 128;
 export const MAX_POSITION_APPLY_LINK = 128;
-export const MAX_POSITION_DESCRIPTION = 1024;
+export const MAX_POSITION_DESCRIPTION = 2048;
 
-export const MAX_EVENT_TITLE = 64;
+export const MAX_EVENT_TITLE = 128;
 export const MAX_EVENT_PUBLISHER = 64;
 export const MAX_EVENT_LOCATION = 32;
 export const MAX_EVENT_NOTIFICATION_LINK = 128;
 export const MAX_EVENT_APPLY_LINK = 128;
-export const MAX_EVENT_DESCRIPTION = 1024;
+export const MAX_EVENT_DESCRIPTION = 2048;
 
-export const MAX_HELP_POST_TITLE = 64;
+export const MAX_HELP_POST_TITLE = 128;
 export const MAX_HELP_POST_SUBJECT = 128;
 export const MAX_HELP_POST_MESSAGE = 256;
 
-export const MAX_JOURNAL_TITLE = 64;
+export const MAX_JOURNAL_TITLE = 128;
 export const MAX_JOURNAL_ISSN = 16;
-export const MAX_JOURNAL_DESCRIPTION = 1024;
+export const MAX_JOURNAL_DESCRIPTION = 2048;
 export const MAX_JOURNAL_PUBLISHER = 64;
 export const MAX_JOURNAL_WEBSITE = 128;
 export const MAX_JOURNAL_SUBJECT_AREA = 64;
 
-export const MAX_RESULT_TITLE = 64;
+export const MAX_RESULT_TITLE = 128;
 export const MAX_RESULT_CATEGORY = 32;
 export const MAX_RESULT_CONDUCTING_BODY = 32;
 export const MAX_RESULT_SESSION = 32;
-export const MAX_RESULT_DESCRIPTION = 1024;
+export const MAX_RESULT_DESCRIPTION = 2048;
 export const MAX_RESULT_NOTIFICATION_LINK = 128;
 export const MAX_RESULT_RESULT_LINK = 128;
 
@@ -61,29 +61,31 @@ export const MAX_SUPERVISOR_DEPARTMENT = 32;
 export const MAX_SUPERVISOR_ABOUT = 512;
 
 export const MAX_RESEARCH_TOOL_NAME = 64;
-export const MAX_RESEARCH_TOOL_DESCRIPTION = 1024;
+export const MAX_RESEARCH_TOOL_DESCRIPTION = 2048;
 export const MAX_RESEARCH_TOOL_WEBSITE = 128;
 export const MAX_RESEARCH_TOOL_USE = 64;
 
-export const MAX_RESEARCH_GRANT_TITLE = 64;
+export const MAX_RESEARCH_GRANT_TITLE = 128;
 export const MAX_RESEARCH_GRANT_AMOUNT = 16;
-export const MAX_RESEARCH_GRANT_DESCRIPTION = 1024;
+export const MAX_RESEARCH_GRANT_DESCRIPTION = 2048;
 export const MAX_RESEARCH_GRANT_APPLY_LINK = 128;
 export const MAX_RESEARCH_GRANT_INFO_LINK = 128;
 
-export const MAX_COURSE_TITLE = 64;
+export const MAX_COURSE_TITLE = 128;
 export const MAX_COURSE_PROVIDER = 32;
-export const MAX_COURSE_INSTRUCTOR = 32;
-export const MAX_COURSE_URL = 128;
-export const MAX_COURSE_DESCRIPTION = 1024;
+export const MAX_COURSE_INSTRUCTOR = 128;
+// Long enough for canonical course URLs; tracking-heavy affiliate links (e.g.
+// Udemy's ~330-character share URLs) still need more than the old 128.
+export const MAX_COURSE_URL = 512;
+export const MAX_COURSE_DESCRIPTION = 2048;
 
 export const MAX_SURVEY_TITLE = 256;
-export const MAX_SURVEY_DESCRIPTION = 1024;
+export const MAX_SURVEY_DESCRIPTION = 2048;
 export const MAX_SURVEY_QUESTION_TITLE = 256;
 export const MAX_SURVEY_QUESTION_OPTION = 128;
 export const MAX_SURVEY_ANSWER_SHORT = 256;
-export const MAX_SURVEY_ANSWER_LONG = 1024;
-export const MAX_SURVEY_CONSENT_TEXT = 1024;
+export const MAX_SURVEY_ANSWER_LONG = 2048;
+export const MAX_SURVEY_CONSENT_TEXT = 2048;
 export const MAX_SURVEY_BLOCKS = 10;
 export const MAX_SURVEY_LINEAR_SCALE_VALUE = 10;
 
@@ -181,7 +183,8 @@ export const MAX_JOURNAL_REVIEW_FEEDBACK = 512;
 
 export const MAX_ADMISSION_UNIVERSITY = 64;
 export const MAX_ADMISSION_DEPARTMENT = 64;
-export const MAX_ADMISSION_DESCRIPTION = 1024;
+export const MAX_ADMISSION_LOCATION = 64;
+export const MAX_ADMISSION_DESCRIPTION = 2048;
 export const MAX_ADMISSION_NOTIFICATION_LINK = 128;
 export const MAX_ADMISSION_APPLY_LINK = 128;
 
@@ -232,7 +235,7 @@ export const MAX_INSTITUTION_WEBSITE = 128;
 export const MAX_INSTITUTION_REQUEST_DETAILS = 512;
 export const MAX_INSTITUTION_VERIFICATION_EMAIL = 32;
 
-export const MAX_CONTRIBUTION_TITLE = 64;
+export const MAX_CONTRIBUTION_TITLE = 128;
 export const MAX_CONTRIBUTION_UPI_ID = 64;
 export const MAX_CONTRIBUTION_MESSAGE = 512;
 

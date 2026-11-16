@@ -241,7 +241,7 @@ describe("SurveyQuestionInput — every question type", () => {
     it("renders a taller box for a paragraph-length answer", () => {
       const dom = draw("LONG_TEXT");
       expect(dom.querySelector("textarea")!.getAttribute("rows")).toBe("4");
-      expect(dom.textContent).toMatch(/\d+\/1024 characters/);
+      expect(dom.textContent).toMatch(/\d+\/2048 characters/);
     });
   });
 

@@ -201,6 +201,11 @@ export default async function SupervisorPage({
         !supervisor.isAnonymous && !!supervisor.author?.institutionVerifiedAt
       }
       createdDate={supervisor.createdAt}
+      editedDate={
+        supervisor.editedAt && supervisor.editedAt > supervisor.createdAt
+          ? supervisor.editedAt
+          : undefined
+      }
       footerBookmarkButton={
         <BookmarkButton
           frozen={supervisor.isFrozen === true}

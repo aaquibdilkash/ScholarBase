@@ -180,6 +180,12 @@ export default async function RecommendationDetailPage({
       }
       currentUserId={user?.id}
       createdDate={recommendation.createdAt}
+      editedDate={
+        recommendation.editedAt &&
+        recommendation.editedAt > recommendation.createdAt
+          ? recommendation.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           targetId={recommendation.id}

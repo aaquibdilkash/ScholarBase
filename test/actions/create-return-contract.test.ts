@@ -235,6 +235,7 @@ const SPECS = [
     fields: {
       title: "Quantum 101",
       provider: "MIT",
+      pricing: "FREE",
       description: "<p>Course</p>",
     },
     expectRow: { title: "Quantum 101" },

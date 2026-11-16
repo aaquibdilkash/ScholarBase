@@ -14,10 +14,15 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { readFormValue, readOptionalShortText, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
-import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
+import {
+  COMMENT_PAGE_SIZE,
+  MAX_ADMISSION_DEPARTMENT,
+  MAX_ADMISSION_DESCRIPTION,
+  MAX_ADMISSION_LOCATION,
+} from "@/lib/constants";
 import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
@@ -51,6 +56,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       id: true,
       university: true,
       department: true,
+      location: true,
       level: true,
       deadline: true,
       description: true,
@@ -58,6 +64,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       notificationLink: true,
       applyLink: true,
       createdAt: true,
+      editedAt: true,
       authorId: true,
       author: {
         select: {
@@ -123,7 +130,18 @@ export async function createAdmission(formData: FormData) {
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const university = readFormValue(formData, "university");
-  const department = readFormValue(formData, "department");
+  const department = readOptionalShortText(
+    formData,
+    "department",
+    MAX_ADMISSION_DEPARTMENT,
+    "Department",
+  );
+  const location = readOptionalShortText(
+    formData,
+    "location",
+    MAX_ADMISSION_LOCATION,
+    "Location",
+  );
   const level = parseAdmissionLevel(readFormValue(formData, "level"));
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
@@ -162,6 +180,7 @@ export async function createAdmission(formData: FormData) {
       data: {
         university,
         department,
+        location,
         level,
         deadline,
         description: publishedHtml,
@@ -179,7 +198,9 @@ export async function createAdmission(formData: FormData) {
         action: "PUBLISHED",
         moduleType: "ADMISSION",
         entityId: newAdmission.id,
-        entityTitle: `${newAdmission.department} at ${newAdmission.university}`,
+        entityTitle: newAdmission.department
+          ? `${newAdmission.department} at ${newAdmission.university}`
+          : newAdmission.university,
       },
     });
 
@@ -197,7 +218,7 @@ export async function createAdmission(formData: FormData) {
     targetType: "Admission",
     targetId: admission.id,
     title: `${user.email?.split("@")[0] || "Someone"} posted a new ${getAdmissionLevelLabel(level)} admission`,
-    body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+    body: `${department ? `${department} at ` : ""}${university} - Deadline: ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
   });
 
   // Purge the cached admission pages: publish must be visible at once, not after the TTL.
@@ -216,7 +237,18 @@ export async function updateAdmission(
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const university = readFormValue(formData, "university");
-  const department = readFormValue(formData, "department");
+  const department = readOptionalShortText(
+    formData,
+    "department",
+    MAX_ADMISSION_DEPARTMENT,
+    "Department",
+  );
+  const location = readOptionalShortText(
+    formData,
+    "location",
+    MAX_ADMISSION_LOCATION,
+    "Location",
+  );
   const level = parseAdmissionLevel(readFormValue(formData, "level"));
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
@@ -277,6 +309,7 @@ export async function updateAdmission(
     data: {
       university,
       department,
+      location,
       level,
       deadline,
       description: publishedHtml,

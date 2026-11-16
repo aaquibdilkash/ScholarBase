@@ -16,7 +16,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { FeedImage } from "@/components/feed/FeedImage";
 import { isValidImageUrl } from "@/lib/image-constants";
-import { Clock } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
@@ -38,9 +38,14 @@ export async function generateMetadata({
     return buildNoindexMetadata("Removed content");
   }
   const levelLabel = getAdmissionLevelLabel(admission.level);
+  const departmentLabel = admission.department ?? "";
   return buildMetadata({
-    title: `${admission.university} - ${admission.department} ${levelLabel} Admission`,
-    description: `Apply for ${levelLabel} admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    title: `${admission.university} - ${[departmentLabel, `${levelLabel} Admission`]
+      .filter(Boolean)
+      .join(" ")}`,
+    description: `Apply for ${levelLabel} admission at ${admission.university}${
+      departmentLabel ? ` (${departmentLabel})` : ""
+    }. Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
     path: `/admissions/${admission.id}`,
     type: "article",
     publishedTime: admission.createdAt,
@@ -172,6 +177,11 @@ const AdmissionDetailPage = async ({
       }
       currentUserId={user?.id}
       createdDate={admission.createdAt}
+      editedDate={
+        admission.editedAt && admission.editedAt > admission.createdAt
+          ? admission.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           targetId={admission.id}
@@ -235,9 +245,17 @@ const AdmissionDetailPage = async ({
       <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {admission.university}
       </h1>
-      <p className="mb-2 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-950 [overflow-wrap:anywhere]">
-        {admission.department}
-      </p>
+      {admission.department ? (
+        <p className="mb-2 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-950 [overflow-wrap:anywhere]">
+          {admission.department}
+        </p>
+      ) : null}
+      {admission.location ? (
+        <p className="mb-2 flex min-w-0 items-center gap-2 break-words text-sm text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
+          <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+          {admission.location}
+        </p>
+      ) : null}
       <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
           {getAdmissionLevelLabel(admission.level)}
@@ -260,7 +278,9 @@ const AdmissionDetailPage = async ({
         <div className="mb-6">
           <FeedImage
             src={admission.imageUrl}
-            alt={`${admission.university} — ${admission.department}`}
+            alt={[admission.university, admission.department]
+              .filter(Boolean)
+              .join(" — ")}
           />
         </div>
       )}

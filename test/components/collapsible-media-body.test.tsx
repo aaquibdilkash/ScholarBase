@@ -156,6 +156,23 @@ describe("CollapsibleMediaBody stacked image frame", () => {
     expect(imageFrame()!.style.maxHeight).toBe("25px");
   });
 
+  it("clips the hidden measurement copy so it cannot stretch the page", async () => {
+    await draw();
+
+    const measure = container.querySelector<HTMLElement>(
+      '.pointer-events-none[aria-hidden="true"]',
+    );
+    expect(measure).not.toBeNull();
+
+    // The measurement copy keeps its natural height (it is measured via
+    // getBoundingClientRect), so the wrapper must clip it. Unclipped, an
+    // absolutely-positioned clone still contributes to every ancestor's
+    // scrollable overflow, which pushed the footer above a blank strip.
+    const wrapper = measure!.parentElement;
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.className.split(/\s+/)).toContain("overflow-clip");
+  });
+
   it("unfurls the same image from 75px to 300px when expanded", async () => {
     await draw();
     // 25% of the 300px cap before the image reports its size.

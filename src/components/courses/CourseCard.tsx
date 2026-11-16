@@ -31,13 +31,17 @@ export function CourseCard({
   const userVote =
     (course.votes || [])[0]?.voteType ?? null;
   const priceLabel = formatCoursePrice(course.price, course.currency);
+  const pricingLabel =
+    course.pricing === "PAID" ? "Paid" : course.pricing === "FREE" ? "Free" : null;
 
   const details = [
     ["Provider", course.provider],
     ["Instructor", course.instructor],
+    ["Language", course.language],
     ["Format", course.format],
     ["Level", course.level],
-    ["Price", priceLabel],
+    ["Pricing", pricingLabel],
+    ["Price", course.price != null && course.price > 0 ? priceLabel : null],
     ["Duration", formatCourseDuration(course.durationValue, course.durationUnit)],
   ].filter(([, value]) => Boolean(value)) as [string, string][];
   // Share payload: title + the same detail line the card renders.

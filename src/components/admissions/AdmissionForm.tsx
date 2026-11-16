@@ -19,6 +19,7 @@ import { getTodayString } from "@/lib/date";
 import {
   MAX_ADMISSION_UNIVERSITY,
   MAX_ADMISSION_DEPARTMENT,
+  MAX_ADMISSION_LOCATION,
   MAX_ADMISSION_DESCRIPTION,
   MAX_ADMISSION_NOTIFICATION_LINK,
   MAX_ADMISSION_APPLY_LINK,
@@ -30,6 +31,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   ADMISSION_UNIVERSITY_TIP,
   ADMISSION_DEPARTMENT_TIP,
+  ADMISSION_LOCATION_TIP,
   ADMISSION_LEVEL_TIP,
   ADMISSION_DEADLINE_TIP,
   ADMISSION_DESCRIPTION_TIP,
@@ -40,6 +42,7 @@ import {
 export type AdmissionFormValues = {
   university: string;
   department: string;
+  location: string;
   level: string;
   deadline: string;
   description: string;
@@ -62,6 +65,7 @@ export default function AdmissionForm({
   const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
+    location: initialValues?.location ?? "",
     level: initialValues?.level ?? "PHD",
     deadline: initialValues?.deadline ?? "",
     description: initialValues?.description ?? "",
@@ -147,20 +151,37 @@ export default function AdmissionForm({
 
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">
-          Department / Faculty
+          Department / Faculty (Optional)
           <InfoTooltip message={ADMISSION_DEPARTMENT_TIP} />
         </label>
         <input
           name="department"
-          placeholder="e.g., Department of Management Studies"
+          placeholder="e.g., Department of Management Studies or multiple departments"
           className="sb-input"
-          required
           maxLength={MAX_ADMISSION_DEPARTMENT}
           value={draftFields.department}
           onChange={(e) => updateDraftField("department", e.target.value)}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {draftFields.department.length}/{MAX_ADMISSION_DEPARTMENT} characters
+        </div>
+      </div>
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Location of Institution (Optional)
+          <InfoTooltip message={ADMISSION_LOCATION_TIP} />
+        </label>
+        <input
+          name="location"
+          placeholder="e.g., New Delhi, India"
+          className="sb-input"
+          maxLength={MAX_ADMISSION_LOCATION}
+          value={draftFields.location}
+          onChange={(e) => updateDraftField("location", e.target.value)}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.location.length}/{MAX_ADMISSION_LOCATION} characters
         </div>
       </div>
 

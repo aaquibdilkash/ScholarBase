@@ -33,6 +33,32 @@ export function isCourseCurrency(value: string): value is CourseCurrency {
   return COURSE_CURRENCY_CODE_SET.has(value);
 }
 
+/**
+ * Free/paid classification, stored independently of the price amount so the
+ * form can ask for both separately.
+ */
+export const COURSE_PRICING_OPTIONS = [
+  { value: "FREE", label: "Free" },
+  { value: "PAID", label: "Paid" },
+] as const;
+
+export type CoursePricing = (typeof COURSE_PRICING_OPTIONS)[number]["value"];
+
+const COURSE_PRICING_SET = new Set<string>(
+  COURSE_PRICING_OPTIONS.map((option) => option.value),
+);
+
+export function isCoursePricing(value: string): value is CoursePricing {
+  return COURSE_PRICING_SET.has(value);
+}
+
+/**
+ * Size of the longest legal price string ("999.99"). HTML's maxLength is
+ * ignored by `type="number"`, so the form truncates in onChange and the server
+ * rejects anything longer.
+ */
+export const COURSE_PRICE_MAX_LENGTH = 6;
+
 export function formatCoursePrice(
   price: number | null | undefined,
   currency: string | null | undefined,
@@ -47,6 +73,7 @@ export function formatCoursePrice(
     style: "currency",
     currency: code,
     currencyDisplay: "narrowSymbol",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(price);
 }

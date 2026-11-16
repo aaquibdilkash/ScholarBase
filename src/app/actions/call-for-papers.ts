@@ -62,6 +62,7 @@ export const getEvent = cache(async (id: string, userId?: string) => {
       journalId: true,
       journal: { select: { id: true, title: true } },
       createdAt: true,
+      editedAt: true,
       authorId: true,
       author: {
         select: {

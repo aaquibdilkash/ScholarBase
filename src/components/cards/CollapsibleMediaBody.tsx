@@ -202,7 +202,7 @@ export function CollapsibleMediaBody({
         className="group flex min-w-0 flex-col"
       >
         {header}
-        <div className="relative w-full min-w-0">
+        <div className="relative w-full min-w-0 overflow-clip">
           {/* A <div>, not a <p>: the body can be rich content that renders
               block elements (RichContent is a <div>), and a <div> inside a <p>
               is invalid HTML — the browser reparents it, which breaks
@@ -221,7 +221,12 @@ export function CollapsibleMediaBody({
           {/* Hidden, non-clamped copy used purely for truncation measurement.
               It must share the body's exact text-layout classes so it
               wraps/breaks identically and gives an accurate height
-              comparison. */}
+              comparison.
+
+              It is also full natural height, so the wrapper must clip it:
+              an unclipped absolutely-positioned clone still contributes to
+              the scrollable overflow of every ancestor, which stretched the
+              document past the footer and left a blank strip under it. */}
           <div
             ref={measureRef}
             inert

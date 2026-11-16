@@ -46,7 +46,8 @@ export const JOURNAL_REVIEW_ANONYMOUS_TIP = "Post this review without revealing 
 // ADMISSIONS MODULE
 // -----------------------------------------------------------------------------
 export const ADMISSION_UNIVERSITY_TIP = "The full name of the university or institute offering the program.";
-export const ADMISSION_DEPARTMENT_TIP = "The specific department, faculty, or school within the university.";
+export const ADMISSION_DEPARTMENT_TIP = "The specific department, faculty, or school within the university. Optional, and may list multiple departments.";
+export const ADMISSION_LOCATION_TIP = "The city and country where the institution is located. Optional.";
 export const ADMISSION_LEVEL_TIP = "The research degree this admission is for: PhD, MS/MSc by Research, or another research degree.";
 export const ADMISSION_DEADLINE_TIP = "The last date to submit the application for this admission cycle.";
 export const ADMISSION_DESCRIPTION_TIP = "Seat matrix, eligibility criteria, and any special notes about the program.";
@@ -110,11 +111,13 @@ export const POSITION_APPLY_LINK_TIP = "URL to the application portal or email a
 // -----------------------------------------------------------------------------
 export const COURSE_TITLE_TIP = "The name of the course or learning program.";
 export const COURSE_PROVIDER_TIP = "The platform or institution offering the course (e.g., Coursera, NPTEL).";
-export const COURSE_INSTRUCTOR_TIP = "The name of the instructor or channel hosting the course.";
+export const COURSE_INSTRUCTOR_TIP = "One or more instructors or the channel hosting the course.";
+export const COURSE_LANGUAGE_TIP = "The language the course is taught in.";
 export const COURSE_FORMAT_TIP = "The delivery format of the course.";
 export const COURSE_LEVEL_TIP = "The difficulty level of the course.";
-export const COURSE_PRICE_TIP = "Enter 0 for a free course, otherwise the price amount.";
-export const COURSE_DURATION_TIP = "Enter the estimated time to complete the course and select the unit.";
+export const COURSE_PRICING_TIP = "Whether the course is free or paid. Reported separately from the price amount.";
+export const COURSE_PRICE_TIP = "The price amount for a paid course. Decimals are allowed (e.g., 9.99).";
+export const COURSE_DURATION_TIP = "Enter the estimated time to complete the course and select the unit. Decimals are allowed (e.g., 1.5 hours).";
 export const COURSE_LINK_TIP = "The direct URL to access the course.";
 export const COURSE_DESCRIPTION_TIP = "Learning outcomes, prerequisites, and instructor notes.";
 

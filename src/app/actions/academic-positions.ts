@@ -15,7 +15,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, readOptionalShortText, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import {
@@ -31,24 +31,6 @@ import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
-
-/**
- * Normalizes an optional short-text field: trims, enforces the max length,
- * and maps empty/missing to `null` so the DB stays clean (no "" rows).
- */
-function readOptionalShortText(
-  formData: FormData,
-  key: string,
-  maxLength: number,
-  label: string,
-): string | null {
-  const raw = readOptionalFormValue(formData, key)?.trim() ?? "";
-  if (!raw) return null;
-  if (raw.length > maxLength) {
-    throw new Error(`${label} is too long (max ${maxLength} characters).`);
-  }
-  return raw;
-}
 
 /**
  * Optional ISO date field: empty/missing maps to `null`, anything unparsable

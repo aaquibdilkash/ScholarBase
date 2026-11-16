@@ -181,4 +181,22 @@ describe("RecommendationCard frozen ownership", () => {
 
     expect(banner()?.getAttribute("data-owner-id")).toBe(AUTHOR.id);
   });
+
+  it("shows 'Edited … ago' when the recommendation was edited after creation", async () => {
+    await draw(
+      makeRecommendation({
+        editedAt: new Date("2026-10-20T11:00:00.000Z"),
+      }),
+    );
+
+    expect(container.textContent).toContain("Created");
+    expect(container.textContent).toContain("Edited");
+  });
+
+  it("does not show the edited label when the recommendation was never edited", async () => {
+    await draw(makeRecommendation({ editedAt: null }));
+
+    expect(container.textContent).toContain("Created");
+    expect(container.textContent).not.toContain("Edited");
+  });
 });

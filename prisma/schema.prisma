@@ -1644,6 +1644,14 @@ model ResearchGrantCommentVote {
   @@unique([commentId, userId])
 }
 
+/// Whether a course is free or paid. Stored separately from `price` so the
+/// classification does not depend on an amount being entered; the form asks for
+/// both independently. Existing rows are backfilled from their amount.
+enum CoursePricing {
+  FREE
+  PAID
+}
+
 model Course {
   id              String    @id @default(cuid())
   title           String
@@ -1651,9 +1659,16 @@ model Course {
   instructor      String?
   format          String?
   level           String?
-  price           Int?
+  /// Language the course is taught in. Search is served by
+  /// `Course_language_trgm_idx`, created in the search migration because Prisma
+  /// cannot model a pg_trgm operator-class index.
+  language        String?
+  pricing         CoursePricing @default(FREE)
+  /// Amount for a paid course. Independent of `pricing`; may be empty.
+  price           Float?
   currency        String    @default("INR")
-  durationValue   Int?
+  /// Decimal to support values like 1.5 hours.
+  durationValue   Float?
   durationUnit    String?
   link            String
   description     String
@@ -2437,7 +2452,13 @@ model CallForPaperCommentVote {
 model Admission {
   id               String         @id @default(cuid())
   university       String
-  department       String
+  /// Optional: an admission can apply to the whole institution rather than one
+  /// department, and one notice may cover multiple departments.
+  department       String?
+  /// City/state/country of the institution. Search is served by
+  /// `Admission_location_trgm_idx`, maintained in the search migration because
+  /// Prisma cannot model a pg_trgm operator-class index.
+  location         String?
   level            AdmissionLevel @default(PHD)
   deadline         DateTime
   description      String

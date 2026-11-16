@@ -135,6 +135,12 @@ export function RecommendationCard({
         )
       }
       createdDate={recommendation.createdAt}
+      editedDate={
+        recommendation.editedAt &&
+        recommendation.editedAt > recommendation.createdAt
+          ? recommendation.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={recommendation.isFrozen === true}

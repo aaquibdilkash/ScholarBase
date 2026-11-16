@@ -15,6 +15,24 @@ export function readOptionalFormValue(formData: FormData, key: string): string |
 }
 
 /**
+ * Normalizes an optional short-text field: trims, enforces the max length,
+ * and maps empty/missing to `null` so the DB stays clean (no "" rows).
+ */
+export function readOptionalShortText(
+    formData: FormData,
+    key: string,
+    maxLength: number,
+    label: string,
+): string | null {
+    const raw = readOptionalFormValue(formData, key)?.trim() ?? ""
+    if (!raw) return null
+    if (raw.length > maxLength) {
+        throw new Error(`${label} is too long (max ${maxLength} characters).`)
+    }
+    return raw
+}
+
+/**
  * Throws if the rich-text field exceeds the limit (measured against visible
  * plain-text characters, not raw HTML). Defense-in-depth: never trust the
  * client to enforce the cap.

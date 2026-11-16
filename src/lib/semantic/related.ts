@@ -474,7 +474,7 @@ async function hydrateItems(
 
       for (const row of rows) {
         setItem(items, row.id, `/admissions/${row.id}`, row.university, {
-          subtitle: row.department,
+          subtitle: row.department ?? undefined,
           avatarUrl: row.author?.avatarUrl ?? null,
           authorName: row.author?.name ?? undefined,
           authorHandle: row.author?.handle ?? undefined,

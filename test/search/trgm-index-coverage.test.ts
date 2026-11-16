@@ -53,6 +53,20 @@ const MIGRATION =
       "prisma/migrations/20261114130000_supervisor_institution_trgm_indexes/migration.sql",
     ),
     "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261116120000_admission_optional_fields/migration.sql",
+    ),
+    "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261116140000_course_fields/migration.sql",
+    ),
+    "utf8",
   );
 
 function hasIndex(name: string): boolean {

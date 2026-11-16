@@ -21,12 +21,146 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import {
+  COURSE_PRICE_MAX_LENGTH,
   DEFAULT_COURSE_CURRENCY,
   isCourseCurrency,
+  isCoursePricing,
+  type CoursePricing,
 } from "@/lib/course-currency";
 import {
+  COURSE_DURATION_MAX_LENGTH,
   isCourseDurationUnit,
 } from "@/lib/course-duration";
+import { isCourseLanguage } from "@/lib/course-language";
+
+/** Amounts are stored to two decimals; the inputs cap raw text at 6 chars. */
+const roundToCents = (value: number) => Math.round(value * 100) / 100;
+
+function parseCourseDecimal(
+  raw: string,
+  label: string,
+  maxLength: number,
+): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > maxLength) {
+    throw new Error(`${label} is too long (max ${maxLength} characters).`);
+  }
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error(`${label} must be a number (e.g., 9.99).`);
+  }
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be a positive number.`);
+  }
+  return roundToCents(value);
+}
+
+type CourseFields = {
+  title: string;
+  provider: string | null;
+  instructor: string | null;
+  language: string | null;
+  format: string | null;
+  level: string | null;
+  pricing: CoursePricing;
+  price: number | null;
+  currency: string;
+  durationValue: number | null;
+  durationUnit: string | null;
+  link: string;
+  description: string;
+};
+
+/**
+ * Reads and validates the shared course fields for create and edit.
+ *
+ * Extracted so the two write paths cannot drift: every rule below (pricing
+ * required, language allowlist, 6-character numeric caps) applies identically
+ * to both. Returns the error message instead of throwing so the action can keep
+ * returning a normal `{ success: false, message }` result.
+ */
+function parseCourseInput(
+  formData: FormData,
+):
+  | { ok: true; data: CourseFields }
+  | { ok: false; message: string } {
+  try {
+    const pricingRaw = readFormValue(formData, "pricing");
+    if (!isCoursePricing(pricingRaw)) {
+      return {
+        ok: false,
+        message: "Select whether the course is free or paid.",
+      };
+    }
+
+    const language = readFormValue(formData, "language");
+    if (language && !isCourseLanguage(language)) {
+      return { ok: false, message: "Language must be one of the listed options." };
+    }
+
+    const currency = readFormValue(formData, "currency") || DEFAULT_COURSE_CURRENCY;
+    if (!isCourseCurrency(currency)) {
+      return { ok: false, message: "Currency must be supported." };
+    }
+
+    const price = parseCourseDecimal(
+      readFormValue(formData, "price"),
+      "Price",
+      COURSE_PRICE_MAX_LENGTH,
+    );
+
+    const durationValueRaw = readFormValue(formData, "durationValue");
+    const durationUnit = readFormValue(formData, "durationUnit");
+    let durationValue: number | null = null;
+    let normalizedDurationUnit: string | null = null;
+    if (
+      durationUnit.length > 0 ||
+      (durationValueRaw.length > 0 && durationValueRaw !== "0")
+    ) {
+      const parsedDuration = parseCourseDecimal(
+        durationValueRaw,
+        "Duration",
+        COURSE_DURATION_MAX_LENGTH,
+      );
+      if (parsedDuration == null || !isCourseDurationUnit(durationUnit)) {
+        return { ok: false, message: "Duration must be a valid number and unit." };
+      }
+      durationValue = parsedDuration;
+      normalizedDurationUnit = durationUnit;
+    }
+
+    const description = readFormValue(formData, "description");
+    assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
+
+    return {
+      ok: true,
+      data: {
+        title: readFormValue(formData, "title"),
+        provider: readFormValue(formData, "provider") || null,
+        instructor: readFormValue(formData, "instructor") || null,
+        language: language || null,
+        format: readFormValue(formData, "format") || null,
+        level: readFormValue(formData, "level") || null,
+        pricing: pricingRaw,
+        price,
+        currency,
+        durationValue,
+        durationUnit: normalizedDurationUnit,
+        link:
+          validateExternalUrl(readFormValue(formData, "link"), "Course link") ??
+          "",
+        description,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Invalid course details.",
+    };
+  }
+}
+
 
 export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
@@ -35,67 +169,16 @@ export async function createCourse(formData: FormData) {
   const writeLimit = await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
-  const title = readFormValue(formData, "title");
-  const provider = readFormValue(formData, "provider");
-  const instructor = readFormValue(formData, "instructor");
-  const format = readFormValue(formData, "format");
-  const level = readFormValue(formData, "level");
-  const priceRaw = readFormValue(formData, "price");
-  const currencyRaw = readFormValue(formData, "currency");
-  const durationValueRaw = readFormValue(formData, "durationValue");
-  const durationUnit = readFormValue(formData, "durationUnit");
-  const link = readFormValue(formData, "link");
-  let safeLink: string | null;
-  try {
-    safeLink = validateExternalUrl(link, "Course link");
-  } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  const parsed = parseCourseInput(formData);
+  if (!parsed.ok) {
+    return { success: false, message: parsed.message };
   }
-  let price: number | null = null;
-  const currency = currencyRaw || DEFAULT_COURSE_CURRENCY;
-  if (!isCourseCurrency(currency)) {
-    return { success: false, message: "Currency must be supported." };
-  }
-  if (priceRaw.length > 0) {
-    const parsed = Number(priceRaw);
-    if (Number.isNaN(parsed) || parsed < 0) {
-      return { success: false, message: "Price must be a valid number." };
-    }
-    price = Math.floor(parsed);
-  }
-
-  let durationValue: number | null = null;
-  let normalizedDurationUnit: string | null = null;
-  if (durationUnit.length > 0 || (durationValueRaw.length > 0 && durationValueRaw !== "0")) {
-    const dv = Number(durationValueRaw);
-    if (
-      Number.isNaN(dv) ||
-      dv < 0 ||
-      !isCourseDurationUnit(durationUnit)
-    ) {
-      return { success: false, message: "Duration must be a valid number." };
-    }
-    durationValue = Math.floor(dv);
-    normalizedDurationUnit = durationUnit;
-  }
-
-  const description = readFormValue(formData, "description");
-  assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
+  const fields = parsed.data;
 
   const course = await prisma.$transaction(async (tx) => {
     const newCourse = await tx.course.create({
       data: {
-        title,
-        provider: provider || null,
-        instructor: instructor || null,
-        format: format || null,
-        level: level || null,
-        price,
-        currency,
-        durationValue,
-        durationUnit: normalizedDurationUnit,
-        link: safeLink ?? "",
-        description,
+        ...fields,
         authorId: user.id,
       },
       include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } } },
@@ -125,7 +208,9 @@ export async function createCourse(formData: FormData) {
     targetType: "Course",
     targetId: course.id,
     title: `${user.email?.split("@")[0] || "Someone"} shared a research course`,
-    body: provider ? `${title} - ${provider}` : title,
+    body: fields.provider
+      ? `${fields.title} - ${fields.provider}`
+      : fields.title,
   });
 
   // Purge the cached course pages: publish must be visible at once, not after the TTL.
@@ -140,52 +225,11 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const writeLimit = await enforceRateLimit({ namespace: "course:edit", key: user.id, limit: 20, window: "10 m" });
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
-  const title = readFormValue(formData, "title");
-  const provider = readFormValue(formData, "provider");
-  const instructor = readFormValue(formData, "instructor");
-  const format = readFormValue(formData, "format");
-  const level = readFormValue(formData, "level");
-  const priceRaw = readFormValue(formData, "price");
-  const currencyRaw = readFormValue(formData, "currency");
-  const durationValueRaw = readFormValue(formData, "durationValue");
-  const durationUnit = readFormValue(formData, "durationUnit");
-  const link = readFormValue(formData, "link");
-  let safeLink: string | null;
-  try {
-    safeLink = validateExternalUrl(link, "Course link");
-  } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  const parsed = parseCourseInput(formData);
+  if (!parsed.ok) {
+    return { success: false, message: parsed.message };
   }
-  let price: number | null = null;
-  const currency = currencyRaw || DEFAULT_COURSE_CURRENCY;
-  if (!isCourseCurrency(currency)) {
-    return { success: false, message: "Currency must be supported." };
-  }
-  if (priceRaw.length > 0) {
-    const parsed = Number(priceRaw);
-    if (Number.isNaN(parsed) || parsed < 0) {
-      return { success: false, message: "Price must be a valid number." };
-    }
-    price = Math.floor(parsed);
-  }
-
-  let durationValue: number | null = null;
-  let normalizedDurationUnit: string | null = null;
-  if (durationUnit.length > 0 || (durationValueRaw.length > 0 && durationValueRaw !== "0")) {
-    const dv = Number(durationValueRaw);
-    if (
-      Number.isNaN(dv) ||
-      dv < 0 ||
-      !isCourseDurationUnit(durationUnit)
-    ) {
-      return { success: false, message: "Duration must be a valid number." };
-    }
-    durationValue = Math.floor(dv);
-    normalizedDurationUnit = durationUnit;
-  }
-
-  const description = readFormValue(formData, "description");
-  assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
+  const fields = parsed.data;
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
@@ -202,17 +246,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const updatedCourse = await prisma.course.update({
     where: { id: courseId },
     data: {
-      title,
-      provider: provider || null,
-      instructor: instructor || null,
-      format: format || null,
-      level: level || null,
-      price,
-      currency,
-      durationValue,
-      durationUnit: normalizedDurationUnit,
-      link: safeLink ?? "",
-      description,
+      ...fields,
       editedAt: new Date(),
     },
   });
@@ -308,8 +342,10 @@ export const getCourseById = cache(
         title: true,
         provider: true,
         instructor: true,
+        language: true,
         format: true,
         level: true,
+        pricing: true,
         price: true,
         currency: true,
         durationValue: true,

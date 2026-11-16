@@ -28,6 +28,7 @@ export default async function EditAdmissionPage({
       id: true,
       university: true,
       department: true,
+      location: true,
       level: true,
       deadline: true,
       description: true,
@@ -59,7 +60,8 @@ export default async function EditAdmissionPage({
         admissionId={admission.id}
         initialValues={{
           university: admission.university,
-          department: admission.department,
+          department: admission.department ?? "",
+          location: admission.location ?? "",
           level: admission.level,
           deadline: new Date(admission.deadline).toISOString().slice(0, 10),
           description: admission.description,

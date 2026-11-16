@@ -23,15 +23,23 @@ import type { CourseWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   COURSE_CURRENCIES,
+  COURSE_PRICING_OPTIONS,
+  COURSE_PRICE_MAX_LENGTH,
   DEFAULT_COURSE_CURRENCY,
 } from "@/lib/course-currency";
-import { COURSE_DURATION_UNITS } from "@/lib/course-duration";
+import {
+  COURSE_DURATION_MAX_LENGTH,
+  COURSE_DURATION_UNITS,
+} from "@/lib/course-duration";
+import { COURSE_LANGUAGES } from "@/lib/course-language";
 import {
   COURSE_TITLE_TIP,
   COURSE_PROVIDER_TIP,
   COURSE_INSTRUCTOR_TIP,
+  COURSE_LANGUAGE_TIP,
   COURSE_FORMAT_TIP,
   COURSE_LEVEL_TIP,
+  COURSE_PRICING_TIP,
   COURSE_PRICE_TIP,
   COURSE_DURATION_TIP,
   COURSE_LINK_TIP,
@@ -42,11 +50,13 @@ export type CourseFormValues = {
   title: string;
   provider: string;
   instructor: string;
+  language: string;
   format: string;
   level: string;
-  price: number;
+  pricing: string;
+  price: string;
   currency: string;
-  durationValue: number;
+  durationValue: string;
   durationUnit: string;
   link: string;
   description: string;
@@ -66,20 +76,22 @@ export default function CourseForm({
     title: initialValues?.title ?? "",
     provider: initialValues?.provider ?? "",
     instructor: initialValues?.instructor ?? "",
+    language: initialValues?.language ?? "",
     format: initialValues?.format ?? "",
     level: initialValues?.level ?? "",
-    price: typeof initialValues?.price === "number" ? initialValues.price : 0,
+    pricing: initialValues?.pricing ?? "",
+    price: initialValues?.price ?? "",
     currency: initialValues?.currency ?? DEFAULT_COURSE_CURRENCY,
-    durationValue:
-      typeof initialValues?.durationValue === "number"
-        ? initialValues.durationValue
-        : 0,
+    durationValue: initialValues?.durationValue ?? "",
     durationUnit: initialValues?.durationUnit ?? "",
     link: initialValues?.link ?? "",
     description: initialValues?.description ?? "",
   };
 
-  const draftKey = mode === "edit" ? null : "draft_course_create";
+  // v2: price/durationValue are strings now (a controlled numeric input whose
+  // value is re-parsed on every keystroke drops the decimal point). The old key
+  // holds numbers and must not be restored into the string model.
+  const draftKey = mode === "edit" ? null : "draft_course_create_v2";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
     initial,
@@ -114,10 +126,14 @@ export default function CourseForm({
   const isDescriptionOverLimit =
     getRichTextLength(draftFields.description) > MAX_COURSE_DESCRIPTION;
   const isFormOverLimit = isDescriptionOverLimit;
+  // `Select` renders a sr-only native control, so HTML `required` would block
+  // submit with an error the user cannot focus. Block here instead and let the
+  // action reject a missing value as a second line of defence.
+  const isPricingMissing = draftFields.pricing.length === 0;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isFormOverLimit) return;
+    if (isFormOverLimit || isPricingMissing) return;
 
     const formData = new FormData(e.currentTarget);
     await submit(() =>
@@ -152,7 +168,7 @@ export default function CourseForm({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-3">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Provider
@@ -186,6 +202,25 @@ export default function CourseForm({
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {draftFields.instructor.length}/{MAX_COURSE_INSTRUCTOR} characters
           </div>
+        </div>
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Language
+            <InfoTooltip message={COURSE_LANGUAGE_TIP} />
+          </label>
+          <Select
+            name="language"
+            className="sb-input"
+            value={draftFields.language}
+            onChange={(e) => updateDraftField("language", e.target.value)}
+          >
+            <option value="">Select language</option>
+            {COURSE_LANGUAGES.map((language) => (
+              <option key={language} value={language}>
+                {language}
+              </option>
+            ))}
+          </Select>
         </div>
       </div>
 
@@ -238,20 +273,21 @@ export default function CourseForm({
                 name="durationValue"
                 type="number"
                 min="0"
-                step="1"
-                placeholder="0"
+                step="any"
+                inputMode="decimal"
+                placeholder="e.g., 1.5"
                 className="sb-input"
-                value={String(draftFields.durationValue ?? 0)}
-                onChange={(e) => {
-                  const parsed = Number(e.target.value.slice(0, 3));
+                value={draftFields.durationValue}
+                onChange={(e) =>
                   updateDraftField(
                     "durationValue",
-                    Number.isNaN(parsed) ? 0 : parsed,
-                  );
-                }}
+                    e.target.value.slice(0, COURSE_DURATION_MAX_LENGTH),
+                  )
+                }
               />
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {String(draftFields.durationValue ?? 0).length}/3 characters
+                {draftFields.durationValue.length}/{COURSE_DURATION_MAX_LENGTH}{" "}
+                characters
               </div>
             </div>
             <Select
@@ -271,31 +307,57 @@ export default function CourseForm({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-3">
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Free or Paid
+            <InfoTooltip message={COURSE_PRICING_TIP} />
+          </label>
+          <Select
+            name="pricing"
+            className="sb-input"
+            value={draftFields.pricing}
+            onChange={(e) => updateDraftField("pricing", e.target.value)}
+          >
+            <option value="">Select pricing</option>
+            {COURSE_PRICING_OPTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
         <div className="md:col-span-2">
           <label className="sb-label inline-flex items-center gap-1.5">
             Price
             <InfoTooltip message={COURSE_PRICE_TIP} />
           </label>
           <div className="flex gap-2">
-            <input
-              name="price"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="0"
-              className="sb-input flex-1"
-              maxLength={10}
-              value={String(draftFields.price ?? 0)}
-              onChange={(e) => {
-                const parsed = Number(e.target.value.slice(0, 10));
-                updateDraftField("price", Number.isNaN(parsed) ? 0 : parsed);
-              }}
-            />
+            <div className="min-w-0 flex-1">
+              <input
+                name="price"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="e.g., 499 or 9.99"
+                className="sb-input"
+                value={draftFields.price}
+                onChange={(e) =>
+                  updateDraftField(
+                    "price",
+                    e.target.value.slice(0, COURSE_PRICE_MAX_LENGTH),
+                  )
+                }
+              />
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {draftFields.price.length}/{COURSE_PRICE_MAX_LENGTH} characters
+              </div>
+            </div>
             <Select
               name="currency"
               value={draftFields.currency}
-              className="w-32 shrink-0"
+              className="w-32 shrink-0 self-start"
               aria-label="Price currency"
               onChange={(e) => updateDraftField("currency", e.target.value)}
             >
@@ -307,25 +369,26 @@ export default function CourseForm({
             </Select>
           </div>
         </div>
-        <div className="md:col-span-2">
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Course Link
-            <InfoTooltip message={COURSE_LINK_TIP} />
-          </label>
-          <input
-            name="link"
-            type="url"
-            pattern="https?://.+"
-            placeholder="https://..."
-            className="sb-input"
-            required
-            maxLength={MAX_COURSE_URL}
-            value={draftFields.link}
-            onChange={(e) => updateDraftField("link", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.link.length}/{MAX_COURSE_URL} characters
-          </div>
+      </div>
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Course Link
+          <InfoTooltip message={COURSE_LINK_TIP} />
+        </label>
+        <input
+          name="link"
+          type="url"
+          pattern="https?://.+"
+          placeholder="https://..."
+          className="sb-input"
+          required
+          maxLength={MAX_COURSE_URL}
+          value={draftFields.link}
+          onChange={(e) => updateDraftField("link", e.target.value)}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.link.length}/{MAX_COURSE_URL} characters
         </div>
       </div>
 
@@ -348,7 +411,7 @@ export default function CourseForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit || isPricingMissing}>
           {mode === "edit" ? "Save Changes" : "Add Course"}
         </SubmitBtnWithAuth>
       </div>

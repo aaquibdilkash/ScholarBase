@@ -53,6 +53,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       authorId: true,
       createdAt: true,
       updatedAt: true,
+      editedAt: true,
       author: {
         select: {
           id: true,
@@ -83,6 +84,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           id: true,
           createdAt: true,
           updatedAt: true,
+          editedAt: true,
           rating: true,
           feedback: true,
           turnaroundTimeDays: true,
@@ -176,6 +178,7 @@ export async function getSupervisorRecommendations(
       id: true,
       createdAt: true,
       updatedAt: true,
+      editedAt: true,
       rating: true,
       feedback: true,
       turnaroundTimeDays: true,

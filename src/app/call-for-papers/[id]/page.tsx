@@ -163,6 +163,11 @@ const EventDetailPage = async ({
       }
       currentUserId={user?.id}
       createdDate={event.createdAt}
+      editedDate={
+        event.editedAt && event.editedAt > event.createdAt
+          ? event.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           targetId={event.id}

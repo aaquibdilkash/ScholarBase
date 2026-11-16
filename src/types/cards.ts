@@ -94,7 +94,8 @@ export type AdmissionWithAuthor = Partial<Admission> & {
     createdAt: Date;
     deadline: Date;
     university: string;
-    department: string;
+    department: string | null;
+    location?: string | null;
     author: AuthorWithFollowers;
     totalVotes: number;
     totalBookmarks: number;

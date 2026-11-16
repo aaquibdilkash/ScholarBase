@@ -11,7 +11,7 @@ import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { CardChip } from "@/components/cards/CardChip";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
-import { Clock } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,8 +36,13 @@ export function AdmissionCard({
   const urgency = getTimeLeft(admission.deadline);
   // Share payload: mirror admissions/[id]/page.tsx generateMetadata().
   const levelLabel = getAdmissionLevelLabel(admission.level);
-  const shareTitle = `${admission.university} - ${admission.department} ${levelLabel} Admission`;
-  const shareText = `Apply for ${levelLabel} admission at ${admission.university} (${admission.department}). Deadline: ${new Date(
+  const departmentLabel = admission.department ?? "";
+  const shareTitle = `${admission.university} - ${[departmentLabel, `${levelLabel} Admission`]
+    .filter(Boolean)
+    .join(" ")}`;
+  const shareText = `Apply for ${levelLabel} admission at ${admission.university}${
+    departmentLabel ? ` (${departmentLabel})` : ""
+  }. Deadline: ${new Date(
     admission.deadline,
   ).toLocaleDateString("en-US", {
     year: "numeric",
@@ -86,6 +91,11 @@ export function AdmissionCard({
         )
       }
       createdDate={admission.createdAt}
+      editedDate={
+        admission.editedAt && admission.editedAt > admission.createdAt
+          ? admission.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={admission.isFrozen === true}
@@ -158,9 +168,19 @@ export function AdmissionCard({
             </h2>
 
             <div className="mb-2 space-y-1">
-              <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
-                {admission.department}
-              </p>
+              {admission.department ? (
+                <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
+                  {admission.department}
+                </p>
+              ) : null}
+              {admission.location ? (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="break-words [overflow-wrap:anywhere]">
+                    {admission.location}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Clock className="h-4 w-4 shrink-0 text-slate-400" />
                 <span>

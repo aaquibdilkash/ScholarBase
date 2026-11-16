@@ -195,7 +195,7 @@ export type CallForPaperTextSource = {
 
 export type AdmissionTextSource = {
   university: string;
-  department: string;
+  department: string | null;
   level?: string | null;
   description: string;
 };

@@ -86,12 +86,16 @@ export default async function CourseDetailPage({
 
   const related = await getRelatedContent("COURSE", course.id);
   const priceLabel = formatCoursePrice(course.price, course.currency);
+  const pricingLabel =
+    course.pricing === "PAID" ? "Paid" : course.pricing === "FREE" ? "Free" : null;
   const details = [
     ["Provider", course.provider],
     ["Instructor", course.instructor],
+    ["Language", course.language],
     ["Format", course.format],
     ["Level", course.level],
-    ["Price", priceLabel],
+    ["Pricing", pricingLabel],
+    ["Price", course.price != null && course.price > 0 ? priceLabel : null],
     ["Duration", formatCourseDuration(course.durationValue, course.durationUnit)],
   ].filter(([, value]) => Boolean(value));
 
@@ -121,6 +125,7 @@ export default async function CourseDetailPage({
               datePublished: course.createdAt,
               dateModified: course.editedAt,
               extra: {
+                ...(course.language ? { inLanguage: course.language } : {}),
                 ...(course.provider
                   ? {
                       provider: {
@@ -251,7 +256,7 @@ export default async function CourseDetailPage({
         url={course.link}
         className="mt-4 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800 sm:text-sm"
       >
-        Open Course
+        View Course
       </SafeExternalLink>
     </DetailPageCardShell>
   );
