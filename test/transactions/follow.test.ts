@@ -13,8 +13,16 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PROFILE_ACTIVITY_TAG } from "@/lib/tri-split/modules/profile-tab";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 import { toggleFollow } from "@/app/actions/follow";
+
+/** Request-scoped in Next; stubbed for a headless unit run. */
+const revalidateTag = vi.fn();
+vi.mock("next/cache", () => ({
+  revalidateTag: (...args: unknown[]) => revalidateTag(...args),
+  unstable_cache: (fn: unknown) => fn,
+}));
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -57,6 +65,7 @@ beforeEach(() => {
   resetFakeDb();
   rateLimitAllowed = true;
   notifyUserById.mockClear();
+  revalidateTag.mockClear();
   mockCurrentUser = { id: ALICE, name: "Alice" };
   fakeDb.seed("user", [
     { id: ALICE, name: "Alice", handle: "alice", isDeleted: false, followingCount: 0, followersCount: 0 },
@@ -76,6 +85,20 @@ describe("toggleFollow", () => {
     expect(followRows()).toHaveLength(1);
     expect(user(ALICE).followingCount).toBe(1);
     expect(user(BOB).followersCount).toBe(1);
+  });
+
+  it("expires the follower's cached Activity tab, but not on unfollow", async () => {
+    // A follow writes a FOLLOWED activity row; unfollowing leaves that row, so
+    // only the follow needs to dirty the Activity cache.
+    await toggleFollow(BOB);
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_ACTIVITY_TAG}:${ALICE}`,
+      { expire: 0 },
+    );
+
+    revalidateTag.mockClear();
+    await toggleFollow(BOB);
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 
   it("unfollows: returns isFollowing false and decrements BOTH counters", async () => {

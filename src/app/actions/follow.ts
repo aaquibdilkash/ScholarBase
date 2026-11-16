@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { FROZEN_ACTION_MESSAGE, getCurrentUser } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { handleFollowTransaction } from "@/lib/transactions";
+import { revalidateProfileActivity } from "@/lib/tri-split/modules/profile-tab";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 export async function toggleFollow(
@@ -59,6 +60,10 @@ export async function toggleFollow(
     const isNowFollowing = !wasFollowing;
 
     if (isNowFollowing) {
+      // The follow wrote a FOLLOWED row for the follower; unfollowing leaves
+      // that row in place, so only a new follow dirties the Activity tab.
+      revalidateProfileActivity(authUser.id);
+
       const follower = await prisma.user.findUnique({
         where: { id: authUser.id },
         select: { name: true },

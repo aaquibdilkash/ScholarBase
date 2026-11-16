@@ -76,7 +76,7 @@ vi.mock("@/lib/qstash", () => ({
   queueNotification: vi.fn(async () => undefined),
 }));
 vi.mock("@/lib/notification-links", () => ({
-  getModuleNoun: vi.fn(() => "post"),
+  getModuleNoun: vi.fn(() => "feed post"),
 }));
 
 const targeted = (actorId: string, overrides: Record<string, unknown> = {}) => ({
@@ -87,7 +87,7 @@ const targeted = (actorId: string, overrides: Record<string, unknown> = {}) => (
   targetType: "SOCIAL_POST",
   targetId: "post-1",
   title: "New Upvote",
-  body: "upvoted",
+  body: "Machine Learning",
   ...overrides,
 });
 
@@ -108,7 +108,7 @@ describe("TARGETED rollup: same-actor guard", () => {
     await process(targeted("u-alice"));
     expect(unread()).toHaveLength(1);
     expect(unread()[0].count).toBe(1);
-    expect(unread()[0].body).toBe("ada upvoted your post.");
+    expect(unread()[0].body).toBe('ada upvoted your feed post "Machine Learning".');
   });
 
   it("the SAME actor re-triggering does NOT inflate the count (vote toggling)", async () => {
@@ -127,7 +127,7 @@ describe("TARGETED rollup: same-actor guard", () => {
     expect(unread()).toHaveLength(1);
     expect(unread()[0].count).toBe(2);
     expect(unread()[0].actorId).toBe("u-bob");
-    expect(unread()[0].body).toBe("ada and 1 other upvoted your post.");
+    expect(unread()[0].body).toBe('ada and 1 other upvoted your feed post "Machine Learning".');
   });
 
   it("guards NEW_FOLLOWER too — refollow loops cannot rack up follows", async () => {
@@ -177,5 +177,102 @@ describe("TARGETED rollup: same-actor guard", () => {
   it("still no-ops self-notifications", async () => {
     await process(targeted("u-recip"));
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("TARGETED rollup: survey-response (aggregated, one row per survey)", () => {
+  const survey = (actorId: string, overrides: Record<string, unknown> = {}) =>
+    targeted(actorId, {
+      type: "survey-response",
+      targetType: "survey",
+      targetId: "survey-1",
+      title: "Someone posted a response to your survey",
+      body: "Research survey",
+      ...overrides,
+    });
+
+  it("creates one row with the survey title in the body", async () => {
+    await process(survey("u-alice"));
+
+    const [row] = unread();
+    expect(row.count).toBe(1);
+    expect(row.actorId).toBe("u-alice");
+    expect(row.body).toBe('ada posted a response to "Research survey".');
+  });
+
+  it("two different respondents keep ONE row; latest actor wins, body names others", async () => {
+    await process(survey("u-alice"));
+    await process(survey("u-bob"));
+
+    const unreadRows = unread();
+    expect(unreadRows).toHaveLength(1);
+    expect(unreadRows[0].count).toBe(2);
+    expect(unreadRows[0].actorId).toBe("u-bob");
+    expect(unreadRows[0].body).toBe('ada and 1 other posted responses to "Research survey".');
+  });
+
+  it("same respondent re-triggering does not inflate the count", async () => {
+    await process(survey("u-alice"));
+    await process(survey("u-alice"));
+    await process(survey("u-alice"));
+
+    expect(unread()).toHaveLength(1);
+    expect(unread()[0].count).toBe(1);
+    expect(unread()[0].actorId).toBe("u-alice");
+  });
+
+  it("each survey is its own rollup", async () => {
+    await process(survey("u-alice"));
+    await process(survey("u-alice", { targetId: "survey-2", body: "Other survey" }));
+
+    const unreadRows = unread();
+    expect(unreadRows).toHaveLength(2);
+    expect(unreadRows[0].count).toBe(1);
+    const other = unreadRows.find((r) => r.targetId === "survey-2")!;
+    expect(other.body).toBe('ada posted a response to "Other survey".');
+  });
+});
+
+describe("TARGETED rollup: NEW_VOTE copy names the module and the item", () => {
+  const vote = (overrides: Record<string, unknown> = {}) =>
+    targeted("u-alice", {
+      type: "NEW_VOTE",
+      targetType: "SOCIAL_POST",
+      targetId: "post-1",
+      title: "New Upvote",
+      body: "Machine Learning",
+      ...overrides,
+    });
+
+  it("first upvote names the feed post and its title", async () => {
+    await process(vote());
+
+    const [row] = unread();
+    expect(row.count).toBe(1);
+    expect(row.body).toBe('ada upvoted your feed post "Machine Learning".');
+  });
+
+  it("aggregate upvote names the feed post and its title", async () => {
+    await process(vote());
+    await process(vote({ actorId: "u-bob" }));
+
+    const [row] = unread();
+    expect(row.count).toBe(2);
+    expect(row.body).toBe('ada and 1 other upvoted your feed post "Machine Learning".');
+  });
+
+  it("upvote with Untitled title omits the quoted title", async () => {
+    await process(vote({ body: "Untitled" }));
+
+    const [row] = unread();
+    expect(row.body).toBe("ada upvoted your feed post.");
+  });
+
+  it("aggregate upvote with Untitled title omits the quoted title", async () => {
+    await process(vote({ body: "Untitled" }));
+    await process(vote({ actorId: "u-bob", body: "Untitled" }));
+
+    const [row] = unread();
+    expect(row.body).toBe("ada and 1 other upvoted your feed post.");
   });
 });

@@ -44,9 +44,11 @@ function formatRollupBody(
       case "NEW_FOLLOWER":
         return `${actorName} started following you.`;
       case "NEW_VOTE":
-        return `${actorName} upvoted your ${noun}.`;
+        return fallback && fallback !== "Untitled"
+          ? `${actorName} upvoted your ${noun} "${fallback}".`
+          : `${actorName} upvoted your ${noun}.`;
       case "survey-response":
-        return `${actorName} posted a response to your survey.`;
+        return `${actorName} posted a response to "${fallback}".`;
     }
   }
 
@@ -59,9 +61,11 @@ function formatRollupBody(
     case "NEW_FOLLOWER":
       return `${actorName} and ${suffix} started following you.`;
     case "NEW_VOTE":
-      return `${actorName} and ${suffix} upvoted your ${noun}.`;
+      return fallback && fallback !== "Untitled"
+        ? `${actorName} and ${suffix} upvoted your ${noun} "${fallback}".`
+        : `${actorName} and ${suffix} upvoted your ${noun}.`;
     case "survey-response":
-      return `${actorName} and ${suffix} posted a response to your survey.`;
+      return `${actorName} and ${suffix} posted responses to "${fallback}".`;
     default:
       return fallback;
   }

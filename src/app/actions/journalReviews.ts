@@ -12,7 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
-import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -240,7 +240,7 @@ export async function createJournalReview(
   // action is reachable directly, so reject it here too.
   const journal = await prisma.journal.findFirst({
     where: { id: journalId, isDeleted: false },
-    select: { id: true, title: true },
+    select: { id: true, title: true, author: { select: { id: true } } },
   });
   if (!journal) {
     return {
@@ -372,6 +372,20 @@ export async function createJournalReview(
       title: `${user.email?.split("@")[0] || "Someone"} reviewed a journal`,
       body: `${journal.title} — ${rating}/5`,
     });
+
+    // Tell the journal author someone reviewed it — anonymous reviews skip all
+    // notification, and self-review can't happen (one review per author).
+    if (journal.author.id !== user.id) {
+      await notifyUserById({
+        recipientId: journal.author.id,
+        actorId: user.id,
+        type: "journal-review-created",
+        targetType: "JournalReview",
+        targetId: `${journalId}/${review.id}`,
+        title: `${user.email?.split("@")[0] || "Someone"} added a review to your journal`,
+        body: `${journal.title} — ${rating}/5`,
+      });
+    }
   }
 
   return { success: true as const, data: review as JournalReviewWithAuthor };
@@ -429,6 +443,7 @@ export async function updateJournalReview(
         turnaroundTimeDays: true,
         editorialQualityScore: true,
         peerReviewRigorScore: true,
+        journal: { select: { author: { select: { id: true } } } },
       },
     });
 
@@ -518,6 +533,32 @@ export async function updateJournalReview(
 
       return updated;
     });
+
+    // Anonymous → public flip-back re-announces to followers AND the journal
+    // author (the non-anon → anon path deleted all of the reviewer's own rows
+    // for this content via deleteAuthorNotificationsForContent). A plain edit
+    // of an already-public review stays silent.
+    if (review.isAnonymous && !isAnonymous) {
+      await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: "content-published",
+        targetType: "JournalReview",
+        targetId: `${review.journalId}/${reviewId}`,
+        title: `${user.email?.split("@")[0] || "Someone"} reviewed a journal`,
+        body: `${updatedReview.journal.title} — ${rating}/5`,
+      });
+      if (review.journal?.author.id !== user.id) {
+        await notifyUserById({
+          recipientId: review.journal.author.id,
+          actorId: user.id,
+          type: "journal-review-created",
+          targetType: "JournalReview",
+          targetId: `${review.journalId}/${reviewId}`,
+          title: `${user.email?.split("@")[0] || "Someone"} added a review to your journal`,
+          body: `${updatedReview.journal.title} — ${rating}/5`,
+        });
+      }
+    }
 
     return { success: true as const, data: updatedReview as JournalReviewWithAuthor };
   } catch (error) {

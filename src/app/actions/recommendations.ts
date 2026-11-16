@@ -12,7 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
-import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -109,7 +109,7 @@ export async function createRecommendation(
   // rejected here too (not only in the UI).
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId, isDeleted: false },
-    select: { isFrozen: true, name: true },
+    select: { isFrozen: true, name: true, author: { select: { id: true } } },
   });
   if (!supervisor) {
     return { success: false, error: "Supervisor not found." };
@@ -256,6 +256,21 @@ export async function createRecommendation(
       title: `${user.email?.split("@")[0] || "Someone"} added a new supervisor recommendation`,
       body: `${supervisor.name} — ${rating}/5`,
     });
+
+    // Tell the supervisor author someone recommended them — the recipient can
+    // never be the recommender here (self-notification guard lives in
+    // notifyUserById), and anonymous recommendations skip all notification.
+    if (supervisor.author.id !== user.id) {
+      await notifyUserById({
+        recipientId: supervisor.author.id,
+        actorId: user.id,
+        type: "recommendation-created",
+        targetType: "Recommendation",
+        targetId: `${supervisorId}/${recommendation.id}`,
+        title: `${user.email?.split("@")[0] || "Someone"} added a recommendation to your supervisor`,
+        body: `${supervisor.name} — ${rating}/5`,
+      });
+    }
   }
 
   revalidateProfileContent(user.id);
@@ -300,6 +315,7 @@ export async function updateRecommendation(
         supervisorId: true,
         isAnonymous: true,
         rating: true,
+        supervisor: { select: { author: { select: { id: true } } } },
       },
     });
 
@@ -389,6 +405,32 @@ export async function updateRecommendation(
 
       return updated;
     });
+
+    // Anonymous → public flip-back re-announces to followers AND the supervisor
+    // author (the non-anon → anon path deleted all of the recommender's own
+    // rows for this content via deleteAuthorNotificationsForContent). A plain
+    // edit of an already-public recommendation stays silent.
+    if (recommendation.isAnonymous && !isAnonymous) {
+      await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: "content-published",
+        targetType: "Recommendation",
+        targetId: `${recommendation.supervisorId}/${recommendationId}`,
+        title: `${user.email?.split("@")[0] || "Someone"} added a new supervisor recommendation`,
+        body: `${updatedRecommendation.supervisor.name} — ${rating}/5`,
+      });
+      if (recommendation.supervisor.author.id !== user.id) {
+        await notifyUserById({
+          recipientId: recommendation.supervisor.author.id,
+          actorId: user.id,
+          type: "recommendation-created",
+          targetType: "Recommendation",
+          targetId: `${recommendation.supervisorId}/${recommendationId}`,
+          title: `${user.email?.split("@")[0] || "Someone"} added a recommendation to your supervisor`,
+          body: `${updatedRecommendation.supervisor.name} — ${rating}/5`,
+        });
+      }
+    }
 
     revalidateProfileContent(recommendation.authorId);
     return { success: true as const, data: updatedRecommendation };

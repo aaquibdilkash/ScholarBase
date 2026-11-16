@@ -4,6 +4,7 @@ export function canonicalizeActorPrefix(text: string, actorName: string) {
   const markers = [
     " posted", " published", " shared", " added", " created", " started",
     " commented", " replied", " tagged", " mentioned", " upvoted", " followed",
+    " participated",
   ];
   const markerIndex = markers
     .map((marker) => text.indexOf(marker))

@@ -18,8 +18,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VoteType } from "@prisma/client";
 
+import { PROFILE_ACTIVITY_TAG } from "@/lib/tri-split/modules/profile-tab";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 import { voteOnContent } from "@/app/actions/votes";
+
+/**
+ * `revalidateTag` is request-scoped in Next, so a headless unit run has to stub
+ * the cache primitives (same pattern as the tri-split suites).
+ */
+const revalidateTag = vi.fn();
+vi.mock("next/cache", () => ({
+  revalidateTag: (...args: unknown[]) => revalidateTag(...args),
+  unstable_cache: (fn: unknown) => fn,
+}));
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -66,6 +77,7 @@ beforeEach(() => {
   frozen = false;
   rateLimitAllowed = true;
   queueNotification.mockClear();
+  revalidateTag.mockClear();
   mockCurrentUser = { id: VOTER };
   fakeDb.seed("user", [
     { id: AUTHOR, reputation: 0, isDeleted: false, name: "Author", handle: "author" },
@@ -108,6 +120,17 @@ describe("voteOnContent return contract", () => {
 
     expect((flipped as { data: Record<string, unknown> }).data.userVote).toBe(
       VoteType.DOWNVOTE,
+    );
+  });
+
+  it("expires the voter's cached Activity tab when a vote is written", async () => {
+    // Votes bypass the content mutation funnel, so the action itself has to
+    // purge the profile's Activity tag or the tab serves a stale page.
+    await voteOnContent(ENTITY, VoteType.UPVOTE, "SOCIAL_POST");
+
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_ACTIVITY_TAG}:${VOTER}`,
+      { expire: 0 },
     );
   });
 

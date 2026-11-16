@@ -324,7 +324,7 @@ export async function getProfileBookmarkSection(
 
 // ─────────────────────────────────────────────────────────────
 // Activity tab: content the scholar commented on, replied to,
-// and voted on. Returns a flat, unified list for rendering.
+// and voted on. Returns one cached page for rendering.
 // ─────────────────────────────────────────────────────────────
 
 export async function getProfileActivity(

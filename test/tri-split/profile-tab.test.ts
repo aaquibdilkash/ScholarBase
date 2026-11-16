@@ -34,7 +34,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 const userFindUnique = vi.fn(async () => ({ articleCount: 4, socialPostCount: 2 }));
-const activityFindMany = vi.fn(async () => [
+const activityFindMany = vi.fn(async (_args?: unknown) => [
   {
     id: "act-1",
     action: "PUBLISHED",
@@ -115,6 +115,7 @@ const {
   profileActivityTag,
   profileBookmarksTag,
   profileContentTag,
+  revalidateProfileActivity,
   revalidateProfileBookmarks,
   revalidateProfileContent,
   revalidateBookmarkersForDeletedContent,
@@ -221,13 +222,85 @@ describe("profile tab loaders", () => {
   });
 
   it("revives the activity page's dates after the cache round trip", async () => {
-    const [item] = await loadProfileActivity("u-author", 10);
+    const { items } = await loadProfileActivity("u-author", 10);
+    const [item] = items;
     expect(item.createdAt).toBeInstanceOf(Date);
     expect(item.createdAt.toISOString()).toBe("2026-01-02T03:04:05.000Z");
   });
 
+  it("filters hidden activity in SQL so it cannot shorten the page", async () => {
+    // Regression: hidden rows were fetched into the page budget and filtered in
+    // JS, so a page with hidden rows came back short and `CacheBackedList` read
+    // it as the end of the feed ("7 dikh rahe, 10 chahiye, aage load nahi").
+    await loadProfileActivity("u-author", 10);
+
+    const args = activityFindMany.mock.calls[0][0] as {
+      where: Record<string, unknown>;
+      orderBy: unknown;
+      take: number;
+      select: Record<string, unknown>;
+    };
+    expect(args.where).toEqual({
+      userId: "u-author",
+      hiddenByContent: false,
+      hiddenByComment: false,
+    });
+    // `id` breaks the tie so cursor paging cannot skip a row when two activity
+    // rows share a timestamp.
+    expect(args.orderBy).toEqual([{ createdAt: "desc" }, { id: "desc" }]);
+    // One extra row answers "is there another page".
+    expect(args.take).toBe(11);
+    // Hidden flags are no longer needed by the client.
+    expect(args.select.hiddenByContent).toBeUndefined();
+    expect(args.select.hiddenByComment).toBeUndefined();
+  });
+
+  it("returns a full page plus hasMore from a table that contains hidden rows", async () => {
+    // The mock stands in for the SQL filter: eleven visible rows survive it.
+    activityFindMany.mockResolvedValueOnce(
+      Array.from({ length: 11 }, (_, index) => ({
+        id: `act-${index}`,
+        action: "VOTED",
+        moduleType: "ARTICLE",
+        entityId: "a1",
+        parentEntityId: null,
+        entityChildId: null,
+        entityTitle: "Cached row",
+        createdAt: new Date(2026, 0, 2, 3, 4, index),
+      })),
+    );
+
+    const { items, hasMore } = await loadProfileActivity("u-author", 10);
+
+    expect(items).toHaveLength(10);
+    expect(hasMore).toBe(true);
+  });
+
+  it("reports the last page when fewer visible rows remain", async () => {
+    activityFindMany.mockResolvedValueOnce(
+      Array.from({ length: 5 }, (_, index) => ({
+        id: `act-${index}`,
+        action: "VOTED",
+        moduleType: "ARTICLE",
+        entityId: "a1",
+        parentEntityId: null,
+        entityChildId: null,
+        entityTitle: "Cached row",
+        createdAt: new Date(2026, 0, 2, 3, 4, index),
+      })),
+    );
+
+    const { items, hasMore } = await loadProfileActivity("u-author", 10);
+
+    expect(items).toHaveLength(5);
+    expect(hasMore).toBe(false);
+  });
+
   it("returns nothing for an empty profile id without querying", async () => {
-    await expect(loadProfileActivity("", 10)).resolves.toEqual([]);
+    await expect(loadProfileActivity("", 10)).resolves.toEqual({
+      items: [],
+      hasMore: false,
+    });
     expect(activityFindMany).not.toHaveBeenCalled();
   });
 });
@@ -285,6 +358,26 @@ describe("profile tab purges", () => {
       `${PROFILE_BOOKMARKS_TAG}:${VIEWER}`,
       { expire: 0 },
     );
+  });
+
+  it("evicts only the Activity tab for interactions that write activity", () => {
+    // Votes, comment votes and follows write a UserActivity row without
+    // touching cached content rows, so they must not dirty the Content tab —
+    // but the Activity entry has to go.
+    revalidateProfileActivity(ALICE, BOB, ALICE, null, undefined);
+
+    expect(revalidateTag).toHaveBeenCalledTimes(2);
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_ACTIVITY_TAG}:${ALICE}`,
+      { expire: 0 },
+    );
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_ACTIVITY_TAG}:${BOB}`,
+      { expire: 0 },
+    );
+    for (const [tag] of revalidateTag.mock.calls) {
+      expect(String(tag)).toMatch(/^profile-activity:/);
+    }
   });
 
   it("uses `expire: 0`, never a stale-while-revalidate purge", () => {

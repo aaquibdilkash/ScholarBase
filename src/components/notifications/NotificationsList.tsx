@@ -55,6 +55,10 @@ function typeLabel(type: string) {
       return "Contribution approved";
     case "contribution-rejected":
       return "Contribution rejected";
+    case "recommendation-created":
+      return "Recommendation";
+    case "journal-review-created":
+      return "Review";
     case "CONTENT_FROZEN":
     case "USER_FROZEN":
       return "Frozen";
@@ -75,7 +79,7 @@ function typeLabel(type: string) {
   }
 }
 
-function NotificationCard({
+export function NotificationCard({
   notification,
 }: {
   notification: NotificationWithActor;
@@ -118,6 +122,15 @@ function NotificationCard({
           <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
             {typeLabel(notification.type)}
           </span>
+          {notification.count > 1 && (
+            <span
+              aria-label={`${notification.count} interactions`}
+              className="ml-1.5 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+              title={`${notification.count} responses aggregated into this notification`}
+            >
+              ×{notification.count}
+            </span>
+          )}
         </div>
         <p className="mt-1 break-words whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-400 [overflow-wrap:anywhere]">
           {displayBody}

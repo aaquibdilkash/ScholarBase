@@ -23,7 +23,10 @@ import {
 } from "@/lib/transactions";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { visibleParentCommentWhere } from "@/lib/comment-visibility";
-import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
+import {
+  revalidateProfileActivity,
+  revalidateProfileContent,
+} from "@/lib/tri-split/modules/profile-tab";
 
 // ============================================
 // LAZY PAGINATION (Zero-Compute Reads)
@@ -409,19 +412,18 @@ export async function deleteComment(
     throw new Error("Invalid comment type");
   }
 
-  const commentModel = ENTITY_CONFIG[moduleKey].comment as any;
-  const comment = await commentModel.findUnique({
-    where: { id: commentId },
-    select: { parentId: true },
-  });
-
   const result = await deleteCommentTransaction(moduleKey, commentId, userId);
+
+  // The transaction hid this comment's activity rows. Expire the author's
+  // Activity tag now, otherwise the cached feed keeps showing a comment that no
+  // longer exists until the TTL runs out.
+  revalidateProfileActivity(result.authorId);
 
   return {
     success: true,
     data: {
       id: commentId,
-      parentId: comment?.parentId,
+      parentId: result.parentId,
       wasTombstoned: result.showTombstone,
       deletedByType: result.deletedByType,
     },

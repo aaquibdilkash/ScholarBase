@@ -23,4 +23,10 @@ describe("canonicalizeActorPrefix", () => {
       canonicalizeActorPrefix("kd_msc added a new journal", "kd_msc"),
     ).toBe("kd_msc added a new journal");
   });
+
+  it("rewrites the survey-participation placeholder to the respondent", () => {
+    expect(
+      canonicalizeActorPrefix("Someone participated in a survey", "kd_msc"),
+    ).toBe("kd_msc participated in a survey");
+  });
 });

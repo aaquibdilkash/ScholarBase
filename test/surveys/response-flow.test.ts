@@ -718,7 +718,7 @@ describe("submitSurveyResponse — first submission", () => {
       type: "survey-response",
       targetType: "survey",
       targetId: "survey-1",
-      title: "Someone posted a response to your survey",
+      title: "New response to your survey",
       body: "Research survey",
     });
     expect(notifyFollowersOfActivity).toHaveBeenCalledWith({

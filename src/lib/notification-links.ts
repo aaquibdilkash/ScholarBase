@@ -39,8 +39,8 @@ const nested = (build: (parentId: string, childId: string) => string) =>
 
 const TARGETS = {
   article: { link: (t: string) => `/blog/${t}`, label: "Blog", noun: "blog post" },
-  post: { link: (t: string) => `/feed/${t}`, label: "Feed", noun: "post" },
-  socialPost: { link: (t: string) => `/feed/${t}`, label: "Feed", noun: "post" },
+  post: { link: (t: string) => `/feed/${t}`, label: "Feed", noun: "feed post" },
+  socialPost: { link: (t: string) => `/feed/${t}`, label: "Feed", noun: "feed post" },
   callForPaper: { link: (t: string) => `/call-for-papers/${t}`, label: "Call for Papers", noun: "call for papers" },
   academicPosition: { link: (t: string) => `/academic-positions/${t}`, label: "Academic Positions", noun: "academic position" },
   admission: { link: (t: string) => `/admissions/${t}`, label: "Admissions", noun: "admission" },

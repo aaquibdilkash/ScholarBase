@@ -138,8 +138,8 @@ describe("module copy", () => {
   });
 
   it("uses singular nouns for every target that has one", () => {
-    expect(getModuleNoun("post")).toBe("post");
-    expect(getModuleNoun("socialPost")).toBe("post");
+    expect(getModuleNoun("post")).toBe("feed post");
+    expect(getModuleNoun("socialPost")).toBe("feed post");
     expect(getModuleNoun("recommendation")).toBe("recommendation");
     expect(getModuleNoun("researchTool")).toBe("research tool");
     expect(getModuleNoun("researchsurvey")).toBe("survey");

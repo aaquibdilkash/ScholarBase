@@ -1235,7 +1235,7 @@ export async function submitSurveyResponse(
       type: "survey-response",
       targetType: "survey",
       targetId: surveyId,
-      title: "Someone posted a response to your survey",
+      title: "New response to your survey",
       body: surveyForValidation.title,
     });
     await notifyFollowersOfActivity({

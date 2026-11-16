@@ -7,6 +7,7 @@ import prisma from './db'
 import { resolveCommentDeletePermission } from './deletion'
 import { isUserAdmin } from './auth'
 import { hideCommentActivity } from './activity'
+import { getEntityDisplayTitle } from './entityTitle'
 import type { CommentEntityType } from '@/types/comments'
 
 // Permissive delegate shape.
@@ -35,6 +36,12 @@ function formatCommentActivityTitle(
   }
   if (!snippet) return title
   return `${title}|||${snippet}`
+}
+
+function clipNotificationTitle(value: string): string {
+  const title = value.replace(/\s+/g, ' ').trim()
+  if (title.length <= 120) return title
+  return `${title.slice(0, 117).trimEnd()}…`
 }
 
 // Transaction options to avoid serverless latency timeouts
@@ -492,6 +499,12 @@ export async function handleVoteTransaction(
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
     const entityTitle = (entity[config.titleField] as string) || 'Untitled'
+    // Notification copy is a single line: strip TipTap markup and clip the
+    // feedback-style fields (recommendations, journal reviews) so a vote on a
+    // long review does not paste the whole review into the inbox.
+    const notificationBody = clipNotificationTitle(
+      getEntityDisplayTitle({ [config.titleField]: entity[config.titleField] }),
+    )
     if (currentVote === newVote) {
       await vote.delete({ where: voteWhere })
     } else {
@@ -561,7 +574,7 @@ export async function handleVoteTransaction(
             recipientId: entity.authorId,
             targetType,
             targetId: nestedTargetId ?? entityId,
-            body: entityTitle,
+            body: notificationBody,
           },
         }
       }
@@ -913,7 +926,7 @@ export async function deleteCommentTransaction(
 
     const showTombstone = comment.parentId === null && comment.totalReplies > 0
 
-    return { showTombstone, parentId: comment.parentId, deletedByType }
+    return { showTombstone, parentId: comment.parentId, authorId: comment.authorId, deletedByType }
   }, TRANSACTION_OPTIONS)
 }
 

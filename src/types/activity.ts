@@ -18,8 +18,6 @@ export interface ActivityItem {
     parentEntityId?: string | null;
     /** Comment id for COMMENTED / REPLIED / comment-vote rows. */
     entityChildId?: string | null;
-    hiddenByContent?: boolean | null;
-    hiddenByComment?: boolean | null;
     entityTitle: string;
     createdAt: Date;
 }

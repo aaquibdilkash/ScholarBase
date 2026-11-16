@@ -234,6 +234,26 @@ describe("vote transaction: upvote notification", () => {
     expect(off.notification).toBeUndefined()
   })
 
+  it("strips TipTap markup from the feed post body in the notification", async () => {
+    seedScenario("SOCIAL_POST", freshUp)
+    // Overwrite the seeded plain content with TipTap HTML, as real posts store.
+    fakeDb.rows("socialPost")[0].content =
+      "<p>The practice of <strong>estimating first</strong> before building</p>"
+    const result = await handleVoteTransaction("SOCIAL_POST", ENTITY_ID, VOTER, VoteType.UPVOTE)
+    expect(result.notification?.body).toBe(
+      "The practice of estimating first before building",
+    )
+  })
+
+  it("clips a long review-style body so the inbox line stays readable", async () => {
+    seedScenario("RECOMMENDATION", freshUp)
+    fakeDb.rows("recommendation")[0].feedback = "A".repeat(400)
+    const result = await handleVoteTransaction("RECOMMENDATION", ENTITY_ID, VOTER, VoteType.UPVOTE)
+    const body = result.notification?.body as string
+    expect(body.length).toBeLessThanOrEqual(120)
+    expect(body.endsWith("…")).toBe(true)
+  })
+
   it("rejects an author who votes on their own content with zero writes", async () => {
     seedScenario("SOCIAL_POST", freshUp)
     await expect(

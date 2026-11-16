@@ -12,6 +12,7 @@ import { readFormValue, slugify, assertRichTextWithinLimit } from "@/lib/form";
 import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
+  deleteAllNotificationsForContent,
 } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -377,6 +378,11 @@ export async function deleteArticle(articleId: string) {
     // Hide this content's activity so a deleted article stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "ARTICLE", articleId)
+
+    // Soft delete (RULE 4) must remove every notification pointing at the
+    // article — the content-published fan-out and any vote notifications — so
+    // a deleted blog never surfaces in an inbox.
+    await deleteAllNotificationsForContent(tx, "ARTICLE", articleId)
   });
 
   // Soft delete (RULE 4) must disappear from the cached public pages at once.

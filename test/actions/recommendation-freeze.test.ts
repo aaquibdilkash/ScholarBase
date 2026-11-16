@@ -21,6 +21,7 @@ vi.mock("@/lib/db", async () => {
 
 const AUTHOR = "u-author";
 const SUPERVISOR = "sup-1";
+const SUPERVISOR_AUTHOR = "u-supervisor-author";
 
 vi.mock("@/lib/auth", () => ({
   getActiveUser: vi.fn(async () => ({ frozen: false, user: { id: AUTHOR } })),
@@ -43,6 +44,7 @@ vi.mock("@/lib/notifications", async (importOriginal) => {
   return {
     ...actual,
     notifyFollowersOfActivity: vi.fn(async () => {}),
+    notifyUserById: vi.fn(async () => {}),
   };
 });
 
@@ -101,6 +103,8 @@ describe("createRecommendation follower notifications", () => {
     fakeDb.seed("supervisor", {
       id: SUPERVISOR,
       name: "Prof Ada",
+      authorId: SUPERVISOR_AUTHOR,
+      author: { id: SUPERVISOR_AUTHOR },
       isFrozen: false,
       isDeleted: false,
       recommendationCount: 0,

@@ -11,8 +11,8 @@
  * │             author's own create / edit / delete.               │
  * │ Bookmarks — cached rows, scoped to the session user. Purged by │
  * │             `toggleBookmark`.                                  │
- * │ Activity  — cached rows. Purged by the same content funnel,   │
- * │             since every action writes a `UserActivity` row.    │
+ * │ Activity  — cached rows. Purged by the content funnel and by   │
+ * │             the paths that write or hide activity directly.    │
  * └───────────────────────────────────────────────────────────────┘
  *
  * WHY THE TAG IS PER PROFILE, AND HOW THAT IS POSSIBLE
@@ -273,20 +273,42 @@ type CachedActivityRow = {
   action: string;
   moduleType: string;
   entityId: string;
+  parentEntityId: string | null;
+  entityChildId: string | null;
   entityTitle: string;
   createdAt: string;
 };
 
-/** The cached Activity page. Purged by the content mutation funnel. */
+type CachedActivityPage = {
+  items: CachedActivityRow[];
+  hasMore: boolean;
+};
+
+/**
+ * The cached Activity page. Purged by the content mutation funnel and by the
+ * interaction paths that write or hide activity rows directly (votes, comment
+ * votes, follows, comment deletion).
+ */
 const loadCachedActivityPage = createScopedLoader<
-  CachedActivityRow[],
+  CachedActivityPage,
   string,
   [number, string | undefined]
 >(PROFILE_ACTIVITY_TAG, async (profileId, take, cursor) => {
   const rows = await prisma.userActivity.findMany({
-    where: { userId: profileId },
-    take,
-    orderBy: { createdAt: "desc" },
+    // A row is visible only while neither the content it describes nor the
+    // comment it describes is soft-deleted. Filtering has to happen in SQL: a
+    // hidden row that consumes a slot in the page budget makes the page come
+    // back short, and the list reads a short page as the end of the feed.
+    where: {
+      userId: profileId,
+      hiddenByContent: false,
+      hiddenByComment: false,
+    },
+    // One extra row answers "is there another page" exactly, and the `id`
+    // tiebreaker keeps cursor paging from skipping or repeating a row when two
+    // activity rows share a timestamp (same contract as the Bookmarks tab).
+    take: take + 1,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
       id: true,
@@ -295,25 +317,27 @@ const loadCachedActivityPage = createScopedLoader<
       entityId: true,
       parentEntityId: true,
       entityChildId: true,
-      hiddenByContent: true,
-      hiddenByComment: true,
       entityTitle: true,
       createdAt: true,
     },
   });
-  return rows
-    // A row is visible only while neither the content it describes nor the
-    // comment it describes is soft-deleted. Recovering one cannot resurrect
-    // the other.
-    .filter((row) => !row.hiddenByContent && !row.hiddenByComment)
-    .map((row) => ({
+
+  return {
+    items: rows.slice(0, take).map((row) => ({
       ...row,
       createdAt: row.createdAt.toISOString(),
-    }));
+    })),
+    hasMore: rows.length > take,
+  };
 });
 
 export type ProfileActivityItem = Omit<CachedActivityRow, "createdAt"> & {
   createdAt: Date;
+};
+
+export type ProfileActivityPage = {
+  items: ProfileActivityItem[];
+  hasMore: boolean;
 };
 
 /** One page of the Activity tab, dates revived. */
@@ -321,14 +345,17 @@ export async function loadProfileActivity(
   profileId: string,
   take: number,
   cursor?: string,
-): Promise<ProfileActivityItem[]> {
-  if (!profileId) return [];
-  const rows = await loadCachedActivityPage(
+): Promise<ProfileActivityPage> {
+  if (!profileId) return { items: [], hasMore: false };
+  const { items, hasMore } = await loadCachedActivityPage(
     profileId,
     normalizePageSize(take),
     cursor,
   );
-  return rows.map((row) => ({ ...row, createdAt: new Date(row.createdAt) }));
+  return {
+    items: items.map((row) => ({ ...row, createdAt: new Date(row.createdAt) })),
+    hasMore,
+  };
 }
 
 /**
@@ -366,6 +393,23 @@ export function revalidateProfileContent(
 ): void {
   for (const id of uniqueIds(profileIds)) {
     expireTag(profileContentTag(id));
+  }
+  revalidateProfileActivity(...profileIds);
+}
+
+/**
+ * Purges one scholar's Activity tab.
+ *
+ * Activity rows are written by interactions that deliberately do not purge the
+ * Content tab (votes, comment votes, follows) and hidden when a comment is
+ * deleted, so those paths expire this tag directly. Purging only the activity
+ * entry keeps the "no invalidation per interaction" policy for the Content tab
+ * and its materialized counters.
+ */
+export function revalidateProfileActivity(
+  ...profileIds: (string | null | undefined)[]
+): void {
+  for (const id of uniqueIds(profileIds)) {
     expireTag(profileActivityTag(id));
   }
 }

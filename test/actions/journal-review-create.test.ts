@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 import { createJournalReview } from "@/app/actions/journalReviews";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -42,6 +42,7 @@ vi.mock("@/lib/notifications", async (importOriginal) => {
   return {
     ...actual,
     notifyFollowersOfActivity: vi.fn(async () => {}),
+    notifyUserById: vi.fn(async () => {}),
   };
 });
 
@@ -67,6 +68,8 @@ beforeEach(() => {
   fakeDb.seed("journal", {
     id: JOURNAL,
     title: "Nature Fake",
+    authorId: "u-journal-author",
+    author: { id: "u-journal-author" },
     isDeleted: false,
     reviewCount: 0,
     ratingSum: 0,
@@ -91,9 +94,20 @@ describe("createJournalReview follower notifications", () => {
         body: "Nature Fake — 5/5",
       }),
     );
+    expect(notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-journal-author",
+        actorId: AUTHOR,
+        type: "journal-review-created",
+        targetType: "JournalReview",
+        targetId: `${JOURNAL}/${reviewId}`,
+        title: expect.stringContaining("added a review to your journal"),
+        body: "Nature Fake — 5/5",
+      }),
+    );
   });
 
-  it("an anonymous review does not notify followers", async () => {
+  it("an anonymous review does not notify followers or the journal author", async () => {
     const formData = validForm();
     formData.append("isAnonymous", "on");
 
@@ -102,5 +116,6 @@ describe("createJournalReview follower notifications", () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error("expected the write to succeed");
     expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
+    expect(notifyUserById).not.toHaveBeenCalled();
   });
 });

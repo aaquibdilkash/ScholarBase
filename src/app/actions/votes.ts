@@ -10,6 +10,7 @@ import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { queueNotification } from "@/lib/qstash";
+import { revalidateProfileActivity } from "@/lib/tri-split/modules/profile-tab";
 
 export async function voteOnContent(
   entityId: string,
@@ -55,6 +56,11 @@ export async function voteOnContent(
       user.id,
       newVoteType,
     );
+
+    // The transaction wrote a VOTED row for the voter. Activity is the only
+    // cached surface it changes — the Content tab's counters are deliberately
+    // left to their TTL — so expire just that tag.
+    revalidateProfileActivity(user.id);
 
     if (notification) {
       void queueNotification({
@@ -117,6 +123,9 @@ export async function toggleCommentVote(
       voteType,
       type,
     );
+
+    // Same as a content vote: a comment-vote row is activity for the voter.
+    revalidateProfileActivity(user.id);
 
     return { success: true, data: { totalVotes, userVote } };
   } catch (error) {
