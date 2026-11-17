@@ -5,6 +5,8 @@ import type { EditorialRoleTitle } from "@prisma/client";
 
 import prisma from "@/lib/db";
 import { getActiveUser, isUserAdmin, requireAdmin } from "@/lib/auth";
+import { notifyUserById } from "@/lib/notifications";
+import { EDITORIAL_ROLE_LABELS } from "@/lib/publishing/labels";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue } from "@/lib/form";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
@@ -179,6 +181,32 @@ export async function setVenuePublishedAction(
     },
   });
 
+  // Tell the people who run the venue when its public state changes; an
+  // editor should not discover an unpublish by refreshing the site.
+  if (published !== venue.isPublished) {
+    const editors = await prisma.editorialRole.findMany({
+      where: { venueId: venue.id },
+      select: { userId: true },
+    });
+    await Promise.all(
+      [...new Set(editors.map((editor) => editor.userId))].map((recipientId) =>
+        notifyUserById({
+          recipientId,
+          actorId: admin.id,
+          type: published ? "venue-published" : "venue-unpublished",
+          targetType: "editorial",
+          targetId: venue.id,
+          title: published
+            ? `${venue.name} is now public`
+            : `${venue.name} was unpublished`,
+          body: published
+            ? `${venue.name} can now be indexed and is accepting submissions.`
+            : `${venue.name} is no longer publicly visible. Contact the platform administrator before relying on it.`,
+        }),
+      ),
+    );
+  }
+
   revalidatePath("/workspace/admin");
   revalidatePath(`/${venue.slug}`);
   return {
@@ -284,6 +312,18 @@ export async function grantEditorialRoleAction(
     },
     update: {},
     create: { userId: user.id, venueId, roleTitle },
+  });
+
+  // The new editor should learn about the responsibility without being told
+  // out of band. `notifyUserById` skips when an admin grants themselves.
+  await notifyUserById({
+    recipientId: user.id,
+    actorId: admin.id,
+    type: "editorial-role-granted",
+    targetType: "editorial",
+    targetId: venueId,
+    title: `You now edit ${venue.name}`,
+    body: `You were granted the ${EDITORIAL_ROLE_LABELS[roleTitle]} role. The editorial desk and venue settings are in your workspace.`,
   });
 
   revalidatePath("/workspace/admin");

@@ -378,17 +378,45 @@ export async function createManuscriptSubmissionAction(
     throw error;
   }
 
-  if (invitation.invitedById) {
-    await notifyUserById({
-      recipientId: invitation.invitedById,
-      actorId: auth.user.id,
-      type: "manuscript-transfer-accepted",
-      targetType: "editorial",
-      targetId: createdId,
-      title: `Extended version submitted to ${invitation.targetVenue.name}`,
-      body: `${input.title} — the author accepted your invitation.`,
-    });
-  }
+  // The journal's own desk must hear about the new row, not only the editor who
+  // wrote the invitation: that editor may sit on the conference, not the
+  // journal. One notification per recipient — the inviter gets the acceptance
+  // wording, and is not sent a second "new submission" row.
+  const desk = await prisma.editorialRole.findMany({
+    where: {
+      venueId: invitation.targetVenue.id,
+      roleTitle: { in: ["EDITOR_IN_CHIEF", "TRACK_CHAIR"] },
+    },
+    select: { userId: true },
+  });
+  const deskRecipients = new Set(desk.map((editor) => editor.userId));
+
+  await Promise.all([
+    ...[...deskRecipients]
+      .filter((recipientId) => recipientId !== invitation.invitedById)
+      .map((recipientId) =>
+        notifyUserById({
+          recipientId,
+          actorId: auth.user.id,
+          type: "manuscript-submitted",
+          targetType: "editorial",
+          targetId: createdId,
+          title: `New submission at ${invitation.targetVenue.name}`,
+          body: `${input.title} — an extended conference paper was submitted.`,
+        }),
+      ),
+    invitation.invitedById
+      ? notifyUserById({
+          recipientId: invitation.invitedById,
+          actorId: auth.user.id,
+          type: "manuscript-transfer-accepted",
+          targetType: "editorial",
+          targetId: createdId,
+          title: `Extended version submitted to ${invitation.targetVenue.name}`,
+          body: `${input.title} — the author accepted your invitation.`,
+        })
+      : Promise.resolve(),
+  ]);
 
   revalidatePath("/workspace/submissions");
   revalidatePath("/workspace/editorial");
@@ -754,7 +782,7 @@ export async function declineTransferInvitationAction(
       recipientId: invitation.invitedById,
       actorId: auth.user.id,
       type: "manuscript-transfer-declined",
-      targetType: "manuscript",
+      targetType: "editorial",
       targetId: invitation.manuscript.id,
       title: `Invitation to ${invitation.targetVenue.name} declined`,
       body: `${invitation.manuscript.title} — the author declined to submit an extended version.`,
@@ -809,6 +837,7 @@ export async function publishManuscriptAction(
       id: true,
       title: true,
       status: true,
+      authorId: true,
       venueId: true,
       venue: { select: { name: true, slug: true, type: true } },
     },
@@ -919,6 +948,19 @@ export async function publishManuscriptAction(
   }
 
   const prefix = manuscript.venue.type === "JOURNAL" ? "sbj" : "sbc";
+
+  await notifyUserById({
+    recipientId: manuscript.authorId,
+    actorId: auth.user.id,
+    type: "manuscript-published",
+    targetType: "manuscript",
+    targetId: manuscript.id,
+    title: `Published in ${manuscript.venue.name}`,
+    body: `${manuscript.title} — ${manuscript.venue.name} ${volume}${
+      issue ? `(${issue})` : ""
+    }${firstPage ? `, pp. ${firstPage}${lastPage ? `–${lastPage}` : ""}` : ""}.`,
+  });
+
   revalidatePath(`/${prefix}/${manuscript.venue.slug}`);
   revalidatePath(`/${prefix}/${manuscript.venue.slug}/archive`);
   revalidatePath(`/${prefix}/${manuscript.venue.slug}/article/${manuscript.id}`);

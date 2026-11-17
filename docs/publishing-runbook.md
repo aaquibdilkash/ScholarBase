@@ -94,6 +94,26 @@ unpublished or demo venue, and it refuses an author who holds an editorial seat
 at that venue — the person who decides a paper must not be the person who
 submitted it.
 
+### Workflow notifications
+
+All notices are in-app rows queued through `notifyUserById` (delivery is the
+existing digest/email pipeline, never a synchronous send).
+
+| Event | Recipient | Link target |
+|---|---|---|
+| Editor invites an extended version | the author | the conference submission |
+| Author accepts and submits | the inviting editor **and** the target journal's EiC / Track Chairs | the editorial desk |
+| Author declines | the inviting editor | the editorial desk |
+| Author submits directly | the venue's EiC / Track Chairs | the editorial desk |
+| Manuscript published | the author | the published submission (with its public article link) |
+| Venue published / unpublished | every role holder at that venue | the editorial desk |
+| Editorial role granted | the new editor | the editorial desk |
+
+An author's manuscript notice links to `/workspace/submissions/<id>`; editor
+notices link to `/workspace/editorial`. `notifyUserById` is a no-op when the
+recipient is the actor, and duplicate recipients are de-duplicated before
+queueing.
+
 An invitation is open when the **latest** event for `(manuscriptId, targetVenueId)` is `TRANSFER_INVITED` and no live clone exists. Declining therefore closes it without mutating history, and the editor may invite again. Only `ACCEPTED_PROCEDINGS` is invitable; an invitation created before the proceedings volume is published stays actionable after the source moves to `PUBLISHED`.
 
 ---

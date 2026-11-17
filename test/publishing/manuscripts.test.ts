@@ -119,6 +119,7 @@ const JOURNAL = {
 const SOURCE_ROLE = {
   venueId: "venue-conference",
   roleTitle: "TRACK_CHAIR" as const,
+  userId: "u-editor",
 };
 
 /** An accepted journal paper, ready for the publication form. */
@@ -724,6 +725,42 @@ describe("createManuscriptSubmissionAction", () => {
     expect(created).not.toHaveProperty("coAuthors");
   });
 
+  it("notifies the target journal's desk as well as the inviter", async () => {
+    mocks.roleFindMany.mockResolvedValue([{ userId: "u-journal-eic" }]);
+
+    await createManuscriptSubmissionAction(EMPTY_SUBMIT, submissionForm());
+
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-journal-eic",
+        type: "manuscript-submitted",
+        targetType: "editorial",
+        targetId: "ms-journal",
+      }),
+    );
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-editor",
+        type: "manuscript-transfer-accepted",
+      }),
+    );
+    expect(mocks.notifyUserById).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not send the inviter a second notification when they also edit the target journal", async () => {
+    mocks.roleFindMany.mockResolvedValue([{ userId: "u-editor" }]);
+
+    await createManuscriptSubmissionAction(EMPTY_SUBMIT, submissionForm());
+
+    expect(mocks.notifyUserById).toHaveBeenCalledTimes(1);
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-editor",
+        type: "manuscript-transfer-accepted",
+      }),
+    );
+  });
+
   it("refuses a second submission for the same invitation", async () => {
     // First call is the clone check inside findOpenInvitationForAuthor;
     // second is the re-check inside the Serializable transaction.
@@ -1243,6 +1280,17 @@ describe("publishManuscriptAction", () => {
         note: "Published in Indian Journal of Optics 2(1), pp. 9–24.",
       }),
     });
+
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-author",
+        actorId: "u-editor",
+        type: "manuscript-published",
+        targetType: "manuscript",
+        targetId: PUBLISHABLE.id,
+        title: "Published in Indian Journal of Optics",
+      }),
+    );
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith(
       "/sbj/indian-journal-of-optics",

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
   roleUpsert: vi.fn(),
   roleFindFirst: vi.fn(),
+  roleFindMany: vi.fn(),
   roleDeleteMany: vi.fn(),
   boardDeleteMany: vi.fn(),
   boardCreateMany: vi.fn(),
@@ -29,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   getActiveUser: vi.fn(),
   isUserAdmin: vi.fn(),
   enforceRateLimit: vi.fn(),
+  notifyUserById: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -49,6 +51,7 @@ vi.mock("@/lib/db", () => ({
     editorialRole: {
       upsert: mocks.roleUpsert,
       findFirst: mocks.roleFindFirst,
+      findMany: mocks.roleFindMany,
       deleteMany: mocks.roleDeleteMany,
     },
     $transaction: mocks.transaction,
@@ -63,6 +66,9 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: mocks.enforceRateLimit,
+}));
+vi.mock("@/lib/notifications", () => ({
+  notifyUserById: mocks.notifyUserById,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
@@ -99,6 +105,7 @@ beforeEach(() => {
   mocks.getActiveUser.mockResolvedValue({ frozen: false, user: { id: "editor-1" } });
   mocks.isUserAdmin.mockResolvedValue(false);
   mocks.enforceRateLimit.mockResolvedValue({ allowed: true });
+  mocks.roleFindMany.mockResolvedValue([]);
   mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<void>) =>
     callback({
       venue: { update: mocks.venueUpdate, delete: mocks.venueDelete },
@@ -258,6 +265,50 @@ describe("setVenuePublishedAction", () => {
         data: expect.objectContaining({ isPublished: true }),
       }),
     );
+  });
+
+  it("notifies the venue's editors when it goes public", async () => {
+    mocks.venueFindUnique.mockResolvedValue(READY_VENUE);
+    mocks.boardFindMany.mockResolvedValue([{ id: "board-1" }]);
+    mocks.roleFindMany.mockResolvedValue([
+      { userId: "eic-1" },
+      { userId: "eic-1" },
+      { userId: "chair-1" },
+    ]);
+
+    await setVenuePublishedAction(
+      EMPTY,
+      formWith({ venueId: "venue-1", published: "true" }),
+    );
+
+    expect(mocks.notifyUserById).toHaveBeenCalledTimes(2);
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "eic-1",
+        actorId: "admin-1",
+        type: "venue-published",
+        targetType: "editorial",
+        targetId: "venue-1",
+      }),
+    );
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: "chair-1" }),
+    );
+  });
+
+  it("does not notify when the public state did not change", async () => {
+    mocks.venueFindUnique.mockResolvedValue({
+      ...READY_VENUE,
+      isPublished: true,
+    });
+    mocks.boardFindMany.mockResolvedValue([{ id: "board-1" }]);
+
+    await setVenuePublishedAction(
+      EMPTY,
+      formWith({ venueId: "venue-1", published: "true" }),
+    );
+
+    expect(mocks.notifyUserById).not.toHaveBeenCalled();
   });
 
   it("unpublishes without running the readiness checks", async () => {
@@ -470,6 +521,15 @@ describe("grantEditorialRoleAction", () => {
           },
         },
         update: {},
+      }),
+    );
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "user-1",
+        actorId: "admin-1",
+        type: "editorial-role-granted",
+        targetType: "editorial",
+        targetId: "venue-1",
       }),
     );
   });

@@ -59,6 +59,21 @@ function typeLabel(type: string) {
       return "Recommendation";
     case "journal-review-created":
       return "Review";
+    case "manuscript-transfer-invited":
+      return "Invitation";
+    case "manuscript-transfer-accepted":
+    case "manuscript-submitted":
+      return "Submission";
+    case "manuscript-transfer-declined":
+      return "Declined";
+    case "manuscript-published":
+      return "Published";
+    case "editorial-role-granted":
+      return "Editorial role";
+    case "venue-published":
+      return "Venue live";
+    case "venue-unpublished":
+      return "Venue offline";
     case "CONTENT_FROZEN":
     case "USER_FROZEN":
       return "Frozen";

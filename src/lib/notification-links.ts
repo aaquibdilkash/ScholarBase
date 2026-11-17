@@ -67,16 +67,15 @@ const TARGETS = {
   // Scholar profile — used by admin moderation notifications so a frozen,
   // deleted or recovered user lands on their own profile page.
   profile: { link: (t: string) => `/scholars/${t}`, label: "Scholar", noun: "scholar" },
-  // Manuscript workflow notices (transfer invitations, decisions) all land on
-  // the author's submission list; there is deliberately no per-manuscript
-  // public route, because unpublished work is not content.
+  // Manuscript workflow notices for authors land on the submission itself,
+  // which shows the status timeline and, once published, the public article.
   manuscript: {
-    link: () => `/workspace/submissions`,
+    link: (t: string) => `/workspace/submissions/${t}`,
     label: "Submissions",
     noun: "submission",
   },
-  // Editor-facing manuscript notices (a new direct submission) land on the
-  // desk, where the editor actually has a list to act on.
+  // Editor-facing manuscript notices (a new submission, an accepted transfer)
+  // land on the desk, where the editor actually has a list to act on.
   editorial: {
     link: () => `/workspace/editorial`,
     label: "Editorial",

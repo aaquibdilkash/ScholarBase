@@ -118,7 +118,7 @@ describe("target links", () => {
     ).toBe("/messages/conversation-1");
   });
 
-  it("routes a manuscript notice to the author's submissions", () => {
+  it("routes a manuscript notice to the author's submission", () => {
     expect(
       getNotificationLink(
         notification({
@@ -127,7 +127,7 @@ describe("target links", () => {
           targetId: "ms-1",
         }),
       ),
-    ).toBe("/workspace/submissions");
+    ).toBe("/workspace/submissions/ms-1");
   });
 
   it("returns null when there is nothing to link to", () => {
