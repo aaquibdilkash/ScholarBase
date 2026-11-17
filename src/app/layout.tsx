@@ -243,7 +243,11 @@ export default async function RootLayout({
                   lands on the scrim and dismisses it, instead of activating a
                   kebab menu or dropdown floating above the dimmed page. */}
               <InertWhenDrawerOpen className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip lg:min-h-0 lg:overflow-hidden">
-                <Navbar user={user} unreadCount={unreadNotifications} />
+                <Navbar
+                  user={user}
+                  unreadCount={unreadNotifications}
+                  isAdmin={isAdmin}
+                />
 
                 {/* Frozen strip lives BELOW the sticky navbar so the navbar
                     keeps its top-0 pinning. user.id doubles as the profile

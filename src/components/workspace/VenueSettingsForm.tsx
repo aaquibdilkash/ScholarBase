@@ -9,6 +9,7 @@ import {
   type VenueActionResult,
 } from "@/app/actions/publishing";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { Select } from "@/components/ui/Select";
 import { Editor } from "@/components/ui/Editor";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -205,18 +206,18 @@ export function VenueSettingsPanel({
           <label htmlFor="venue-settings-select" className="sb-label">
             Venue
           </label>
-          <select
+          <Select
             id="venue-settings-select"
             value={selected.id}
             onChange={(event) => setSelectedId(event.target.value)}
-            className="sb-input"
+            className="sb-select"
           >
             {venues.map((venue) => (
               <option key={venue.id} value={venue.id}>
                 {venue.name} · {venue.type === "JOURNAL" ? "Journal" : "Conference"}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
       <VenueSettingsForm key={selected.id} venue={selected} />

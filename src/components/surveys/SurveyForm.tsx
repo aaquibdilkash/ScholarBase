@@ -816,7 +816,8 @@ export default function SurveyForm({
             <Select
               value={selectedDemographic}
               onChange={(e) => setSelectedDemographic(e.target.value)}
-              className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
+              containerClassName="min-w-0 w-full sm:max-w-56"
+              className="sb-select text-sm !pr-10"
               aria-label="Insert a standard demographic block"
             >
               <option value="">+ Insert Demographics…</option>
@@ -829,7 +830,8 @@ export default function SurveyForm({
             <Select
               value={demographicTargetBlock}
               onChange={(e) => setDemographicTargetBlock(e.target.value)}
-              className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
+              containerClassName="min-w-0 w-full sm:max-w-56"
+              className="sb-select text-sm !pr-10"
               aria-label="Section to insert the demographic block into"
             >
               <option value="">Into: General questions</option>

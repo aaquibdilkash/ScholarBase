@@ -182,7 +182,8 @@ export function QuestionEditor({
             <Select
               value={question.blockId ?? ""}
               onChange={(e) => onMoveToSection(e.target.value || null)}
-              className="sb-select min-w-0 w-full text-xs sm:max-w-40 !pr-10"
+              containerClassName="min-w-0 w-full sm:max-w-40"
+              className="sb-select text-xs !pr-10"
               aria-label="Assign question to a section"
             >
               <option value="">No section</option>
@@ -333,7 +334,8 @@ export function QuestionEditor({
                     : null,
                 });
               }}
-              className="sb-select min-w-0 w-full !pr-10"
+              containerClassName="min-w-0 w-full"
+              className="sb-select !pr-10"
             >
               {QUESTION_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -619,7 +621,8 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-36"
+                    containerClassName="min-w-0 w-full sm:max-w-36"
+                    className="sb-select !pr-10"
                   >
                     <option value="equals">equals</option>
                     <option value="not_equals">does not equal</option>
@@ -634,7 +637,8 @@ export function QuestionEditor({
                       next[ri] = { ...rule, value: e.target.value };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-48"
+                    containerClassName="min-w-0 w-full sm:max-w-48"
+                    className="sb-select !pr-10"
                   >
                     <option value="">choose option…</option>
                     {question.options.map((opt) => (
@@ -654,7 +658,8 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-52"
+                    containerClassName="min-w-0 w-full sm:max-w-52"
+                    className="sb-select !pr-10"
                   >
                     <option value="">choose question…</option>
                     {laterQuestions.map((q) => (

@@ -28,6 +28,8 @@ type SelectProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
   disabled?: boolean;
   onChange?: ChangeEventHandler<HTMLSelectElement>;
   children: ReactNode;
+  /** Layout classes for the wrapper (width, flex/grid constraints). */
+  containerClassName?: string;
 };
 
 function getOptions(children: ReactNode): SelectOption[] {
@@ -57,6 +59,7 @@ export function Select({
   onChange,
   children,
   className = "",
+  containerClassName = "",
   id,
   "aria-label": ariaLabel,
   ...rest
@@ -75,9 +78,6 @@ export function Select({
     0,
     options.findIndex((option) => option.value === selectedValue),
   );
-  const rootClassName = className
-    .replace(/\bsb-(?:input|select)\b/g, "")
-    .trim();
 
   useEffect(() => {
     if (!open) return;
@@ -138,7 +138,7 @@ export function Select({
     <div
       {...rest}
       ref={rootRef}
-      className={`relative ${rootClassName}`}
+      className={`relative ${containerClassName}`.trim()}
       data-select-root=""
     >
       <select

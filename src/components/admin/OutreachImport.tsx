@@ -374,7 +374,8 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
                         value={sheetName ?? sheets[0]}
                         onChange={(event) => void handleSheetChange(event)}
                         disabled={parsing || importing}
-                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                        containerClassName="min-w-0 flex-1"
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                       >
                         {sheets.map((name) => (
                           <option key={name} value={name}>

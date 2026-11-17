@@ -14,6 +14,7 @@ import {
   type VenueActionResult,
 } from "@/app/actions/publishing";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import {
   MAX_VENUE_NAME,
@@ -171,16 +172,16 @@ function CreateVenueCard() {
             Type
             <InfoTooltip message="Journals accept journal submissions; conferences can accept papers to proceedings and transfer them to a journal." />
           </label>
-          <select
+          <Select
             id="venue-type"
             name="type"
-            className="sb-input"
+            className="sb-select"
             value={type}
             onChange={(event) => setType(event.target.value as "JOURNAL" | "CONFERENCE")}
           >
             <option value="JOURNAL">Journal</option>
             <option value="CONFERENCE">Conference</option>
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -426,10 +427,10 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
             <label htmlFor={`role-title-${venue.id}`} className="sb-label">
               Role
             </label>
-            <select
+            <Select
               id={`role-title-${venue.id}`}
               name="roleTitle"
-              className="sb-input"
+              className="sb-select"
               defaultValue="EDITOR_IN_CHIEF"
             >
               {ROLE_OPTIONS.map((option) => (
@@ -437,7 +438,7 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex items-end">
             <SubmitButton className="sb-button-soft" pendingLabel="Granting…">

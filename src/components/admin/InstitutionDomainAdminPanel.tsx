@@ -42,7 +42,7 @@ const EMPTY_DOMAIN_PAGE: AdminPage<InstitutionDomainItem> = {
 };
 
 const selectClass =
-  "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300";
+  "min-h-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 sm:px-3 sm:py-1.5 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300";
 
 function statusBadge(isActive: boolean) {
   return isActive

@@ -292,7 +292,8 @@ export default function CourseForm({
             </div>
             <Select
               name="durationUnit"
-              className="sb-input flex-1 self-start"
+              containerClassName="flex-1 self-start"
+              className="sb-input"
               value={draftFields.durationUnit}
               onChange={(e) => updateDraftField("durationUnit", e.target.value)}
             >
@@ -357,7 +358,7 @@ export default function CourseForm({
             <Select
               name="currency"
               value={draftFields.currency}
-              className="w-32 shrink-0 self-start"
+              containerClassName="w-32 shrink-0 self-start"
               aria-label="Price currency"
               onChange={(e) => updateDraftField("currency", e.target.value)}
             >

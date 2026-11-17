@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
+
 import { BrandMark } from "@/components/BrandMark";
 import { SBIcon } from "@/components/SBIcon";
 import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
@@ -22,9 +24,12 @@ const NAVBAR_ACTION =
 export default function Navbar({
   user,
   unreadCount = 0,
+  isAdmin = false,
 }: {
   user: User | null;
   unreadCount?: number;
+  /** Platform admin: shows the publishing workspace entry point. */
+  isAdmin?: boolean;
 }) {
   return (
     <nav
@@ -62,6 +67,17 @@ export default function Navbar({
                   too, so smaller screens collapse to just the overflow
                   menu and every action is reachable from that one dropdown. */}
               <div className="hidden items-center gap-3 lg:flex">
+                {isAdmin ? (
+                  <Link
+                    prefetch={false}
+                    href="/workspace"
+                    title="Publishing workspace"
+                    aria-label="Open publishing workspace"
+                    className="sb-menu-trigger h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
+                  >
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Link>
+                ) : null}
                 {/* Install sits immediately left of the alert bell: the two are
                     one-time per-device setup toggles, and installing is the step
                     that makes push reliable, so the order mirrors that order.
@@ -81,7 +97,11 @@ export default function Navbar({
                   Sign Out
                 </SignOutButton>
               </div>
-              <UserActionsDropdown user={user} unreadCount={unreadCount} />
+              <UserActionsDropdown
+                user={user}
+                unreadCount={unreadCount}
+                isAdmin={isAdmin}
+              />
             </>
           ) : (
             <NavLoginButton />

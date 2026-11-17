@@ -32,7 +32,7 @@ interface AdminToolbarProps {
 }
 
 const selectClass =
-  "rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800";
+  "min-h-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none sm:px-2.5 sm:py-1.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800";
 
 const cast = (v: string): AdminStatusFilter =>
   v as AdminStatusFilter;

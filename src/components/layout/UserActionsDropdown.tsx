@@ -9,6 +9,7 @@ import {
   Loader2,
   User as UserIcon,
   Bell,
+  LayoutDashboard,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -19,9 +20,11 @@ import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 export default function UserActionsDropdown({
   user,
   unreadCount = 0,
+  isAdmin = false,
 }: {
   user: User;
   unreadCount?: number;
+  isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -114,6 +117,20 @@ export default function UserActionsDropdown({
           className="sb-menu sb-menu-navbar absolute right-0 z-menu mt-2 w-52 sm:w-60"
         >
           <ul className="m-0 list-none p-0">
+            {isAdmin ? (
+              <li>
+                <Link
+                  prefetch={false}
+                  role="menuitem"
+                  href="/workspace"
+                  className="sb-menu-item flex items-center gap-2 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
+                  onClick={() => setOpen(false)}
+                >
+                  <LayoutDashboard className="h-4 w-4 shrink-0" />
+                  Workspace
+                </Link>
+              </li>
+            ) : null}
             <li>
               <InstallAppButton variant="menu" />
             </li>

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 
+import { Select } from "@/components/ui/Select";
 import {
   inviteAuthorToJournalAction,
   type ManuscriptActionResult,
@@ -133,10 +134,10 @@ function InviteForm({
             >
               Invite to
             </label>
-            <select
+            <Select
               id={`target-${candidate.id}`}
               name="targetVenueId"
-              className="sb-input"
+              className="sb-select"
               defaultValue={available[0]?.id}
             >
               {available.map((journal) => (
@@ -144,7 +145,7 @@ function InviteForm({
                   {journal.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <SubmitButton />
         </form>
