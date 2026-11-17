@@ -20,7 +20,10 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
+      allow: ["/", "/api/papers/"],
+      // `/api/papers/` is allowed because `citation_pdf_url` points there and
+      // Google Scholar must be able to fetch the version of record; the longer
+      // allow rule wins over the `/api/` disallow.
       disallow: ["/admin", "/messages", "/notifications", "/api/", "/auth/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

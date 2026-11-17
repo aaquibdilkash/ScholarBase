@@ -1,13 +1,16 @@
 /**
  * Author-initiated conference → journal transfer.
  *
- * Three paths are pinned here:
+ * Four paths are pinned here:
  *   - `inviteAuthorToJournalAction` only invites; it must never create the
  *     journal row;
  *   - `createManuscriptSubmissionAction` records a journal row only after the
  *     uploaded object is re-verified, and refuses a duplicate clone;
  *   - `declineTransferInvitationAction` appends `TRANSFER_DECLINED` and leaves
- *     the original invitation untouched.
+ *     the original invitation untouched;
+ *   - `publishManuscriptAction` is the only write that sets `PUBLISHED`, so it
+ *     must enforce the transition, the EiC role, and the citation locator
+ *     before a paper becomes public.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,8 +18,10 @@ const mocks = vi.hoisted(() => ({
   manuscriptFindUnique: vi.fn(),
   manuscriptFindFirst: vi.fn(),
   manuscriptCreate: vi.fn(),
+  manuscriptUpdateMany: vi.fn(),
   venueFindUnique: vi.fn(),
   roleFindMany: vi.fn(),
+  roleFindFirst: vi.fn(),
   eventFindUnique: vi.fn(),
   eventFindFirst: vi.fn(),
   eventCreate: vi.fn(),
@@ -39,9 +44,13 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.manuscriptFindUnique,
       findFirst: mocks.manuscriptFindFirst,
       create: mocks.manuscriptCreate,
+      updateMany: mocks.manuscriptUpdateMany,
     },
     venue: { findUnique: mocks.venueFindUnique },
-    editorialRole: { findMany: mocks.roleFindMany },
+    editorialRole: {
+      findMany: mocks.roleFindMany,
+      findFirst: mocks.roleFindFirst,
+    },
     manuscriptEvent: {
       findUnique: mocks.eventFindUnique,
       findFirst: mocks.eventFindFirst,
@@ -79,6 +88,7 @@ import {
   createManuscriptUploadUrlAction,
   declineTransferInvitationAction,
   inviteAuthorToJournalAction,
+  publishManuscriptAction,
   type ManuscriptActionResult,
   type ManuscriptSubmitResult,
 } from "@/app/actions/manuscripts";
@@ -108,6 +118,20 @@ const JOURNAL = {
 const SOURCE_ROLE = {
   venueId: "venue-conference",
   roleTitle: "TRACK_CHAIR" as const,
+};
+
+/** An accepted journal paper, ready for the publication form. */
+const PUBLISHABLE = {
+  id: "ms-accepted",
+  title: "Extended optics for rural clinics",
+  status: "ACCEPTED_JOURNAL",
+  authorId: "u-author",
+  venueId: "venue-journal",
+  venue: {
+    name: "Indian Journal of Optics",
+    slug: "indian-journal-of-optics",
+    type: "JOURNAL",
+  },
 };
 
 const INVITATION_EVENT = {
@@ -156,6 +180,16 @@ const submissionForm = (overrides: Record<string, string> = {}) =>
     ...overrides,
   });
 
+const publishForm = (overrides: Record<string, string> = {}) =>
+  formWith({
+    manuscriptId: PUBLISHABLE.id,
+    volume: "2",
+    issue: "1",
+    firstPage: "9",
+    lastPage: "24",
+    ...overrides,
+  });
+
 beforeEach(() => {
   vi.resetAllMocks();
 
@@ -191,6 +225,7 @@ beforeEach(() => {
         manuscript: {
           findFirst: mocks.manuscriptFindFirst,
           create: mocks.manuscriptCreate,
+          updateMany: mocks.manuscriptUpdateMany,
         },
         manuscriptEvent: { create: mocks.eventCreate },
       }),
@@ -795,3 +830,239 @@ describe("declineTransferInvitationAction", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/workspace/submissions");
   });
 });
+
+describe("publishManuscriptAction", () => {
+  beforeEach(() => {
+    mocks.manuscriptFindUnique.mockResolvedValue(PUBLISHABLE);
+    mocks.roleFindFirst.mockResolvedValue({ roleTitle: "EDITOR_IN_CHIEF" });
+    mocks.manuscriptUpdateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("returns the frozen message without touching the database", async () => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: true,
+      message: "Your account is frozen.",
+    });
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result).toEqual({ success: false, message: "Your account is frozen." });
+    expect(mocks.manuscriptFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns a rate-limit denial", async () => {
+    mocks.enforceRateLimit.mockResolvedValue({
+      allowed: false,
+      error: "Too many requests. Please slow down.",
+    });
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.success).toBe(false);
+    expect(mocks.manuscriptFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("requires a manuscript id", async () => {
+    const result = await publishManuscriptAction(EMPTY, formWith({ volume: "2" }));
+
+    expect(result.success).toBe(false);
+    expect(mocks.manuscriptFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing manuscript", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue(null);
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.message).toMatch(/no longer exists/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a manuscript that has not been accepted", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...PUBLISHABLE,
+      status: "UNDER_REVIEW",
+    });
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.message).toMatch(/only an accepted manuscript can be published/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects an associate editor", async () => {
+    mocks.roleFindFirst.mockResolvedValue({ roleTitle: "ASSOC_EDITOR" });
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.message).toMatch(/editor-in-chief/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects an actor with no seat at the venue", async () => {
+    mocks.roleFindFirst.mockResolvedValue(null);
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.success).toBe(false);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("lets a platform administrator publish", async () => {
+    mocks.isUserAdmin.mockResolvedValue(true);
+    mocks.roleFindFirst.mockResolvedValue(null);
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.success).toBe(true);
+    expect(mocks.manuscriptUpdateMany).toHaveBeenCalled();
+  });
+
+  it("requires a volume", async () => {
+    const result = await publishManuscriptAction(EMPTY, publishForm({ volume: "" }));
+
+    expect(result.message).toMatch(/volume number/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-integer issue", async () => {
+    const result = await publishManuscriptAction(EMPTY, publishForm({ issue: "1.5" }));
+
+    expect(result.message).toMatch(/whole number/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a page locator with unsupported characters", async () => {
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ firstPage: "9-12" }),
+    );
+
+    expect(result.message).toMatch(/letters or digits/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects a publication date in the future", async () => {
+    const future = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ publishedAt: future }),
+    );
+
+    expect(result.message).toMatch(/cannot be in the future/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses an ISBN on a journal article", async () => {
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ isbn: "9783161484100" }),
+    );
+
+    expect(result.message).toMatch(/ISBN applies to proceedings/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects an ISBN-13 with a bad check digit", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...PUBLISHABLE,
+      status: "ACCEPTED_PROCEDINGS",
+      venue: { name: "National Optics Conference", slug: "national-optics", type: "CONFERENCE" },
+    });
+
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ isbn: "9783161484101" }),
+    );
+
+    expect(result.message).toMatch(/ISBN-13 is not valid/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("publishes the paper, records the locator, and writes one PUBLISHED event", async () => {
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ publishedAt: "2026-03-05" }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/now published/i);
+
+    expect(mocks.manuscriptUpdateMany).toHaveBeenCalledWith({
+      where: { id: PUBLISHABLE.id, status: "ACCEPTED_JOURNAL" },
+      data: {
+        status: "PUBLISHED",
+        volume: 2,
+        issue: 1,
+        firstPage: "9",
+        lastPage: "24",
+        publishedAt: new Date("2026-03-05T00:00:00Z"),
+        isbn: null,
+      },
+    });
+
+    expect(mocks.eventCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.eventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        manuscriptId: PUBLISHABLE.id,
+        type: "PUBLISHED",
+        actorId: "u-editor",
+        fromStatus: "ACCEPTED_JOURNAL",
+        toStatus: "PUBLISHED",
+        note: "Published in Indian Journal of Optics 2(1), pp. 9–24.",
+      }),
+    });
+
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/sbj/indian-journal-of-optics",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/sbj/indian-journal-of-optics/archive",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      `/sbj/indian-journal-of-optics/article/${PUBLISHABLE.id}`,
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/workspace/editorial");
+    // A journal paper has no proceedings volume to purge.
+    expect(mocks.revalidatePath).not.toHaveBeenCalledWith(
+      expect.stringContaining("/proceedings/"),
+    );
+  });
+
+  it("normalises and stores a valid volume ISBN for a conference paper", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...PUBLISHABLE,
+      status: "ACCEPTED_PROCEDINGS",
+      venue: { name: "National Optics Conference", slug: "national-optics", type: "CONFERENCE" },
+    });
+
+    const result = await publishManuscriptAction(
+      EMPTY,
+      publishForm({ isbn: "978-3-16-148410-0" }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.manuscriptUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isbn: "9783161484100" }),
+      }),
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/sbc/national-optics/proceedings/2",
+    );
+  });
+
+  it("reports a conflict when another session already published the paper", async () => {
+    mocks.manuscriptUpdateMany.mockResolvedValue({ count: 0 });
+
+    const result = await publishManuscriptAction(EMPTY, publishForm());
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/published from another session/i);
+    expect(mocks.eventCreate).not.toHaveBeenCalled();
+  });
+});
+

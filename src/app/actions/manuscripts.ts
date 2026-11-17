@@ -7,7 +7,12 @@ import prisma from "@/lib/db";
 import { getActiveUser, isUserAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue } from "@/lib/form";
-import { canTransferToJournal } from "@/lib/publishing/permissions";
+import {
+  canEditorSetStatus,
+  canTransferToJournal,
+} from "@/lib/publishing/permissions";
+import { canTransition } from "@/lib/publishing/transitions";
+import { isValidIsbn13, normalizeIsbn } from "@/lib/publishing/identifiers";
 import {
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
@@ -575,3 +580,169 @@ export async function declineTransferInvitationAction(
     message: `You declined the invitation to ${invitation.targetVenue.name}.`,
   };
 }
+
+/**
+ * Publishes an accepted manuscript as a citable article.
+ *
+ * This is the only path that sets `status: PUBLISHED`, and it is deliberately
+ * narrow: an Editor-in-Chief of the manuscript's own venue fills in the
+ * citation locator (volume, issue, pages), and the row plus its event are
+ * written in one transaction. Everything the public page renders — the archive,
+ * the PDF link, the Highwire tags — keys off that status, so a paper cannot
+ * appear half-published.
+ *
+ * Volume is required: an article that cannot be located in an issue cannot be
+ * cited, and ISSN reviewers read the archive as evidence that the serial is
+ * actually publishing. `issue` stays optional so a volume with continuous
+ * pagination is representable.
+ */
+export async function publishManuscriptAction(
+  _previous: ManuscriptActionResult,
+  formData: FormData,
+): Promise<ManuscriptActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+
+  const limit = await enforceRateLimit({
+    namespace: "manuscript:publish",
+    key: auth.user.id,
+    limit: 30,
+    window: "10 m",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const manuscriptId = readFormValue(formData, "manuscriptId");
+  if (!manuscriptId) return fail("Select a manuscript to publish.");
+
+  const manuscript = await prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      venueId: true,
+      venue: { select: { name: true, slug: true, type: true } },
+    },
+  });
+  if (!manuscript) return fail("That manuscript no longer exists.");
+
+  // Resolve authorisation before any write. `isUserAdmin` hits the global
+  // client, so it must never be called inside the transaction below.
+  const [isAdmin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({
+      where: { userId: auth.user.id, venueId: manuscript.venueId },
+      select: { roleTitle: true },
+    }),
+  ]);
+
+  const actor = { roles: role ? [role.roleTitle] : [], isAdmin };
+  if (!canTransition(manuscript.status, "PUBLISHED")) {
+    return fail(
+      `${manuscript.title} is ${manuscript.status.replace(/_/g, " ").toLowerCase()}; only an accepted manuscript can be published.`,
+    );
+  }
+  if (!canEditorSetStatus(actor, "PUBLISHED")) {
+    return fail("Only the Editor-in-Chief can publish a manuscript.");
+  }
+
+  const volumeRaw = readFormValue(formData, "volume").trim();
+  const issueRaw = readFormValue(formData, "issue").trim();
+  const firstPage = readFormValue(formData, "firstPage").trim();
+  const lastPage = readFormValue(formData, "lastPage").trim();
+  const publishedAtRaw = readFormValue(formData, "publishedAt").trim();
+  const isbnRaw = readFormValue(formData, "isbn").trim();
+
+  const volume = Number(volumeRaw);
+  if (!Number.isInteger(volume) || volume < 1) {
+    return fail("Enter the volume number this article appears in.");
+  }
+
+  const issue = issueRaw ? Number(issueRaw) : null;
+  if (issue !== null && (!Number.isInteger(issue) || issue < 1)) {
+    return fail("Issue must be a whole number.");
+  }
+
+  // Page numbers are strings: proceedings and online-first articles legitimately
+  // use e-locators ("e0123", "S1"). Guard length and character set only.
+  const pagePattern = /^[A-Za-z0-9]{1,12}$/;
+  if (firstPage && !pagePattern.test(firstPage)) {
+    return fail("First page must be letters or digits, up to 12 characters.");
+  }
+  if (lastPage && !pagePattern.test(lastPage)) {
+    return fail("Last page must be letters or digits, up to 12 characters.");
+  }
+
+  const publishedAt = publishedAtRaw ? new Date(`${publishedAtRaw}T00:00:00Z`) : new Date();
+  if (Number.isNaN(publishedAt.getTime())) {
+    return fail("Enter a valid publication date.");
+  }
+  if (publishedAt.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+    return fail("The publication date cannot be in the future.");
+  }
+
+  let isbn: string | null = null;
+  if (isbnRaw) {
+    if (manuscript.venue.type !== "CONFERENCE") {
+      return fail("ISBN applies to proceedings volumes, not journal articles.");
+    }
+    if (!isValidIsbn13(isbnRaw)) return fail("That ISBN-13 is not valid.");
+    isbn = normalizeIsbn(isbnRaw);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Condition the update on the status we read. A second editor publishing
+      // the same paper from another tab then updates zero rows instead of
+      // overwriting the first locator and writing a duplicate event.
+      const updated = await tx.manuscript.updateMany({
+        where: { id: manuscript.id, status: manuscript.status },
+        data: {
+          status: "PUBLISHED",
+          volume,
+          issue,
+          firstPage: firstPage || null,
+          lastPage: lastPage || null,
+          publishedAt,
+          isbn,
+        },
+      });
+      if (updated.count === 0) throw new PublishConflict();
+
+      await tx.manuscriptEvent.create({
+        data: {
+          manuscriptId: manuscript.id,
+          type: "PUBLISHED",
+          actorId: auth.user.id,
+          fromStatus: manuscript.status,
+          toStatus: "PUBLISHED",
+          note: `Published in ${manuscript.venue.name} ${volume}${issue ? `(${issue})` : ""}${
+            firstPage ? `, pp. ${firstPage}${lastPage ? `–${lastPage}` : ""}` : ""
+          }.`,
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof PublishConflict) {
+      return fail("That manuscript was published from another session. Reload the page.");
+    }
+    throw error;
+  }
+
+  const prefix = manuscript.venue.type === "JOURNAL" ? "sbj" : "sbc";
+  revalidatePath(`/${prefix}/${manuscript.venue.slug}`);
+  revalidatePath(`/${prefix}/${manuscript.venue.slug}/archive`);
+  revalidatePath(`/${prefix}/${manuscript.venue.slug}/article/${manuscript.id}`);
+  if (manuscript.venue.type === "CONFERENCE") {
+    revalidatePath(`/${prefix}/${manuscript.venue.slug}/proceedings/${volume}`);
+  }
+  revalidatePath("/workspace/editorial");
+  revalidatePath(`/${prefix}`);
+
+  return {
+    success: true,
+    message: `${manuscript.title} is now published in ${manuscript.venue.name} ${volume}.`,
+  };
+}
+
+class PublishConflict extends Error {}

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { EditorialRoleTitle } from "@prisma/client";
 
 import prisma from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { getActiveUser, isUserAdmin, requireAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue } from "@/lib/form";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
@@ -13,6 +13,20 @@ import {
   isValidVenueSlug,
   normalizeVenueSlug,
 } from "@/lib/publishing/slug";
+import { sanitizeRichHtml } from "@/lib/sanitize";
+import { assertRichTextWithinLimit, readOptionalShortText } from "@/lib/form";
+import {
+  MAX_VENUE_BOARD_AFFILIATION,
+  MAX_VENUE_BOARD_MEMBERS,
+  MAX_VENUE_BOARD_NAME,
+  MAX_VENUE_BOARD_ORCID,
+  MAX_VENUE_BOARD_ROLE,
+  MAX_VENUE_CONTACT_EMAIL,
+  MAX_VENUE_EDITOR_AFFILIATION,
+  MAX_VENUE_EDITOR_NAME,
+  MAX_VENUE_FREQUENCY,
+  MAX_VENUE_RICH_TEXT,
+} from "@/lib/publishing/constants";
 
 /**
  * Venue provisioning for platform owners.
@@ -30,6 +44,10 @@ export type VenueActionResult = {
   success: boolean;
   message: string;
 };
+
+function readBounded(formData: FormData, key: string, max: number, label: string): string | null {
+  return readOptionalShortText(formData, key, max, label);
+}
 
 const VENUE_TYPES = ["JOURNAL", "CONFERENCE"] as const;
 const ROLE_TITLES: readonly EditorialRoleTitle[] = [
@@ -248,4 +266,149 @@ export async function revokeEditorialRoleAction(
 
   revalidatePath("/workspace/admin");
   return { success: true, message: "Editorial role revoked." };
+}
+
+/**
+ * Updates the public venue profile. An editor-in-chief may edit only venues
+ * where they hold that seat; platform admins may repair any venue.
+ */
+export async function updateVenueSettingsAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const active = await getActiveUser();
+  if (active.frozen) return fail(active.message);
+  const user = active.user;
+  const limit = await enforceRateLimit({
+    namespace: "venue:settings",
+    key: user.id,
+    limit: 20,
+    window: "10 m",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+  const admin = await isUserAdmin(user.id);
+  const venueId = readFormValue(formData, "venueId");
+  const venue = await prisma.venue.findUnique({
+    where: { id: venueId },
+    select: { id: true, name: true, slug: true, type: true },
+  });
+  if (!venue) return fail("That venue no longer exists.");
+
+  if (!admin) {
+    const seat = await prisma.editorialRole.findFirst({
+      where: { venueId, userId: user.id, roleTitle: "EDITOR_IN_CHIEF" },
+      select: { id: true },
+    });
+    if (!seat) return fail("Only this venue's editor-in-chief can edit its settings.");
+  }
+
+  const name = readFormValue(formData, "name");
+  if (name.length < 3 || name.length > MAX_VENUE_NAME) {
+    return fail(`Name must be between 3 and ${MAX_VENUE_NAME} characters.`);
+  }
+
+  let editorName: string | null;
+  let editorAffiliation: string | null;
+  let frequency: string | null;
+  let contactEmail: string | null;
+  try {
+    editorName = readBounded(formData, "editorName", MAX_VENUE_EDITOR_NAME, "Editor name");
+    editorAffiliation = readBounded(
+      formData,
+      "editorAffiliation",
+      MAX_VENUE_EDITOR_AFFILIATION,
+      "Editor affiliation",
+    );
+    frequency = readBounded(formData, "frequency", MAX_VENUE_FREQUENCY, "Frequency");
+    contactEmail = readBounded(
+      formData,
+      "contactEmail",
+      MAX_VENUE_CONTACT_EMAIL,
+      "Contact email",
+    );
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Invalid venue profile.");
+  }
+  if (contactEmail && !validateEmailFormat(normalizeEmail(contactEmail))) {
+    return fail("Enter a valid venue contact email.");
+  }
+
+  const richTextFields = [
+    ["aimsAndScope", "Aims and scope"],
+    ["authorGuidelines", "Author guidelines"],
+    ["peerReviewPolicy", "Peer-review policy"],
+    ["ethicsPolicy", "Ethics policy"],
+  ] as const;
+  let richText: Record<string, string | null>;
+  try {
+    richText = Object.fromEntries(
+      richTextFields.map(([key, label]) => {
+        const value = sanitizeRichHtml(readFormValue(formData, key));
+        assertRichTextWithinLimit(value, MAX_VENUE_RICH_TEXT, label);
+        return [key, value || null];
+      }),
+    );
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Invalid venue policy content.");
+  }
+
+  const names = formData.getAll("boardName").filter((value): value is string => typeof value === "string");
+  const roles = formData.getAll("boardRoleTitle").filter((value): value is string => typeof value === "string");
+  const affiliations = formData.getAll("boardAffiliation").filter((value): value is string => typeof value === "string");
+  const orcids = formData.getAll("boardOrcid").filter((value): value is string => typeof value === "string");
+  if (names.length > MAX_VENUE_BOARD_MEMBERS) {
+    return fail(`Add no more than ${MAX_VENUE_BOARD_MEMBERS} board members.`);
+  }
+  if (roles.length !== names.length || affiliations.length !== names.length || orcids.length !== names.length) {
+    return fail("Each board member row must include all of its fields.");
+  }
+
+  let board: Array<{
+    name: string;
+    roleTitle: string;
+    affiliation: string | null;
+    orcid: string | null;
+    venueId: string;
+  }>;
+  try {
+    board = names.map((rawName, index) => {
+      const name = rawName.trim();
+      const roleTitle = roles[index].trim();
+      if (!name || !roleTitle) throw new Error("Each board member needs a name and role.");
+      if (name.length > MAX_VENUE_BOARD_NAME) throw new Error(`Board member name is too long (max ${MAX_VENUE_BOARD_NAME} characters).`);
+      if (roleTitle.length > MAX_VENUE_BOARD_ROLE) throw new Error(`Board role is too long (max ${MAX_VENUE_BOARD_ROLE} characters).`);
+      const affiliation = affiliations[index].trim();
+      const orcid = orcids[index].trim();
+      if (affiliation.length > MAX_VENUE_BOARD_AFFILIATION) throw new Error(`Board affiliation is too long (max ${MAX_VENUE_BOARD_AFFILIATION} characters).`);
+      if (orcid.length > MAX_VENUE_BOARD_ORCID) throw new Error(`ORCID is too long (max ${MAX_VENUE_BOARD_ORCID} characters).`);
+      return { name, roleTitle, affiliation: affiliation || null, orcid: orcid || null, venueId };
+    });
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Invalid editorial board.");
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.venue.update({
+        where: { id: venueId },
+        data: {
+          name,
+          editorName,
+          editorAffiliation,
+          frequency,
+          contactEmail: contactEmail ? normalizeEmail(contactEmail) : null,
+          ...richText,
+        },
+      });
+      await tx.editorialBoardMember.deleteMany({ where: { venueId } });
+      if (board.length > 0) await tx.editorialBoardMember.createMany({ data: board });
+    });
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Could not save venue settings.");
+  }
+
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath("/workspace/admin");
+  revalidatePath(`/${venue.type === "JOURNAL" ? "sbj" : "sbc"}/${venue.slug}`);
+  return { success: true, message: `${venue.name} settings saved.` };
 }

@@ -25,6 +25,18 @@ export const MAX_MANUSCRIPT_KEYWORDS = 256;
 export const MAX_MANUSCRIPT_KEYWORD_LENGTH = 24;
 export const MAX_MANUSCRIPT_KEYWORD_COUNT = 8;
 
+/** Venue CMS limits shared by the settings form and its Server Action. */
+export const MAX_VENUE_EDITOR_NAME = 120;
+export const MAX_VENUE_EDITOR_AFFILIATION = 200;
+export const MAX_VENUE_FREQUENCY = 80;
+export const MAX_VENUE_CONTACT_EMAIL = 320;
+export const MAX_VENUE_RICH_TEXT = 12000;
+export const MAX_VENUE_BOARD_MEMBERS = 50;
+export const MAX_VENUE_BOARD_NAME = 160;
+export const MAX_VENUE_BOARD_ROLE = 100;
+export const MAX_VENUE_BOARD_AFFILIATION = 200;
+export const MAX_VENUE_BOARD_ORCID = 64;
+
 /** Human-readable size ceiling used in error copy and the upload hint. */
 export const MAX_MANUSCRIPT_SIZE_LABEL = `${MAX_MANUSCRIPT_BYTES / (1024 * 1024)} MB`;
 

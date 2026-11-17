@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
+import Link from "next/link";
 
 import {
   createVenueAction,
@@ -12,6 +13,7 @@ import {
   type VenueActionResult,
 } from "@/app/actions/publishing";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { useToast } from "@/components/ui/Toast";
 import {
   MAX_VENUE_NAME,
   MAX_VENUE_SLUG,
@@ -106,8 +108,10 @@ function Counter({ value, max }: { value: number; max: number }) {
 
 function CreateVenueCard() {
   const [state, formAction] = useActionState(createVenueAction, EMPTY_RESULT);
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [type, setType] = useState<"JOURNAL" | "CONFERENCE">("JOURNAL");
   const [slugTouched, setSlugTouched] = useState(false);
 
   // A venue slug is a permanent public URL (`/sbj/<slug>`), so it is derived
@@ -120,8 +124,18 @@ function CreateVenueCard() {
     if (!state.success) return;
     setName("");
     setSlug("");
+    setType("JOURNAL");
     setSlugTouched(false);
   }, [state]);
+
+  useEffect(() => {
+    if (!state.message) return;
+    toast({
+      title: state.success ? "Venue created" : "Could not create venue",
+      description: state.message,
+      variant: state.success ? "default" : "destructive",
+    });
+  }, [state, toast]);
 
   return (
     <section className="sb-card">
@@ -152,13 +166,30 @@ function CreateVenueCard() {
         </div>
 
         <div>
+          <label htmlFor="venue-type" className="sb-label inline-flex items-center gap-1.5">
+            Type
+            <InfoTooltip message="Journals accept journal submissions; conferences can accept papers to proceedings and transfer them to a journal." />
+          </label>
+          <select
+            id="venue-type"
+            name="type"
+            className="sb-input"
+            value={type}
+            onChange={(event) => setType(event.target.value as "JOURNAL" | "CONFERENCE")}
+          >
+            <option value="JOURNAL">Journal</option>
+            <option value="CONFERENCE">Conference</option>
+          </select>
+        </div>
+
+        <div>
           <label htmlFor="venue-slug" className="sb-label inline-flex items-center gap-1.5">
             Slug
             <InfoTooltip message="Permanent URL segment. Changing it after launch breaks citations and requires notifying the ISSN centre." />
           </label>
           <div className="flex items-center gap-2">
             <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
-              /sbj/
+              {type === "JOURNAL" ? "/sbj/" : "/sbc/"}
             </span>
             <input
               id="venue-slug"
@@ -178,17 +209,6 @@ function CreateVenueCard() {
           <Counter value={slug.length} max={MAX_VENUE_SLUG} />
         </div>
 
-        <div>
-          <label htmlFor="venue-type" className="sb-label inline-flex items-center gap-1.5">
-            Type
-            <InfoTooltip message="Journals accept journal submissions; conferences can accept papers to proceedings and transfer them to a journal." />
-          </label>
-          <select id="venue-type" name="type" className="sb-input" defaultValue="JOURNAL">
-            <option value="JOURNAL">Journal</option>
-            <option value="CONFERENCE">Conference</option>
-          </select>
-        </div>
-
         <ResultMessage state={state} />
 
         <SubmitButton>Create venue</SubmitButton>
@@ -200,7 +220,31 @@ function CreateVenueCard() {
 function VenueCard({ venue }: { venue: VenueAdminRow }) {
   const [publishState, publishAction] = useActionState(setVenuePublishedAction, EMPTY_RESULT);
   const [roleState, roleAction] = useActionState(grantEditorialRoleAction, EMPTY_RESULT);
-  const [, revokeAction] = useActionState(revokeEditorialRoleAction, EMPTY_RESULT);
+  const [revokeState, revokeAction] = useActionState(revokeEditorialRoleAction, EMPTY_RESULT);
+  const [roles, setRoles] = useState(venue.roles);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (roleState.success) setRoles(venue.roles);
+    if (!roleState.success && roleState.message) setRoles(venue.roles);
+    if (revokeState.success) setRoles(venue.roles);
+    if (!revokeState.success && revokeState.message) setRoles(venue.roles);
+  }, [roleState, revokeState, venue.roles]);
+
+  useEffect(() => {
+    for (const [state, successTitle, errorTitle] of [
+      [publishState, "Venue status updated", "Could not update venue status"],
+      [roleState, "Editorial role granted", "Could not grant editorial role"],
+      [revokeState, "Editorial role revoked", "Could not revoke editorial role"],
+    ] as const) {
+      if (!state.message) continue;
+      toast({
+        title: state.success ? successTitle : errorTitle,
+        description: state.message,
+        variant: state.success ? "default" : "destructive",
+      });
+    }
+  }, [publishState, roleState, revokeState, toast]);
 
   const path = `/${venue.type === "JOURNAL" ? "sbj" : "sbc"}/${venue.slug}`;
   const identifier = venue.issn ?? venue.eissn;
@@ -209,9 +253,9 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
     <article className="sb-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="sb-heading text-base">{venue.name}</h3>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {path}
+          <h3 className="sb-heading text-lg">{venue.name}</h3>
+          <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
+            {venue.isPublished ? <Link href={path} className="underline hover:text-slate-900 dark:hover:text-white">{path}</Link> : path}
             {identifier ? ` · ISSN ${identifier}` : " · no ISSN yet"}
           </p>
         </div>
@@ -229,29 +273,42 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
           >
             {venue.isPublished ? "Published" : "Draft"}
           </span>
+          <Link
+            href={`/workspace/editorial/settings?venue=${encodeURIComponent(venue.id)}`}
+            className="sb-button-soft inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs"
+            aria-label={`Edit ${venue.name}`}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
         </div>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+      <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-slate-500 dark:text-slate-400">Editor</dt>
-          <dd className="mt-0.5 font-medium">{venue.editorName ?? "Not set"}</dd>
+          <dt className="text-slate-300 dark:text-slate-300">Editor</dt>
+          <dd className="mt-1 font-medium text-slate-100">
+            {venue.editorName ?? (() => {
+              const editor = roles.find((role) => role.roleTitle === "EDITOR_IN_CHIEF");
+              return editor?.userName ?? editor?.userEmail ?? "Not set";
+            })()}
+          </dd>
         </div>
         <div>
-          <dt className="text-slate-500 dark:text-slate-400">Board</dt>
-          <dd className="mt-0.5 font-medium">{venue.boardCount}</dd>
+          <dt className="text-slate-300 dark:text-slate-300">Board</dt>
+          <dd className="mt-1 font-medium text-slate-100">{venue.boardCount}</dd>
         </div>
         <div>
-          <dt className="text-slate-500 dark:text-slate-400">Submissions</dt>
-          <dd className="mt-0.5 font-medium">{venue.manuscriptCount}</dd>
+          <dt className="text-slate-300 dark:text-slate-300">Submissions</dt>
+          <dd className="mt-1 font-medium text-slate-100">{venue.manuscriptCount}</dd>
         </div>
         <div>
-          <dt className="text-slate-500 dark:text-slate-400">e-ISSN</dt>
-          <dd className="mt-0.5 font-medium">{venue.eissn ?? "—"}</dd>
+          <dt className="text-slate-300 dark:text-slate-300">e-ISSN</dt>
+          <dd className="mt-1 font-medium text-slate-100">{venue.eissn ?? "—"}</dd>
         </div>
       </dl>
 
-      <form action={publishAction} className="mt-4">
+      <form action={publishAction} className="mt-4 mb-4">
         <input type="hidden" name="venueId" value={venue.id} />
         <input type="hidden" name="published" value={venue.isPublished ? "false" : "true"} />
         <SubmitButton
@@ -264,30 +321,33 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
       <ResultMessage state={publishState} />
 
       <div className="mt-6 border-t border-[var(--card-border)] pt-4">
-        <h4 className="text-sm font-semibold">Editorial roles</h4>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <h4 className="text-base font-semibold text-slate-100">Editorial roles</h4>
+        <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
           Roles decide who can assign reviewers, decide, and publish at this venue.
         </p>
 
-        {venue.roles.length === 0 ? (
-          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+        {roles.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-300 dark:text-slate-300">
             Nobody holds a role yet.
           </p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {venue.roles.map((role) => (
+            {roles.map((role) => (
               <li
                 key={role.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--card-border)] px-3 py-2 text-xs"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--card-border)] px-3 py-2.5 text-sm text-slate-100"
               >
                 <span>
                   <span className="font-medium">{role.userName ?? role.userEmail}</span>
-                  <span className="text-slate-500 dark:text-slate-400">
+                  <span className="text-slate-300 dark:text-slate-300">
                     {" · "}
                     {role.roleTitle.replace(/_/g, " ").toLowerCase()}
                   </span>
                 </span>
-                <form action={revokeAction}>
+                <form
+                  action={revokeAction}
+                  onSubmit={() => setRoles((current) => current.filter((item) => item.id !== role.id))}
+                >
                   <input type="hidden" name="roleId" value={role.id} />
                   <SubmitButton
                     className="sb-button-soft px-2 py-1 text-xs"
@@ -301,7 +361,25 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
           </ul>
         )}
 
-        <form action={roleAction} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+        <form
+          action={roleAction}
+          onSubmit={(event) => {
+            const data = new FormData(event.currentTarget);
+            const email = String(data.get("email") ?? "").trim().toLowerCase();
+            const roleTitle = String(data.get("roleTitle") ?? "");
+            if (!email || !roleTitle) return;
+            setRoles((current) => [
+              ...current.filter((role) => !(role.userEmail === email && role.roleTitle === roleTitle)),
+              {
+                id: `optimistic-${venue.id}-${email}-${roleTitle}`,
+                roleTitle,
+                userName: null,
+                userEmail: email,
+              },
+            ]);
+          }}
+          className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]"
+        >
           <input type="hidden" name="venueId" value={venue.id} />
           <div>
             <label htmlFor={`role-email-${venue.id}`} className="sb-label">
@@ -351,7 +429,10 @@ export function VenueAdminPanel({ venues }: { venues: VenueAdminRow[] }) {
       <CreateVenueCard />
 
       <section className="space-y-4">
-        <h2 className="sb-heading text-lg">Venues</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="sb-heading text-lg">Venues</h2>
+          <Link href="/workspace/editorial/settings" className="sb-button-soft">Edit venue information</Link>
+        </div>
         {venues.length === 0 ? (
           <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
             No venues yet. Create the first journal above.

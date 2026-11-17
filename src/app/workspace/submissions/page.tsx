@@ -63,7 +63,7 @@ export default async function SubmissionsPage() {
     <main>
       <header className="mb-6">
         <h1 className="sb-heading text-2xl">Your submissions</h1>
-        <p className="sb-subtitle mt-2 text-sm">
+        <p className="mt-2 text-base text-slate-300 dark:text-slate-300">
           Every paper you have submitted, and any invitation to extend a
           conference paper into a journal.
         </p>
@@ -74,7 +74,7 @@ export default async function SubmissionsPage() {
           <h2 id="invitations-heading" className="sb-heading text-lg">
             Journal invitations
             {openCount > 0 ? (
-              <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                <span className="ml-2 text-sm font-normal text-slate-300 dark:text-slate-300">
                 {openCount} open
               </span>
             ) : null}
@@ -96,7 +96,7 @@ export default async function SubmissionsPage() {
         </h2>
 
         {manuscripts.length === 0 ? (
-          <p className="sb-card mt-3 text-sm text-slate-500 dark:text-slate-400">
+          <p className="sb-card mt-3 text-sm text-slate-300 dark:text-slate-300">
             You have not submitted a manuscript yet. Conference calls and journal
             submission forms appear here once they open.
           </p>
@@ -107,7 +107,7 @@ export default async function SubmissionsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium">{manuscript.title}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
                       {manuscript.venue.name}
                       {` · ${VENUE_TYPE_LABELS[manuscript.venue.type]}`}
                       {` · submitted ${formatDate(manuscript.createdAt)}`}

@@ -100,13 +100,13 @@ function InviteForm({
   return (
     <article className="sb-card">
       <p className="font-medium">{candidate.title}</p>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
         {candidate.authorName ?? candidate.authorEmail}
         {` · ${candidate.conferenceName}`}
       </p>
 
       {candidate.invitations.length > 0 && (
-        <ul className="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+        <ul className="mt-3 space-y-1 text-sm text-slate-300 dark:text-slate-300">
           {candidate.invitations.map((invitation) => (
             <li key={invitation.id}>
               {invitation.declined ? "Declined invitation to " : "Invited to "}
@@ -118,7 +118,7 @@ function InviteForm({
       )}
 
       {available.length === 0 ? (
-        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-4 text-sm text-slate-300 dark:text-slate-300">
           {journals.length === 0
             ? "No published journal is accepting extended versions yet."
             : "This paper already has an open invitation or a submission at every available journal."}
@@ -172,7 +172,7 @@ export function TransferInvitePanel({
 }) {
   if (candidates.length === 0) {
     return (
-      <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
+      <p className="sb-card text-sm text-slate-300 dark:text-slate-300">
         No paper is currently accepted to your conference proceedings.
       </p>
     );

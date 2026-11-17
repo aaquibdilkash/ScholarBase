@@ -1,0 +1,235 @@
+"use client";
+
+import { useActionState, useState } from "react";
+
+import {
+  publishManuscriptAction,
+  type ManuscriptActionResult,
+} from "@/app/actions/manuscripts";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
+
+/**
+ * Publication form for accepted manuscripts.
+ *
+ * A paper becomes public the moment this succeeds, so the form asks for the
+ * citation locator up front instead of publishing first and editing later — a
+ * published row with no volume is exactly the "empty archive" ISSN reviewers
+ * reject. One `<details>` per paper keeps a long queue readable.
+ */
+
+export type PublishCandidate = {
+  id: string;
+  title: string;
+  authorName: string | null;
+  venueName: string;
+  venueType: "JOURNAL" | "CONFERENCE";
+  status: string;
+};
+
+const EMPTY_RESULT: ManuscriptActionResult = { success: false, message: "" };
+const MAX_PAGE_LENGTH = 12;
+const MAX_ISBN_LENGTH = 17;
+
+function Field({
+  label,
+  tooltip,
+  hint,
+  children,
+}: {
+  label: string;
+  tooltip: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+        {label}
+        <InfoTooltip message={tooltip} />
+      </span>
+      <span className="mt-1 block">{children}</span>
+      {hint ? (
+        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{hint}</span>
+      ) : null}
+    </label>
+  );
+}
+
+function ResultMessage({ state }: { state: ManuscriptActionResult }) {
+  if (!state.message) return null;
+
+  return (
+    <p
+      role={state.success ? "status" : "alert"}
+      className={
+        state.success
+          ? "mt-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-900/20 dark:text-emerald-200"
+          : "mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-900/20 dark:text-red-300"
+      }
+    >
+      {state.message}
+    </p>
+  );
+}
+
+function PublishForm({ candidate }: { candidate: PublishCandidate }) {
+  const [state, formAction] = useActionState(publishManuscriptAction, EMPTY_RESULT);
+  const [firstPage, setFirstPage] = useState("");
+  const [lastPage, setLastPage] = useState("");
+  const [isbn, setIsbn] = useState("");
+
+  return (
+    <form action={formAction} className="mt-3 space-y-3">
+      <input type="hidden" name="manuscriptId" value={candidate.id} />
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field
+          label="Volume"
+          tooltip="The volume this article belongs to. Required: an article that cannot be located in an issue cannot be cited."
+        >
+          <input
+            className="sb-input"
+            inputMode="numeric"
+            min={1}
+            max={9999}
+            name="volume"
+            required
+            type="number"
+          />
+        </Field>
+
+        <Field
+          label="Issue (optional)"
+          tooltip="Leave blank for a volume with continuous pagination."
+        >
+          <input
+            className="sb-input"
+            inputMode="numeric"
+            min={1}
+            max={999}
+            name="issue"
+            type="number"
+          />
+        </Field>
+
+        <Field
+          label="Published on"
+          tooltip="Defaults to today. Cannot be in the future."
+          hint="Leave blank for today."
+        >
+          <input className="sb-input" name="publishedAt" type="date" />
+        </Field>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field
+          label="First page"
+          tooltip="The first page in the issue. Letters and digits are allowed for e-locators such as e0123."
+          hint={`${firstPage.length}/${MAX_PAGE_LENGTH} characters`}
+        >
+          <input
+            className="sb-input"
+            maxLength={MAX_PAGE_LENGTH}
+            name="firstPage"
+            onChange={(event) => setFirstPage(event.target.value)}
+            placeholder="e.g. 101"
+            value={firstPage}
+          />
+        </Field>
+
+        <Field
+          label="Last page"
+          tooltip="The last page in the issue. Leave blank for a single-page item."
+          hint={`${lastPage.length}/${MAX_PAGE_LENGTH} characters`}
+        >
+          <input
+            className="sb-input"
+            maxLength={MAX_PAGE_LENGTH}
+            name="lastPage"
+            onChange={(event) => setLastPage(event.target.value)}
+            placeholder="e.g. 118"
+            value={lastPage}
+          />
+        </Field>
+      </div>
+
+      {candidate.venueType === "CONFERENCE" ? (
+        <Field
+          label="Volume ISBN (optional)"
+          tooltip="ISBN-13 of the collected proceedings volume this paper appears in, printed on its copyright page."
+          hint={`${isbn.length}/${MAX_ISBN_LENGTH} characters · validated server-side`}
+        >
+          <input
+            className="sb-input"
+            maxLength={MAX_ISBN_LENGTH}
+            name="isbn"
+            onChange={(event) => setIsbn(event.target.value)}
+            placeholder="978-3-16-148410-0"
+            value={isbn}
+          />
+        </Field>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <SubmitBtn className="sb-button-primary" loadingText="Publishing…">
+          Publish
+        </SubmitBtn>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          Publishes immediately and appears in the public archive.
+        </span>
+      </div>
+
+      <ResultMessage state={state} />
+    </form>
+  );
+}
+
+export function PublishManuscriptPanel({
+  candidates,
+}: {
+  candidates: PublishCandidate[];
+}) {
+  if (candidates.length === 0) {
+    return (
+      <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
+        Nothing is waiting for publication. A manuscript appears here once it is
+        accepted at a venue where you are Editor-in-Chief.
+      </p>
+    );
+  }
+
+  return (
+    <section className="sb-card">
+      <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+        Awaiting publication
+      </h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Accepted manuscripts become public articles once a volume and page range
+        are recorded.
+      </p>
+
+      <ul className="mt-4 divide-y divide-[var(--card-border)]">
+        {candidates.map((candidate) => (
+          <li key={candidate.id} className="py-3 first:pt-0 last:pb-0">
+            <details>
+              <summary className="cursor-pointer list-none">
+                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {candidate.title}
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+                  {candidate.authorName ?? "Author not listed"} ·{" "}
+                  {candidate.venueName} ·{" "}
+                  {candidate.status === "ACCEPTED_JOURNAL"
+                    ? "accepted"
+                    : "accepted for proceedings"}
+                </span>
+              </summary>
+              <PublishForm candidate={candidate} />
+            </details>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

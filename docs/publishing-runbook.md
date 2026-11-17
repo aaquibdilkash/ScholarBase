@@ -409,20 +409,34 @@ Liability note: as publisher you own copyright intake, defamation exposure, and 
 
 ### Routes
 
+Built today (all of these exist in `src/app/`):
+
 ```
+/sbj                                 journal directory
 /sbj/[slug]                          journal home (ISSN, board, current issue)
 /sbj/[slug]/guidelines               aims, author guidelines, ethics (RichContent)
-/sbj/[slug]/article/[id]             article: HTML metadata + inline PDF + RIS + JSON-LD
-/sbc/[slug]                          conference home (CFP, dates, track chairs)
+/sbj/[slug]/archive                  every issue as a table of contents
+/sbj/[slug]/article/[id]             article landing page: metadata, abstract, PDF, RIS/BibTeX, JSON-LD
+/sbc                                 conference directory
+/sbc/[slug]                          conference home (dates, committee, proceedings)
 /sbc/[slug]/guidelines               submission guidelines
-/sbc/[slug]/proceedings/[volume]     published proceedings volume (ISBN)
+/sbc/[slug]/archive                  published papers and volumes
+/sbc/[slug]/article/[id]             paper landing page
+/sbc/[slug]/proceedings/[volume]     collected volume with the ISBN copyright block
+/api/papers/[id]/file                302 to a 60-second signed PDF URL
+/api/papers/[id]/cite?format=ris|bibtex
 /workspace                           protected shell, sidebar from EditorialRole
 /workspace/submissions               author timeline
-/workspace/reviews/[taskId]          reviewer split screen
-/workspace/editorial                 Kanban
+/workspace/submissions/new           invited extended-version submission
+/workspace/editorial                 publish an accepted paper; invite a conference author to a journal
 /workspace/editorial/settings        EiC venue CMS
-/workspace/admin                     SUPER_ADMIN venue provisioning
+/workspace/admin                     venue provisioning (gated on `User.isAdmin`)
 ```
+
+Not built (documented, no route yet): the reviewer split screen
+(`/workspace/reviews/[taskId]`) and the decision Kanban. Reviewer assignment and
+decisions currently exist as Server Actions and `ManuscriptEvent` writes; the
+public site only shows `PUBLISHED` papers, so their absence does not affect it.
 
 Next 16: `params` is a `Promise` — `const { slug } = await params`. Metadata via `buildMetadata` (`src/lib/seo.ts`); add a thin scholarly wrapper rather than duplicating it.
 

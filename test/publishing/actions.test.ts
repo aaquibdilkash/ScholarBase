@@ -16,9 +16,16 @@ const mocks = vi.hoisted(() => ({
   boardFindMany: vi.fn(),
   userFindUnique: vi.fn(),
   roleUpsert: vi.fn(),
+  roleFindFirst: vi.fn(),
   roleDeleteMany: vi.fn(),
+  boardDeleteMany: vi.fn(),
+  boardCreateMany: vi.fn(),
+  transaction: vi.fn(),
   revalidatePath: vi.fn(),
   requireAdmin: vi.fn(),
+  requireCurrentUser: vi.fn(),
+  getActiveUser: vi.fn(),
+  isUserAdmin: vi.fn(),
   enforceRateLimit: vi.fn(),
 }));
 
@@ -33,12 +40,19 @@ vi.mock("@/lib/db", () => ({
     user: { findUnique: mocks.userFindUnique },
     editorialRole: {
       upsert: mocks.roleUpsert,
+      findFirst: mocks.roleFindFirst,
       deleteMany: mocks.roleDeleteMany,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
-vi.mock("@/lib/auth", () => ({ requireAdmin: mocks.requireAdmin }));
+vi.mock("@/lib/auth", () => ({
+  requireAdmin: mocks.requireAdmin,
+  requireCurrentUser: mocks.requireCurrentUser,
+  getActiveUser: mocks.getActiveUser,
+  isUserAdmin: mocks.isUserAdmin,
+}));
 vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: mocks.enforceRateLimit,
 }));
@@ -72,7 +86,16 @@ const READY_VENUE = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireAdmin.mockResolvedValue({ id: "admin-1" });
+  mocks.requireCurrentUser.mockResolvedValue({ id: "editor-1" });
+  mocks.getActiveUser.mockResolvedValue({ frozen: false, user: { id: "editor-1" } });
+  mocks.isUserAdmin.mockResolvedValue(false);
   mocks.enforceRateLimit.mockResolvedValue({ allowed: true });
+  mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<void>) =>
+    callback({
+      venue: { update: mocks.venueUpdate },
+      editorialBoardMember: { deleteMany: mocks.boardDeleteMany, createMany: mocks.boardCreateMany },
+    }),
+  );
 });
 
 describe("createVenueAction", () => {
@@ -259,6 +282,77 @@ describe("setVenuePublishedAction", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/no longer exists/i);
+  });
+});
+
+describe("updateVenueSettingsAction", () => {
+  it("saves venue profile, policies, and the structured board for its editor-in-chief", async () => {
+    mocks.venueFindUnique.mockResolvedValue({
+      id: "venue-1",
+      name: "Indian Journal of Optics",
+      slug: "indian-journal-of-optics",
+      type: "JOURNAL",
+    });
+    mocks.roleFindFirst.mockResolvedValue({ id: "seat-1" });
+
+    const result = await (await import("@/app/actions/publishing")).updateVenueSettingsAction(
+      EMPTY,
+      formWith({
+        venueId: "venue-1",
+        name: "Updated Journal of Optics",
+        editorName: "Dr A. Editor",
+        editorAffiliation: "Optics Institute",
+        frequency: "Quarterly",
+        contactEmail: "editor@example.com",
+        aimsAndScope: "<p>Optics <script>alert(1)</script></p>",
+        authorGuidelines: "<p>Submit a PDF.</p>",
+        peerReviewPolicy: "<p>Double blind.</p>",
+        ethicsPolicy: "<p>COPE principles.</p>",
+        boardName: "Dr A. Editor",
+        boardRoleTitle: "Editor-in-Chief",
+        boardAffiliation: "Optics Institute",
+        boardOrcid: "0000-0000-0000-0000",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.transaction).toHaveBeenCalled();
+    expect(mocks.venueUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "venue-1" },
+        data: expect.objectContaining({
+          name: "Updated Journal of Optics",
+          aimsAndScope: "<p>Optics </p>",
+          authorGuidelines: "<p>Submit a PDF.</p>",
+        }),
+      }),
+    );
+    expect(mocks.boardDeleteMany).toHaveBeenCalledWith({ where: { venueId: "venue-1" } });
+    expect(mocks.boardCreateMany).toHaveBeenCalledWith({
+      data: [{
+        name: "Dr A. Editor",
+        roleTitle: "Editor-in-Chief",
+        affiliation: "Optics Institute",
+        orcid: "0000-0000-0000-0000",
+        venueId: "venue-1",
+      }],
+    });
+  });
+
+  it("rejects a settings update from a user without the venue editor seat", async () => {
+    mocks.venueFindUnique.mockResolvedValue({ id: "venue-1", name: "Journal", slug: "journal", type: "JOURNAL" });
+    mocks.roleFindFirst.mockResolvedValue(null);
+
+    const result = await (await import("@/app/actions/publishing")).updateVenueSettingsAction(
+      EMPTY,
+      formWith({ venueId: "venue-1", editorName: "Someone" }),
+    );
+
+    expect(result).toEqual({
+      success: false,
+      message: "Only this venue's editor-in-chief can edit its settings.",
+    });
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });
 

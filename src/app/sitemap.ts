@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 import prisma from "@/lib/db";
+import { SITE_URL } from "@/constants/seo";
 import {
   capSitemap,
   contentEntries,
@@ -105,6 +106,23 @@ const getSitemapData = unstable_cache(
         where: { isDeleted: false },
         select: { id: true, createdAt: true, editedAt: true },
       }),
+      // Demo venues are seeded for testing the publishing flow and must never
+      // be crawled; an unpublished venue has no public pages at all.
+      prisma.venue.findMany({
+        where: { isPublished: true, isDemo: false },
+        select: { slug: true, type: true, createdAt: true, updatedAt: true },
+      }),
+      prisma.manuscript.findMany({
+        where: {
+          status: "PUBLISHED",
+          venue: { isPublished: true, isDemo: false },
+        },
+        select: {
+          id: true,
+          publishedAt: true,
+          venue: { select: { slug: true, type: true } },
+        },
+      }),
     ]),
   ["sitemap-content"],
   { revalidate: 86400 },
@@ -130,7 +148,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     recommendations,
     journalReviews,
     users,
+    venues,
+    publishedPapers,
   ] = await getSitemapData();
+
+  const venuePath = (type: "JOURNAL" | "CONFERENCE") =>
+    type === "JOURNAL" ? "/sbj" : "/sbc";
 
   const dynamicRoutes: MetadataRoute.Sitemap = [
     ...contentEntries(articles, (item) => `/blog/${item.slug}`),
@@ -160,6 +183,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       (item) => `/journals/${item.journalId}/review/${item.id}`,
     ),
     ...contentEntries(users, (item) => `/scholars/${item.id}`),
+    ...contentEntries(venues, (item) => `${venuePath(item.type)}/${item.slug}`),
+    // `publishedAt` is the meaningful `lastmod` for a paper; `updatedAt` would
+    // move on every unrelated counter write, which is exactly what
+    // `lastModifiedOf` exists to avoid. Mapped by hand for that reason.
+    ...publishedPapers.map((paper) => ({
+      url: `${SITE_URL}${venuePath(paper.venue.type)}/${paper.venue.slug}/article/${paper.id}`,
+      lastModified: paper.publishedAt ?? undefined,
+    })),
   ];
 
   return capSitemap([...staticEntries(), ...dynamicRoutes]);

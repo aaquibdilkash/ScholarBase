@@ -45,6 +45,8 @@ export const STATIC_PATHS = [
   "/learn",
   "/journals",
   "/publications",
+  "/sbj",
+  "/sbc",
   "/contributions",
   "/help",
   "/shield",
