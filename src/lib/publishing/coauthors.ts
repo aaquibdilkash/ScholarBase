@@ -19,6 +19,29 @@ export type CoAuthorDraft = {
   email?: string;
 };
 
+/**
+ * The submitting author's byline for this manuscript.
+ *
+ * Deliberately separate from the account: an author may publish under a
+ * different form of their name, list a current institution, or give an ORCID iD
+ * and correspondence address that differ from their ScholarBase profile. The
+ * account remains the identity that owns the row; this is what the article
+ * prints.
+ */
+export type CorrespondingAuthorDraft = CoAuthorDraft;
+
+/**
+ * What `Manuscript.coAuthors` holds.
+ *
+ * A new row is the wrapper, so the corresponding author travels with the same
+ * JSON column as the co-authors. A bare array is the historical shape and is
+ * still accepted by the read side (`parseCoAuthors`); a request that predates
+ * this field therefore keeps writing it.
+ */
+export type StoredAuthorList =
+  | { correspondingAuthor: CorrespondingAuthorDraft; coAuthors?: CoAuthorDraft[] }
+  | CoAuthorDraft[];
+
 export const MAX_CO_AUTHORS = 20;
 export const MAX_CO_AUTHOR_NAME = 160;
 export const MAX_CO_AUTHOR_AFFILIATION = 200;
@@ -107,4 +130,108 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
   }
 
   return { ok: true, authors };
+}
+
+export type CorrespondingAuthorParseResult =
+  | { ok: true; author: CorrespondingAuthorDraft | null }
+  | { ok: false; message: string };
+
+/**
+ * Parses the hidden `correspondingAuthor` field.
+ *
+ * `null` means the request did not carry a byline (an older form, or an API
+ * caller); the read side then falls back to the account, which is exactly the
+ * previous behaviour. A request that carries data without a name is rejected:
+ * the corresponding author is printed first in every citation.
+ */
+export function parseCorrespondingAuthorDraft(
+  raw: string,
+): CorrespondingAuthorParseResult {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "{}") {
+    return { ok: true, author: null };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return {
+      ok: false,
+      message: "The corresponding author could not be read. Reload and try again.",
+    };
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return {
+      ok: false,
+      message: "The corresponding author could not be read. Reload and try again.",
+    };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const name = text(record.name);
+  const affiliation = text(record.affiliation);
+  const orcid = text(record.orcid);
+  const email = text(record.email);
+
+  if (!name) {
+    if (!affiliation && !orcid && !email) return { ok: true, author: null };
+    return { ok: false, message: "The corresponding author needs a name." };
+  }
+  if (name.length > MAX_CO_AUTHOR_NAME) {
+    return {
+      ok: false,
+      message: `The corresponding author's name must be ${MAX_CO_AUTHOR_NAME} characters or fewer.`,
+    };
+  }
+  if (affiliation.length > MAX_CO_AUTHOR_AFFILIATION) {
+    return {
+      ok: false,
+      message: `The corresponding author's affiliation must be ${MAX_CO_AUTHOR_AFFILIATION} characters or fewer.`,
+    };
+  }
+  if (orcid.length > MAX_CO_AUTHOR_ORCID) {
+    return {
+      ok: false,
+      message: "The corresponding author's ORCID iD must be 64 characters or fewer.",
+    };
+  }
+  if (email && (email.length > MAX_CO_AUTHOR_EMAIL || !EMAIL_PATTERN.test(email))) {
+    return {
+      ok: false,
+      message: `"${email}" is not a valid correspondence email.`,
+    };
+  }
+
+  return {
+    ok: true,
+    author: {
+      name,
+      ...(affiliation ? { affiliation } : {}),
+      ...(orcid ? { orcid } : {}),
+      ...(email ? { email } : {}),
+    },
+  };
+}
+
+/**
+ * Builds the value stored in `Manuscript.coAuthors`.
+ *
+ * Returns `null` when there is nothing to store. Without a corresponding-author
+ * byline the historical bare array is kept, so an old client does not silently
+ * change the stored shape; with one, the wrapper adds it alongside the
+ * co-authors.
+ */
+export function buildStoredAuthorList(
+  correspondingAuthor: CorrespondingAuthorDraft | null,
+  coAuthors: readonly CoAuthorDraft[],
+): StoredAuthorList | null {
+  if (!correspondingAuthor) {
+    return coAuthors.length ? [...coAuthors] : null;
+  }
+
+  return {
+    correspondingAuthor,
+    ...(coAuthors.length ? { coAuthors: [...coAuthors] } : {}),
+  };
 }

@@ -23,8 +23,11 @@ import {
   validateManuscriptKeywords,
 } from "@/lib/publishing/constants";
 import {
+  buildStoredAuthorList,
   parseCoAuthorDraft,
+  parseCorrespondingAuthorDraft,
   type CoAuthorDraft,
+  type CorrespondingAuthorDraft,
 } from "@/lib/publishing/coauthors";
 import {
   findOpenInvitationForAuthor,
@@ -337,6 +340,9 @@ export async function createManuscriptSubmissionAction(
   const draftCoAuthors = parseCoAuthorDraft(input.coAuthorsRaw);
   if (!draftCoAuthors.ok) return submitFail(draftCoAuthors.message);
 
+  const draftCorresponding = parseCorrespondingAuthorDraft(input.correspondingAuthorRaw);
+  if (!draftCorresponding.ok) return submitFail(draftCorresponding.message);
+
   const invitation = await findOpenInvitationForAuthor({
     invitationEventId,
     authorId: auth.user.id,
@@ -353,7 +359,10 @@ export async function createManuscriptSubmissionAction(
   const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
   // The form pre-fills the conference byline, so whatever it sends is the
   // author's final, edited author list.
-  const coAuthors = coAuthorsForStore(draftCoAuthors.authors);
+  const coAuthors = authorsForStore(
+    draftCorresponding.author,
+    draftCoAuthors.authors,
+  );
 
   let createdId: string;
   try {
@@ -432,6 +441,7 @@ type SubmissionInput = {
   title: string;
   abstract: string;
   keywordsRaw: string;
+  correspondingAuthorRaw: string;
   coAuthorsRaw: string;
   filePath: string;
   fileName: string;
@@ -444,6 +454,7 @@ function readSubmissionInput(formData: FormData): SubmissionInput {
     title: readFormValue(formData, "title"),
     abstract: readFormValue(formData, "abstract"),
     keywordsRaw: readFormValue(formData, "keywords"),
+    correspondingAuthorRaw: readFormValue(formData, "correspondingAuthor"),
     coAuthorsRaw: readFormValue(formData, "coAuthors"),
     filePath: readFormValue(formData, "filePath"),
     fileName: readFormValue(formData, "fileName"),
@@ -520,12 +531,12 @@ async function verifySubmissionUpload(
   return { ok: true, sizeBytes: check.sizeBytes, sha256: check.sha256 };
 }
 
-function coAuthorsForStore(
+function authorsForStore(
+  correspondingAuthor: CorrespondingAuthorDraft | null,
   authors: readonly CoAuthorDraft[],
 ): { coAuthors?: Prisma.InputJsonValue } {
-  return authors.length
-    ? { coAuthors: authors as unknown as Prisma.InputJsonValue }
-    : {};
+  const stored = buildStoredAuthorList(correspondingAuthor, authors);
+  return stored ? { coAuthors: stored as unknown as Prisma.InputJsonValue } : {};
 }
 
 /**
@@ -584,6 +595,9 @@ export async function createDirectSubmissionAction(
   const draftCoAuthors = parseCoAuthorDraft(input.coAuthorsRaw);
   if (!draftCoAuthors.ok) return submitFail(draftCoAuthors.message);
 
+  const draftCorresponding = parseCorrespondingAuthorDraft(input.correspondingAuthorRaw);
+  if (!draftCorresponding.ok) return submitFail(draftCorresponding.message);
+
   const check = await verifySubmissionUpload(auth.user.id, input);
   if (!check.ok) return submitFail(check.message);
 
@@ -598,7 +612,7 @@ export async function createDirectSubmissionAction(
       round: 0,
       venueId: venue.id,
       authorId: auth.user.id,
-      ...coAuthorsForStore(draftCoAuthors.authors),
+      ...authorsForStore(draftCorresponding.author, draftCoAuthors.authors),
       files: {
         create: {
           round: 0,

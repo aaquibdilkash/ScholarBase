@@ -5,13 +5,33 @@ import { ArrowRight, FilePlus2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { findOpenInvitationForAuthor } from "@/lib/publishing/invitations";
-import { parseCoAuthors } from "@/lib/publishing/citations";
+import {
+  orcidIdFromUrl,
+  parseCoAuthors,
+  parseCorrespondingAuthor,
+} from "@/lib/publishing/citations";
 import { ManuscriptSubmissionForm } from "@/components/workspace/ManuscriptSubmissionForm";
 
 const VENUE_TYPE_LABELS = {
   JOURNAL: "Journal",
   CONFERENCE: "Conference",
 } as const;
+
+function defaultAuthorFor(
+  user: any,
+): { name: string; email: string; orcid: string | null } {
+  if (!user) return { name: "", email: "", orcid: "" };
+
+  const name = user?.name ?? user?.user_metadata?.full_name ?? "";
+  const email = user?.email ?? "";
+  const orcid = orcidIdFromUrl(user?.orcidUrl ?? user?.user_metadata?.orcid);
+
+  return {
+    name: String(name),
+    email: String(email),
+    orcid,
+  };
+}
 
 /**
  * Entry point for a new submission.
@@ -61,6 +81,10 @@ export default async function NewSubmissionPage({
           initialTitle={invitation.manuscript.title}
           initialAbstract={invitation.manuscript.abstract ?? ""}
           initialKeywords={invitation.manuscript.keywords ?? ""}
+          defaultAuthor={defaultAuthorFor(user)}
+          initialCorrespondingAuthor={parseCorrespondingAuthor(
+            invitation.manuscript.coAuthors,
+          )}
           initialCoAuthors={parseCoAuthors(invitation.manuscript.coAuthors)}
         />
       </main>
@@ -124,6 +148,8 @@ export default async function NewSubmissionPage({
           venueSlug={venue.slug}
           venueName={venue.name}
           venueType={venue.type}
+          defaultAuthor={defaultAuthorFor(user)}
+          initialCorrespondingAuthor={parseCorrespondingAuthor(null)}
         />
       </main>
     );

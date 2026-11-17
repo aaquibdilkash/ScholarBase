@@ -52,9 +52,10 @@ function cleanString(value: unknown): string | null {
 /**
  * Normalises `Manuscript.coAuthors`, which is stored as JSON.
  *
- * Accepts the historical `{ coAuthors: [...] }` wrapper as well as a bare
- * array. Anything that is not a named person is dropped rather than rendered as
- * `[object Object]` on the most visible line of an article.
+ * Accepts the `{ correspondingAuthor, coAuthors }` wrapper written by the
+ * submission form as well as a bare array. Anything that is not a named person
+ * is dropped rather than rendered as `[object Object]` on the most visible line
+ * of an article.
  */
 export function parseCoAuthors(value: unknown): CitationAuthor[] {
   const raw = isRecord(value) ? value.coAuthors : value;
@@ -74,6 +75,45 @@ export function parseCoAuthors(value: unknown): CitationAuthor[] {
   return authors;
 }
 
+/** `0000-0002-1825-0097` or `https://orcid.org/0000-0002-1825-0097` -> the iD. */
+export function orcidIdFromUrl(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])/i);
+  return match ? match[1].toUpperCase() : trimmed;
+}
+
+/** Accepts an iD or a full ORCID URL and returns a profile link. */
+export function orcidProfileUrl(value: string): string {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://orcid.org/${trimmed}`;
+}
+
+/**
+ * The corresponding author's byline stored with the manuscript.
+ *
+ * `Manuscript.coAuthors` is the wrapper `{ correspondingAuthor, coAuthors }` for
+ * rows submitted by the current form. Older rows are a bare co-author array and
+ * have no stored byline, so callers fall back to the account.
+ */
+export function parseCorrespondingAuthor(
+  value: unknown,
+): (CitationAuthor & { email?: string | null }) | null {
+  if (!isRecord(value) || !isRecord(value.correspondingAuthor)) return null;
+
+  const entry = value.correspondingAuthor;
+  const name = cleanString(entry.name);
+  if (!name) return null;
+
+  return {
+    name,
+    affiliation: cleanString(entry.affiliation),
+    orcid: cleanString(entry.orcid),
+    email: cleanString(entry.email),
+  };
+}
+
 /** The submitting author first, then any co-authors, de-duplicated by name. */
 export function buildAuthorList(
   primary: { name: string | null; orcidUrl?: string | null },
@@ -89,7 +129,17 @@ export function buildAuthorList(
     authors.push(author);
   };
 
-  if (primary.name?.trim()) {
+  // A manuscript written by the current form carries its own corresponding
+  // author byline, which wins over the account: the author may publish under a
+  // different name or a different institution than their profile.
+  const stored = parseCorrespondingAuthor(coAuthors);
+  if (stored) {
+    add({
+      name: stored.name,
+      ...(stored.affiliation ? { affiliation: stored.affiliation } : {}),
+      ...(stored.orcid ? { orcid: stored.orcid } : {}),
+    });
+  } else if (primary.name?.trim()) {
     add({ name: primary.name.trim(), orcid: primary.orcidUrl ?? null });
   }
   for (const author of parseCoAuthors(coAuthors)) add(author);

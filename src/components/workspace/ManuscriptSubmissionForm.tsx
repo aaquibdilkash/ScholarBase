@@ -19,6 +19,7 @@ import {
   MAX_CO_AUTHOR_NAME,
   MAX_CO_AUTHOR_ORCID,
 } from "@/lib/publishing/coauthors";
+import { CitationAuthor } from "@/lib/publishing/citations";
 import {
   isPdfUpload,
   MANUSCRIPT_BUCKET,
@@ -56,12 +57,24 @@ export type ManuscriptSubmissionProps =
         orcid?: string | null;
         email?: string | null;
       }[];
+      defaultAuthor: {
+        name: string;
+        email: string;
+        orcid: string | null;
+      };
+      initialCorrespondingAuthor: (CitationAuthor & { email?: string | null }) | null;
     }
   | {
       kind: "direct";
       venueSlug: string;
       venueName: string;
       venueType: "JOURNAL" | "CONFERENCE";
+      defaultAuthor: {
+        name: string;
+        email: string;
+        orcid: string | null;
+      };
+      initialCorrespondingAuthor: (CitationAuthor & { email?: string | null }) | null;
     };
 
 const EMPTY_RESULT: ManuscriptSubmitResult = { success: false, message: "" };

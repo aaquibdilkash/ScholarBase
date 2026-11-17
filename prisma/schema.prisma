@@ -3036,9 +3036,12 @@ model Manuscript {
   authorId String
   author   User   @relation("AuthoredPapers", fields: [authorId], references: [id])
 
-  /// Ordered [{ name, affiliation, orcid, email }]. Kept as JSON because a
-  /// deposit/rendering consumer reads the whole array and never queries one
-  /// author; a join table would cost a chart of relations for no query.
+  /// Author byline. Rows written by the submission form hold
+  /// `{ correspondingAuthor, coAuthors: [...] }`; historical rows hold a bare
+  /// co-author array. Every entry is `{ name, affiliation, orcid, email }`.
+  /// JSON because a deposit/rendering consumer reads the whole list and never
+  /// queries one author; a join table would cost a chart of relations for no
+  /// query.
   coAuthors Json?
 
   /// Golden Flow: a journal submission cloned from an accepted conference
