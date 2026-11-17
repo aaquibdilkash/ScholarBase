@@ -22,6 +22,7 @@ import {
   MAX_VENUE_EDITOR_NAME,
   MAX_VENUE_FREQUENCY,
   MAX_VENUE_RICH_TEXT,
+  VENUE_STARTER_TEMPLATES,
 } from "@/lib/publishing/constants";
 import { MAX_VENUE_NAME } from "@/lib/publishing/slug";
 
@@ -93,10 +94,10 @@ export function VenueSettingsForm({ venue }: { venue: VenueSettingsValues }) {
     editorAffiliation: venue.editorAffiliation,
     frequency: venue.frequency,
     contactEmail: venue.contactEmail,
-    aimsAndScope: venue.aimsAndScope,
-    authorGuidelines: venue.authorGuidelines,
-    peerReviewPolicy: venue.peerReviewPolicy,
-    ethicsPolicy: venue.ethicsPolicy,
+    aimsAndScope: venue.aimsAndScope || VENUE_STARTER_TEMPLATES.aimsAndScope,
+    authorGuidelines: venue.authorGuidelines || VENUE_STARTER_TEMPLATES.authorGuidelines,
+    peerReviewPolicy: venue.peerReviewPolicy || VENUE_STARTER_TEMPLATES.peerReviewPolicy,
+    ethicsPolicy: venue.ethicsPolicy || VENUE_STARTER_TEMPLATES.ethicsPolicy,
     board: venue.board,
   });
   const board = Array.isArray(draft.board) ? draft.board : [];
@@ -130,7 +131,7 @@ export function VenueSettingsForm({ venue }: { venue: VenueSettingsValues }) {
     <form action={formAction} className="space-y-8">
       <input type="hidden" name="venueId" value={venue.id} />
       <section className="sb-card space-y-4">
-        <div><h2 className="sb-heading text-lg">{venue.name}</h2><p className="mt-1 text-base text-slate-300 dark:text-slate-300">{venue.type === "JOURNAL" ? "Journal" : "Conference"} profile and publishing metadata.</p></div>
+        <div><h2 className="sb-heading text-lg">{venue.name}</h2><p className="mt-1 text-base text-slate-600 dark:text-slate-300">{venue.type === "JOURNAL" ? "Journal" : "Conference"} profile and publishing metadata.</p></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField id={`${venue.id}-name`} name="name" label="Venue name" value={draft.name} onChange={(value) => updateDraftField("name", value)} maxLength={MAX_VENUE_NAME} required tip="The public name of the journal or conference. Changing it does not change the permanent URL." />
           <TextField id={`${venue.id}-editor`} name="editorName" label="Editor-in-chief" value={draft.editorName} onChange={(value) => updateDraftField("editorName", value)} maxLength={MAX_VENUE_EDITOR_NAME} required tip="The named editor shown in public metadata and required before publishing." />
@@ -141,7 +142,7 @@ export function VenueSettingsForm({ venue }: { venue: VenueSettingsValues }) {
       </section>
 
       <section className="sb-card space-y-5">
-        <div><h2 className="sb-heading text-lg">Policies and scope</h2><p className="mt-1 text-base text-slate-300 dark:text-slate-300">These fields are sanitized before storage and shown on the public venue pages.</p></div>
+        <div><h2 className="sb-heading text-lg">Policies and scope</h2><p className="mt-1 text-base text-slate-600 dark:text-slate-300">These fields are sanitized before storage and shown on the public venue pages.</p></div>
         {([
           ["aimsAndScope", "Aims and scope", draft.aimsAndScope, "What research the venue accepts and its scholarly focus."],
           ["authorGuidelines", "Author guidelines", draft.authorGuidelines, "Submission requirements and formatting guidance for authors."],
@@ -157,7 +158,7 @@ export function VenueSettingsForm({ venue }: { venue: VenueSettingsValues }) {
       </section>
 
       <section className="sb-card space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="sb-heading text-lg">Editorial board</h2><p className="mt-1 text-base text-slate-300 dark:text-slate-300">{board.length} member{board.length === 1 ? "" : "s"} · Add the structured public board used by the publish gate and ISSN metadata.</p></div><button type="button" className="sb-button-soft inline-flex items-center gap-2" onClick={() => { updateDraftField("board", [...board, { name: "", roleTitle: "", affiliation: "", orcid: "" }]); toast({ title: "Board member row added", description: "Complete the row and save venue settings." }); }}><Plus className="h-4 w-4" />Add member</button></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="sb-heading text-lg">Editorial board</h2><p className="mt-1 text-base text-slate-600 dark:text-slate-300">{board.length} member{board.length === 1 ? "" : "s"} · Add the structured public board used by the publish gate and ISSN metadata.</p></div><button type="button" className="sb-button-soft inline-flex items-center gap-2" onClick={() => { updateDraftField("board", [...board, { name: "", roleTitle: "", affiliation: "", orcid: "" }]); toast({ title: "Board member row added", description: "Complete the row and save venue settings." }); }}><Plus className="h-4 w-4" />Add member</button></div>
         <div className="space-y-4">
           {board.map((row, index) => (
             <div key={index} className="rounded-lg border border-[var(--card-border)] p-4">

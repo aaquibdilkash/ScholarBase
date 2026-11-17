@@ -128,8 +128,12 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Define paths that strictly require authentication
-  const isProtectedPath = pathname.startsWith("/admin");
+  // Define paths that strictly require authentication. The workspace holds
+  // private manuscripts and editorial decisions, and protecting it here (rather
+  // than only in the layout) preserves the destination in `callbackUrl`, so a
+  // signed-out author returns to the submission form after logging in.
+  const isProtectedPath =
+    pathname.startsWith("/admin") || pathname.startsWith("/workspace");
 
   if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();

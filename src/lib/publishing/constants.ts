@@ -37,6 +37,18 @@ export const MAX_VENUE_BOARD_ROLE = 100;
 export const MAX_VENUE_BOARD_AFFILIATION = 200;
 export const MAX_VENUE_BOARD_ORCID = 64;
 
+/**
+ * Editable starting copy for a new venue. These are intentionally stored in
+ * the client form only until the editor saves them; an existing venue value
+ * always wins.
+ */
+export const VENUE_STARTER_TEMPLATES = {
+  aimsAndScope: `<h2>Aims and scope</h2><p>This venue publishes original, rigorous work in its field and welcomes contributions that advance theory, methods, practice, or policy.</p><p>Submissions should make a clear contribution, explain their methods transparently, and be relevant to the venue's audience.</p><p><strong>Topics covered:</strong></p><ul><li>Add the primary subject areas covered by this venue.</li><li>Add any methods, populations, or themes of particular interest.</li><li>Describe any work that is outside the venue's scope.</li></ul>`,
+  authorGuidelines: `<h2>Author guidelines</h2><p>Authors should submit original work that is not under consideration elsewhere and that follows the venue's scope.</p><p>Before submitting, ensure that the manuscript includes a clear title, abstract, keywords, author information, references, and any required declarations.</p><p>Authors are responsible for accurate authorship, permissions, citations, conflict-of-interest disclosures, funding information, and ethical approvals where applicable.</p><p>Add the required file format, word limits, formatting rules, submission checklist, and contact instructions for this venue.</p>`,
+  peerReviewPolicy: `<h2>Peer-review policy</h2><p>Each submission is screened by the editorial team for scope, completeness, originality, and ethical concerns before peer review.</p><p>Suitable submissions are normally assessed by at least two independent reviewers. Reviewers should provide constructive, evidence-based feedback and disclose conflicts of interest.</p><p>The editor makes the final decision after considering the reports. Possible outcomes are accept, minor or major revision, or reject. Authors may appeal a decision by providing a reasoned response to the editorial office.</p><p>Add the review model, anonymity rules, expected timelines, and appeal process used by this venue.</p>`,
+  ethicsPolicy: `<h2>Publication ethics</h2><p>This venue follows recognized publication-ethics principles and expects honesty, transparency, and respect from authors, reviewers, editors, and the publisher.</p><p>Authors must report original work, obtain consent and approvals where required, acknowledge contributions and funding, disclose conflicts, and correct material errors promptly.</p><p>The editorial team investigates suspected plagiarism, fabrication, falsification, duplicate publication, manipulated peer review, and undisclosed conflicts. Corrections, expressions of concern, or retractions may be issued when necessary.</p><p>Add any discipline-specific requirements, reporting channels, and the standards or organizations followed by this venue.</p>`,
+} as const;
+
 /** Human-readable size ceiling used in error copy and the upload hint. */
 export const MAX_MANUSCRIPT_SIZE_LABEL = `${MAX_MANUSCRIPT_BYTES / (1024 * 1024)} MB`;
 

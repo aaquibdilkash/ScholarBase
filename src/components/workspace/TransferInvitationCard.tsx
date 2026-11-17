@@ -64,7 +64,7 @@ export function TransferInvitationCard({
           ? `${invitation.targetVenueName} invited your conference paper`
           : `Invitation to ${invitation.targetVenueName} declined`}
       </p>
-      <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
         {invitation.manuscriptTitle}
       </p>
       <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -77,7 +77,7 @@ export function TransferInvitationCard({
 
       {open ? (
         <>
-          <p className="mt-3 text-sm text-slate-300 dark:text-slate-300">
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Submitting creates a new entry in {invitation.targetVenueName}. Your
             conference paper and its acceptance decision stay untouched.
           </p>
@@ -128,7 +128,7 @@ export function TransferInvitationCard({
           )}
         </>
       ) : (
-        <p className="mt-3 text-sm text-slate-300 dark:text-slate-300">
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           You declined this invitation. The record stays here for your timeline.
         </p>
       )}

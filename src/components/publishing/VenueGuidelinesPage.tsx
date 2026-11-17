@@ -228,29 +228,35 @@ export function VenueGuidelinesPage({ venue, preview }: { venue: PublicVenue; pr
 
           <VenueSection
             title="Submitting a manuscript"
-            description="How to reach the editorial office."
+            description="Submissions are handled inside the ScholarBase workspace."
           >
             <p className="text-sm leading-6 text-slate-600 dark:text-slate-400">
-              Manuscripts are handled through the ScholarBase workspace. Authors
-              invited to extend a conference paper receive a submission link by
-              notification and on their workspace submissions page. For any other
-              submission, write to the editorial office with the title, abstract,
-              and author list, and the editor will advise on scope and next steps.
+              Sign in, open this venue&apos;s page, and choose{" "}
+              {`“${venue.type === "JOURNAL" ? "Submit a manuscript" : "Submit a paper"}”`}.
+              You will upload the manuscript as a PDF and add the title,
+              abstract, keywords, and co-authors. The editor is notified as soon
+              as the submission is recorded, and the status timeline stays
+              visible under your workspace submissions. The PDF is the version
+              of record.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">
+              Authors invited to extend an accepted conference paper also
+              receive a submission link by notification. The extended version is
+              a new submission at this venue; the conference paper and its
+              decision are not changed.
             </p>
             {venue.contactEmail ? (
-              <p className="mt-3 text-sm">
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                Questions about scope before submitting? Write to{" "}
                 <a
                   className="font-medium text-blue-700 underline dark:text-blue-300"
                   href={`mailto:${venue.contactEmail}`}
                 >
                   {venue.contactEmail}
                 </a>
+                .
               </p>
-            ) : (
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                The editorial office address is listed on the overview page.
-              </p>
-            )}
+            ) : null}
           </VenueSection>
         </div>
 

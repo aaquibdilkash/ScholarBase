@@ -75,6 +75,13 @@ const TARGETS = {
     label: "Submissions",
     noun: "submission",
   },
+  // Editor-facing manuscript notices (a new direct submission) land on the
+  // desk, where the editor actually has a list to act on.
+  editorial: {
+    link: () => `/workspace/editorial`,
+    label: "Editorial",
+    noun: "submission",
+  },
 } satisfies Record<string, TargetDef>;
 
 type CanonicalTarget = keyof typeof TARGETS;
@@ -113,6 +120,7 @@ const targetTypeAliases: Record<string, CanonicalTarget> = {
   supervisor: "supervisor",
   profile: "profile",
   manuscript: "manuscript",
+  editorial: "editorial",
 };
 
 function normalizeTargetType(targetType: string) {

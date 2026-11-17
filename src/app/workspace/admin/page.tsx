@@ -87,7 +87,7 @@ export default async function WorkspaceAdminPage() {
     <main>
       <header className="mb-6">
         <h1 className="sb-heading text-2xl">Publishing administration</h1>
-        <p className="mt-2 text-base text-slate-300 dark:text-slate-300">
+        <p className="mt-2 text-base text-slate-600 dark:text-slate-300">
           Create journals and conferences, publish them when they are ready to be
           indexed, and grant editorial roles.
         </p>

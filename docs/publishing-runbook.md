@@ -21,7 +21,7 @@ This file is the single reference for both the registration process and the impl
 | 9 | Tables in prose | **Deferred** — see §20 | Empirical tables live in the PDF, which is the version of record |
 | 10 | Reviewer count | **2 per manuscript** | Drives `dueAt` defaults and the "awaiting second review" copy |
 | 11 | Year-1 proceedings | **Yes, a volume is published** | ISBN track is in scope this year, not deferred |
-| 12 | Venue provisioning | **Narrow self-service form** at `/workspace/admin` | Create venue + publish toggle + role grant/revoke; no content CMS there |
+| 12 | Venue provisioning | **Narrow self-service form** at `/workspace/admin` | Create venue + publish toggle + role grant/revoke + delete an empty unpublished venue; the content CMS lives at `/workspace/editorial/settings` |
 
 ---
 
@@ -86,6 +86,13 @@ Why a new row and not a move (`venueId` update + status reset, as originally pro
 | Conference editor invites | `/workspace/editorial` → `inviteAuthorToJournalAction` | `TRANSFER_INVITED` on the conference paper (`targetVenueId`) |
 | Author declines | `/workspace/submissions` → `declineTransferInvitationAction` | `TRANSFER_DECLINED`, same pair |
 | Author accepts | `/workspace/submissions/new?invitation=<eventId>` → `createManuscriptSubmissionAction` | new `Manuscript` (`SUBMITTED`, `originalManuscriptId`) + `ManuscriptFile` + `SUBMITTED` event, plus `TRANSFERRED` on the conference paper |
+| Author submits directly | `/workspace/submissions/new?venue=<slug>` (linked from every public venue page) → `createDirectSubmissionAction` | new `Manuscript` (`SUBMITTED`) + `ManuscriptFile` + `SUBMITTED` event; editor-in-chief and track chairs are notified |
+
+Direct submission is the path that makes a serial real: a published journal or
+conference receives its first paper without an invitation chain. It refuses an
+unpublished or demo venue, and it refuses an author who holds an editorial seat
+at that venue — the person who decides a paper must not be the person who
+submitted it.
 
 An invitation is open when the **latest** event for `(manuscriptId, targetVenueId)` is `TRANSFER_INVITED` and no live clone exists. Declining therefore closes it without mutating history, and the editor may invite again. Only `ACCEPTED_PROCEDINGS` is invitable; an invitation created before the proceedings volume is published stays actionable after the source moves to `PUBLISHED`.
 
@@ -235,15 +242,15 @@ Choices the form **locks in permanently**, because no edit action exists:
 
 Rate limits (`enforceRateLimit`, per admin): 5 venue creations / 10 min, 20 publish toggles / 10 min, 30 role changes / 10 min.
 
-**What the form does not do.** It creates *name, slug, type* and nothing else. Identifiers (ISSN/eISSN/ISBN), aims & scope, author guidelines, policies, the structured board, and the editor contact fields belong to the editor-in-chief on `/workspace/editorial/settings`, which is **not built yet** (phase 7 in §17). Until it exists, a venue cannot pass the publish gate, so provisioning currently produces unpublished venues only.
+**What the form does not do.** It creates *name, slug, type* and nothing else. Identifiers (ISSN/eISSN/ISBN), aims & scope, author guidelines, policies, the structured board, and the editor contact fields belong to the editor-in-chief on `/workspace/editorial/settings`. Until those are filled in, the publish gate refuses the venue, so provisioning alone produces unpublished venues.
 
-**Status.** Built: `/workspace/admin`, `createVenueAction`, `setVenuePublishedAction`, `grantEditorialRoleAction`, `revokeEditorialRoleAction`. Missing: `/workspace/editorial/settings`, and the public `/sbj/[slug]` / `/sbc/[slug]` pages — the `revalidatePath` on publish targets those routes ahead of their existence.
+**Status.** Built: `/workspace/admin`, `createVenueAction`, `setVenuePublishedAction`, `grantEditorialRoleAction`, `revokeEditorialRoleAction`, `/workspace/editorial/settings` (venue CMS + board + identifiers), and the public `/sbj` / `/sbc` site.
 
 Routes:
 
 - `/workspace/admin` — `User.isAdmin` only. See **Creating a journal or conference** above; it does not set identifiers.
-- `/workspace/editorial/settings` — `EDITOR_IN_CHIEF` for that venue (**not built**). Tiptap for `aimsAndScope`, `authorGuidelines`, `peerReviewPolicy`, `ethicsPolicy`; repeatable-row form for `EditorialBoardMember`; structured `editorName` / `editorAffiliation` / `editorOrcid` / `frequency` / `contactEmail` fields. Identifiers (`issn`, `eissn`, `isbn`) are edited here, not in `/workspace/admin`.
-- `/sbj/[slug]/guidelines`, `/sbc/[slug]/guidelines` — public, `RichContent` inside `prose` (**not built**).
+- `/workspace/editorial/settings` — `EDITOR_IN_CHIEF` for that venue. Tiptap for `aimsAndScope`, `authorGuidelines`, `peerReviewPolicy`, `ethicsPolicy`; repeatable-row form for `EditorialBoardMember`; structured `editorName` / `editorAffiliation` / `editorOrcid` / `frequency` / `contactEmail` fields. Identifiers (`issn`, `eissn`, `isbn`) are edited here, not in `/workspace/admin`.
+- `/sbj/[slug]/guidelines`, `/sbc/[slug]/guidelines` — public, `RichContent` inside `prose`.
 
 `EditorialRole` grants nothing on `/workspace/admin`; that is platform-level only.
 
@@ -425,9 +432,10 @@ Built today (all of these exist in `src/app/`):
 /sbc/[slug]/proceedings/[volume]     collected volume with the ISBN copyright block
 /api/papers/[id]/file                302 to a 60-second signed PDF URL
 /api/papers/[id]/cite?format=ris|bibtex
-/workspace                           protected shell, sidebar from EditorialRole
-/workspace/submissions               author timeline
-/workspace/submissions/new           invited extended-version submission
+/workspace                           redirects to /workspace/submissions
+/workspace/submissions               author's manuscripts + open invitations
+/workspace/submissions/[id]          one submission: authors, abstract, files, event timeline
+/workspace/submissions/new           direct submission (`?venue=<slug>`) or invited extended version (`?invitation=<eventId>`)
 /workspace/editorial                 publish an accepted paper; invite a conference author to a journal
 /workspace/editorial/settings        EiC venue CMS
 /workspace/admin                     venue provisioning (gated on `User.isAdmin`)
@@ -520,7 +528,7 @@ Finish every change with `npm run lint && npm run typecheck && npm run test:cove
 
 Sitemap sharding is independent and can land any time after phase 1.
 
-**Where it stands:** phases 1–4 are in place, plus `/workspace/admin` (provisioning half of phase 7) and an `ACCEPTED_PROCEDINGS` invite queue on `/workspace/editorial`. Not built: review workspace (5), public `/sbj` and `/sbc` pages (6, 10), `/workspace/editorial/settings` (the other half of 7), and phases 8–13.
+**Where it stands:** phases 1–4, 6, 7, and 10 are in place: the workspace shell and author submission flow (direct and invited), publish/transfer actions, the venue CMS with identifiers and board, and the public `/sbj` and `/sbc` sites including article landing pages, proceedings volumes, RIS/BibTeX, Highwire metadata, and JSON-LD. Not built: the review workspace (5), the editorial Kanban and reviewer suggestions (9), the opportunity ETL (11), Crossref deposits (12), and HTML full text (13, deferred).
 
 ---
 

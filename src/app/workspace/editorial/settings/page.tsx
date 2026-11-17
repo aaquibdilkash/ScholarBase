@@ -63,12 +63,12 @@ export default async function EditorialSettingsPage({
     <main>
       <header className="mb-6">
         <h1 className="sb-heading text-2xl">Editorial venue settings</h1>
-        <p className="mt-2 text-base text-slate-300 dark:text-slate-300">
+        <p className="mt-2 text-base text-slate-600 dark:text-slate-300">
           Edit the public profile, policies, and structured editorial board for your venue.
         </p>
       </header>
       {values.length === 0 ? (
-        <p className="sb-card text-sm text-slate-300 dark:text-slate-300">
+        <p className="sb-card text-sm text-slate-600 dark:text-slate-300">
           No venue is assigned to you as editor-in-chief yet. A platform administrator can grant that role from Publishing administration.
         </p>
       ) : (

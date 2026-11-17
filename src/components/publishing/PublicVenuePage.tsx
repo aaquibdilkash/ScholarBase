@@ -402,16 +402,18 @@ export async function PublicVenuePage({
                 {isJournal ? "Browse the archive" : "Browse published papers"}
               </Link>
             </div>
-            {venue.contactEmail ? (
-              <a
+            {venue.isPublished && !venue.isDemo ? (
+              <Link
                 className="sb-button-primary mt-4 flex w-full items-center justify-center"
-                href={`mailto:${venue.contactEmail}?subject=${encodeURIComponent(
-                  `${isJournal ? "Submission enquiry" : "Paper submission"}: ${venue.name}`,
-                )}`}
+                href={`/workspace/submissions/new?venue=${venue.slug}`}
               >
                 {isJournal ? "Submit a manuscript" : "Submit a paper"}
-              </a>
-            ) : null}
+              </Link>
+            ) : (
+              <p className="mt-4 rounded-lg border border-dashed border-[var(--card-border)] px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                This venue is not accepting submissions yet.
+              </p>
+            )}
           </section>
 
           {venue.editorName ? (

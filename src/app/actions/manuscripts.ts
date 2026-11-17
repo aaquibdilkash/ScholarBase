@@ -23,6 +23,10 @@ import {
   validateManuscriptKeywords,
 } from "@/lib/publishing/constants";
 import {
+  parseCoAuthorDraft,
+  type CoAuthorDraft,
+} from "@/lib/publishing/coauthors";
+import {
   findOpenInvitationForAuthor,
   INVITATION_EVENT_TYPES,
   type OpenTransferInvitation,
@@ -322,44 +326,16 @@ export async function createManuscriptSubmissionAction(
   if (!limit.allowed) return { success: false, message: limit.error };
 
   const invitationEventId = readFormValue(formData, "invitationId");
-  const title = readFormValue(formData, "title");
-  const abstract = readFormValue(formData, "abstract");
-  const keywordsRaw = readFormValue(formData, "keywords");
-  const filePath = readFormValue(formData, "filePath");
-  const fileName = readFormValue(formData, "fileName");
-  const declaredBytes = Number(readFormValue(formData, "fileSize"));
-  const sha256 = readFormValue(formData, "sha256");
+  const input = readSubmissionInput(formData);
 
   if (!invitationEventId) {
     return submitFail("This invitation is no longer available.");
   }
-  if (!title) return submitFail("Add a title for the extended version.");
-  if (title.length > MAX_MANUSCRIPT_TITLE) {
-    return submitFail(`The title must be ${MAX_MANUSCRIPT_TITLE} characters or fewer.`);
-  }
-  if (!abstract) return submitFail("Add an abstract for the extended version.");
-  if (abstract.length > MAX_MANUSCRIPT_ABSTRACT) {
-    return submitFail(`The abstract must be ${MAX_MANUSCRIPT_ABSTRACT} characters or fewer.`);
-  }
-  if (keywordsRaw.length > MAX_MANUSCRIPT_KEYWORDS) {
-    return submitFail(`Keywords must be ${MAX_MANUSCRIPT_KEYWORDS} characters or fewer.`);
-  }
-  const keywordProblem = validateManuscriptKeywords(keywordsRaw);
-  if (keywordProblem) return submitFail(keywordProblem);
+  const textProblem = validateSubmissionInput(input);
+  if (textProblem) return submitFail(textProblem);
 
-  if (!filePath || !sha256) {
-    return submitFail("Upload the manuscript PDF before submitting.");
-  }
-  if (!isManuscriptObjectPathForUser(auth.user.id, filePath)) {
-    return submitFail("That upload does not belong to your account.");
-  }
-  if (
-    !Number.isFinite(declaredBytes) ||
-    declaredBytes <= 0 ||
-    declaredBytes > MAX_MANUSCRIPT_BYTES
-  ) {
-    return submitFail("The uploaded PDF is empty or larger than 25 MB.");
-  }
+  const draftCoAuthors = parseCoAuthorDraft(input.coAuthorsRaw);
+  if (!draftCoAuthors.ok) return submitFail(draftCoAuthors.message);
 
   const invitation = await findOpenInvitationForAuthor({
     invitationEventId,
@@ -371,40 +347,25 @@ export async function createManuscriptSubmissionAction(
     );
   }
 
-  const check = await verifyManuscriptObject({
-    userId: auth.user.id,
-    path: filePath,
-    declaredBytes,
-    expectedSha256: sha256,
-  });
-  if (!check.ok) {
-    // Do not delete an object a row already points at: a retry after a failed
-    // insert can legitimately re-use the same path.
-    const referenced = await prisma.manuscriptFile.findFirst({
-      where: { filePath },
-      select: { id: true },
-    });
-    if (!referenced) await deleteManuscriptObject(filePath);
-    return submitFail(check.message);
-  }
+  const check = await verifySubmissionUpload(auth.user.id, input);
+  if (!check.ok) return submitFail(check.message);
 
-  const keywords = parseManuscriptKeywords(keywordsRaw).join(", ");
-  const coAuthors =
-    invitation.manuscript.coAuthors === null
-      ? {}
-      : { coAuthors: invitation.manuscript.coAuthors as Prisma.InputJsonValue };
+  const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
+  // The form pre-fills the conference byline, so whatever it sends is the
+  // author's final, edited author list.
+  const coAuthors = coAuthorsForStore(draftCoAuthors.authors);
 
   let createdId: string;
   try {
     createdId = await createJournalManuscript({
       authorId: auth.user.id,
       invitation,
-      title,
-      abstract,
+      title: input.title,
+      abstract: input.abstract,
       keywords,
       coAuthors,
-      filePath,
-      fileName: safeManuscriptFileName(fileName),
+      filePath: input.filePath,
+      fileName: safeManuscriptFileName(input.fileName),
       sizeBytes: check.sizeBytes,
       sha256: check.sha256,
     });
@@ -422,10 +383,10 @@ export async function createManuscriptSubmissionAction(
       recipientId: invitation.invitedById,
       actorId: auth.user.id,
       type: "manuscript-transfer-accepted",
-      targetType: "manuscript",
+      targetType: "editorial",
       targetId: createdId,
       title: `Extended version submitted to ${invitation.targetVenue.name}`,
-      body: `${title} — the author accepted your invitation.`,
+      body: `${input.title} — the author accepted your invitation.`,
     });
   }
 
@@ -436,6 +397,234 @@ export async function createManuscriptSubmissionAction(
     success: true,
     message: `Submitted to ${invitation.targetVenue.name}.`,
     data: { id: createdId },
+  };
+}
+
+type SubmissionInput = {
+  title: string;
+  abstract: string;
+  keywordsRaw: string;
+  coAuthorsRaw: string;
+  filePath: string;
+  fileName: string;
+  declaredBytes: number;
+  sha256: string;
+};
+
+function readSubmissionInput(formData: FormData): SubmissionInput {
+  return {
+    title: readFormValue(formData, "title"),
+    abstract: readFormValue(formData, "abstract"),
+    keywordsRaw: readFormValue(formData, "keywords"),
+    coAuthorsRaw: readFormValue(formData, "coAuthors"),
+    filePath: readFormValue(formData, "filePath"),
+    fileName: readFormValue(formData, "fileName"),
+    declaredBytes: Number(readFormValue(formData, "fileSize")),
+    sha256: readFormValue(formData, "sha256"),
+  };
+}
+
+/**
+ * First user-facing problem with the text fields, or `null`.
+ *
+ * Shared by the invitation and the direct submission path so the two forms
+ * cannot advertise different ceilings. The browser enforces the same limits,
+ * but this is the enforcement point.
+ */
+function validateSubmissionInput(input: SubmissionInput): string | null {
+  if (!input.title) return "Add a title for the manuscript.";
+  if (input.title.length > MAX_MANUSCRIPT_TITLE) {
+    return `The title must be ${MAX_MANUSCRIPT_TITLE} characters or fewer.`;
+  }
+  if (!input.abstract) return "Add an abstract for the manuscript.";
+  if (input.abstract.length > MAX_MANUSCRIPT_ABSTRACT) {
+    return `The abstract must be ${MAX_MANUSCRIPT_ABSTRACT} characters or fewer.`;
+  }
+  if (input.keywordsRaw.length > MAX_MANUSCRIPT_KEYWORDS) {
+    return `Keywords must be ${MAX_MANUSCRIPT_KEYWORDS} characters or fewer.`;
+  }
+  return validateManuscriptKeywords(input.keywordsRaw);
+}
+
+type VerifiedUpload =
+  | { ok: true; sizeBytes: number; sha256: string }
+  | { ok: false; message: string };
+
+/**
+ * Re-reads the uploaded object and refuses it unless size, MIME, and digest
+ * all match. An object nothing references is deleted on failure; a retry after
+ * a failed insert legitimately re-uses the same path, so a referenced object is
+ * left alone.
+ */
+async function verifySubmissionUpload(
+  userId: string,
+  input: SubmissionInput,
+): Promise<VerifiedUpload> {
+  if (!input.filePath || !input.sha256) {
+    return { ok: false, message: "Upload the manuscript PDF before submitting." };
+  }
+  if (!isManuscriptObjectPathForUser(userId, input.filePath)) {
+    return { ok: false, message: "That upload does not belong to your account." };
+  }
+  if (
+    !Number.isFinite(input.declaredBytes) ||
+    input.declaredBytes <= 0 ||
+    input.declaredBytes > MAX_MANUSCRIPT_BYTES
+  ) {
+    return { ok: false, message: "The uploaded PDF is empty or larger than 25 MB." };
+  }
+
+  const check = await verifyManuscriptObject({
+    userId,
+    path: input.filePath,
+    declaredBytes: input.declaredBytes,
+    expectedSha256: input.sha256,
+  });
+  if (!check.ok) {
+    const referenced = await prisma.manuscriptFile.findFirst({
+      where: { filePath: input.filePath },
+      select: { id: true },
+    });
+    if (!referenced) await deleteManuscriptObject(input.filePath);
+    return { ok: false, message: check.message };
+  }
+
+  return { ok: true, sizeBytes: check.sizeBytes, sha256: check.sha256 };
+}
+
+function coAuthorsForStore(
+  authors: readonly CoAuthorDraft[],
+): { coAuthors?: Prisma.InputJsonValue } {
+  return authors.length
+    ? { coAuthors: authors as unknown as Prisma.InputJsonValue }
+    : {};
+}
+
+/**
+ * Submits a manuscript directly to a published venue.
+ *
+ * Every venue page links here, so a journal does not depend on an invitation
+ * chain to receive its first paper — which is exactly the state an ISSN
+ * reviewer checks ("is this serial actually accepting and publishing work?").
+ *
+ * Three refusals carry the integrity rules:
+ *   - an unpublished venue is not accepting submissions;
+ *   - an author holding an editorial seat at the venue cannot submit to it
+ *     (the same person must never both submit and decide);
+ *   - the PDF is re-verified against the bucket before the row is created.
+ */
+export async function createDirectSubmissionAction(
+  _previous: ManuscriptSubmitResult,
+  formData: FormData,
+): Promise<ManuscriptSubmitResult> {
+  const auth = await getActiveUser("Log in to submit a manuscript.");
+  if (auth.frozen) return submitFail(auth.message);
+
+  const limit = await enforceRateLimit({
+    namespace: "manuscript:submit",
+    key: auth.user.id,
+    limit: SUBMIT_LIMIT,
+    window: "1 h",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const venueSlug = readFormValue(formData, "venueSlug");
+  if (!venueSlug) return submitFail("Choose a venue to submit to.");
+
+  const venue = await prisma.venue.findUnique({
+    where: { slug: venueSlug },
+    select: { id: true, name: true, type: true, isPublished: true, isDemo: true },
+  });
+  if (!venue || !venue.isPublished || venue.isDemo) {
+    return submitFail("That venue is not accepting submissions.");
+  }
+
+  const seat = await prisma.editorialRole.findFirst({
+    where: { userId: auth.user.id, venueId: venue.id },
+    select: { id: true },
+  });
+  if (seat) {
+    return submitFail(
+      `You hold an editorial seat at ${venue.name}. Another editor must handle your submission.`,
+    );
+  }
+
+  const input = readSubmissionInput(formData);
+  const textProblem = validateSubmissionInput(input);
+  if (textProblem) return submitFail(textProblem);
+
+  const draftCoAuthors = parseCoAuthorDraft(input.coAuthorsRaw);
+  if (!draftCoAuthors.ok) return submitFail(draftCoAuthors.message);
+
+  const check = await verifySubmissionUpload(auth.user.id, input);
+  if (!check.ok) return submitFail(check.message);
+
+  const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
+
+  const created = await prisma.manuscript.create({
+    data: {
+      title: input.title,
+      abstract: input.abstract,
+      keywords: keywords || null,
+      status: "SUBMITTED",
+      round: 0,
+      venueId: venue.id,
+      authorId: auth.user.id,
+      ...coAuthorsForStore(draftCoAuthors.authors),
+      files: {
+        create: {
+          round: 0,
+          kind: "MANUSCRIPT",
+          filePath: input.filePath,
+          fileName: safeManuscriptFileName(input.fileName),
+          mimeType: MANUSCRIPT_PDF_MIME,
+          sizeBytes: check.sizeBytes,
+          sha256: check.sha256,
+        },
+      },
+      events: {
+        create: {
+          type: "SUBMITTED",
+          actorId: auth.user.id,
+          toStatus: "SUBMITTED",
+          note: `Submitted to ${venue.name}.`,
+        },
+      },
+    },
+    select: { id: true },
+  });
+
+  // Tell the venue's desk. `notifyUserById` queues delivery and swallows its
+  // own failures, so a notification outage never turns an accepted submission
+  // into an error the author would retry.
+  const editors = await prisma.editorialRole.findMany({
+    where: {
+      venueId: venue.id,
+      roleTitle: { in: ["EDITOR_IN_CHIEF", "TRACK_CHAIR"] },
+    },
+    select: { userId: true },
+  });
+  await Promise.all(
+    [...new Set(editors.map((editor) => editor.userId))].map((recipientId) =>
+      notifyUserById({
+        recipientId,
+        actorId: auth.user.id,
+        type: "manuscript-submitted",
+        targetType: "editorial",
+        targetId: created.id,
+        title: `New submission at ${venue.name}`,
+        body: `${input.title} was submitted.`,
+      }),
+    ),
+  );
+
+  revalidatePath("/workspace/submissions");
+  revalidatePath("/workspace/editorial");
+
+  return {
+    success: true,
+    message: `Submitted to ${venue.name}.`,
+    data: { id: created.id },
   };
 }
 

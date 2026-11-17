@@ -70,55 +70,73 @@ export default async function EditorialPage() {
     ),
   ];
 
-  const [transferManuscripts, journals, publishable] = await Promise.all([
-    conferenceIds.length
-      ? prisma.manuscript.findMany({
-          where: {
-            venueId: { in: conferenceIds },
-            status: "ACCEPTED_PROCEDINGS",
-          },
-          orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            title: true,
-            author: { select: { name: true, email: true } },
-            venue: { select: { name: true } },
-            events: {
-              where: { type: { in: [...INVITATION_EVENT_TYPES] } },
-              orderBy: { createdAt: "desc" },
-              select: {
-                id: true,
-                type: true,
-                createdAt: true,
-                targetVenueId: true,
-                targetVenue: { select: { id: true, name: true } },
+  const deskVenueIds = [...new Set(roles.map((role) => role.venue.id))];
+
+  const [transferManuscripts, journals, publishable, inbox] =
+    await Promise.all([
+      conferenceIds.length
+        ? prisma.manuscript.findMany({
+            where: {
+              venueId: { in: conferenceIds },
+              status: "ACCEPTED_PROCEDINGS",
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              title: true,
+              author: { select: { name: true, email: true } },
+              venue: { select: { name: true } },
+              events: {
+                where: { type: { in: [...INVITATION_EVENT_TYPES] } },
+                orderBy: { createdAt: "desc" },
+                select: {
+                  id: true,
+                  type: true,
+                  createdAt: true,
+                  targetVenueId: true,
+                  targetVenue: { select: { id: true, name: true } },
+                },
               },
             },
-          },
-        })
-      : Promise.resolve([]),
-    prisma.venue.findMany({
-      where: { type: "JOURNAL", isPublished: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    publisherVenueIds.length
-      ? prisma.manuscript.findMany({
-          where: {
-            venueId: { in: publisherVenueIds },
-            status: { in: ["ACCEPTED_JOURNAL", "ACCEPTED_PROCEDINGS"] },
-          },
-          orderBy: { createdAt: "asc" },
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            author: { select: { name: true } },
-            venue: { select: { name: true, type: true } },
-          },
-        })
-      : Promise.resolve([]),
-  ]);
+          })
+        : Promise.resolve([]),
+      prisma.venue.findMany({
+        where: { type: "JOURNAL", isPublished: true },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      }),
+      publisherVenueIds.length
+        ? prisma.manuscript.findMany({
+            where: {
+              venueId: { in: publisherVenueIds },
+              status: { in: ["ACCEPTED_JOURNAL", "ACCEPTED_PROCEDINGS"] },
+            },
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              author: { select: { name: true } },
+              venue: { select: { name: true, type: true } },
+            },
+          })
+        : Promise.resolve([]),
+      // The desk inbox: papers an author submitted directly. Read-only until
+      // the review workspace lands; the row proves the submission arrived.
+      deskVenueIds.length
+        ? prisma.manuscript.findMany({
+            where: { venueId: { in: deskVenueIds }, status: "SUBMITTED" },
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              title: true,
+              createdAt: true,
+              author: { select: { name: true, email: true } },
+              venue: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
 
   const manuscriptIds = transferManuscripts.map((manuscript) => manuscript.id);
   const clones = manuscriptIds.length
@@ -209,6 +227,39 @@ export default async function EditorialPage() {
             .join(" · ")}
         </p>
       </header>
+
+      {inbox.length > 0 ? (
+        <section aria-labelledby="inbox-heading">
+          <h2 id="inbox-heading" className="sb-heading text-lg">
+            New submissions
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Submitted directly by authors and waiting at your desk.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {inbox.map((manuscript) => (
+              <li
+                key={manuscript.id}
+                className="sb-card flex flex-wrap items-start justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-950 dark:text-slate-50">
+                    {manuscript.title}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    {manuscript.author.name ?? manuscript.author.email}
+                    {` · ${manuscript.venue.name}`}
+                    {` · ${formatDate(manuscript.createdAt)}`}
+                  </p>
+                </div>
+                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
+                  Awaiting triage
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {publisherVenueIds.length > 0 ? (
         <PublishManuscriptPanel candidates={publishCandidates} />

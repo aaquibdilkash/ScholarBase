@@ -13,7 +13,9 @@ const mocks = vi.hoisted(() => ({
   venueFindUnique: vi.fn(),
   venueCreate: vi.fn(),
   venueUpdate: vi.fn(),
+  venueDelete: vi.fn(),
   boardFindMany: vi.fn(),
+  manuscriptFindFirst: vi.fn(),
   userFindUnique: vi.fn(),
   roleUpsert: vi.fn(),
   roleFindFirst: vi.fn(),
@@ -35,8 +37,14 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.venueFindUnique,
       create: mocks.venueCreate,
       update: mocks.venueUpdate,
+      delete: mocks.venueDelete,
     },
-    editorialBoardMember: { findMany: mocks.boardFindMany },
+    editorialBoardMember: {
+      findMany: mocks.boardFindMany,
+      deleteMany: mocks.boardDeleteMany,
+      createMany: mocks.boardCreateMany,
+    },
+    manuscript: { findFirst: mocks.manuscriptFindFirst },
     user: { findUnique: mocks.userFindUnique },
     editorialRole: {
       upsert: mocks.roleUpsert,
@@ -60,6 +68,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
   createVenueAction,
+  deleteVenueAction,
   grantEditorialRoleAction,
   revokeEditorialRoleAction,
   setVenuePublishedAction,
@@ -92,8 +101,9 @@ beforeEach(() => {
   mocks.enforceRateLimit.mockResolvedValue({ allowed: true });
   mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<void>) =>
     callback({
-      venue: { update: mocks.venueUpdate },
+      venue: { update: mocks.venueUpdate, delete: mocks.venueDelete },
       editorialBoardMember: { deleteMany: mocks.boardDeleteMany, createMany: mocks.boardCreateMany },
+      editorialRole: { deleteMany: mocks.roleDeleteMany },
     }),
   );
 });
@@ -282,6 +292,49 @@ describe("setVenuePublishedAction", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/no longer exists/i);
+  });
+});
+
+describe("deleteVenueAction", () => {
+  it("deletes an empty unpublished venue and its roles/board", async () => {
+    mocks.venueFindUnique.mockResolvedValue({
+      id: "venue-1",
+      name: "Draft Venue",
+      slug: "draft-venue",
+      type: "JOURNAL",
+      isPublished: false,
+    });
+    mocks.manuscriptFindFirst.mockResolvedValue(null);
+
+    const result = await deleteVenueAction(EMPTY, formWith({ venueId: "venue-1" }));
+
+    expect(result.success).toBe(true);
+    expect(mocks.roleDeleteMany).toHaveBeenCalledWith({ where: { venueId: "venue-1" } });
+    expect(mocks.boardDeleteMany).toHaveBeenCalledWith({ where: { venueId: "venue-1" } });
+    expect(mocks.venueDelete).toHaveBeenCalledWith({ where: { id: "venue-1" } });
+  });
+
+  it("protects published venues and venues with manuscript history", async () => {
+    mocks.venueFindUnique.mockResolvedValue({
+      id: "venue-1",
+      name: "Published Venue",
+      slug: "published-venue",
+      type: "JOURNAL",
+      isPublished: true,
+    });
+    let result = await deleteVenueAction(EMPTY, formWith({ venueId: "venue-1" }));
+    expect(result.message).toMatch(/unpublish/i);
+
+    mocks.venueFindUnique.mockResolvedValue({
+      id: "venue-1",
+      name: "Draft Venue",
+      slug: "draft-venue",
+      type: "JOURNAL",
+      isPublished: false,
+    });
+    mocks.manuscriptFindFirst.mockResolvedValue({ id: "manuscript-1" });
+    result = await deleteVenueAction(EMPTY, formWith({ venueId: "venue-1" }));
+    expect(result.message).toMatch(/manuscript history/i);
   });
 });
 

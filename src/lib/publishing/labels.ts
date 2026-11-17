@@ -1,4 +1,8 @@
-import type { EditorialRoleTitle, ManuscriptStatus } from "@prisma/client";
+import type {
+  EditorialRoleTitle,
+  ManuscriptEventType,
+  ManuscriptStatus,
+} from "@prisma/client";
 
 /**
  * Human labels for publishing enums.
@@ -45,4 +49,23 @@ export const EDITORIAL_ROLE_LABELS: Record<EditorialRoleTitle, string> = {
   EDITOR_IN_CHIEF: "Editor-in-Chief",
   TRACK_CHAIR: "Track Chair",
   ASSOC_EDITOR: "Associate Editor",
+};
+
+/**
+ * Timeline labels for the append-only manuscript event log.
+ *
+ * The author-facing detail page renders one row per event; a status change is
+ * the only type whose label comes from the status map, so the rest live here.
+ */
+export const MANUSCRIPT_EVENT_LABELS: Record<ManuscriptEventType, string> = {
+  SUBMITTED: "Submitted",
+  STATUS_CHANGED: "Status changed",
+  REVIEW_ASSIGNED: "Reviewer assigned",
+  REVIEW_SUBMITTED: "Review submitted",
+  REVISION_UPLOADED: "Revision uploaded",
+  TRANSFER_INVITED: "Extended-version invitation",
+  TRANSFER_DECLINED: "Invitation declined",
+  TRANSFERRED: "Extended version submitted",
+  PUBLISHED: "Published",
+  WITHDRAWN: "Withdrawn",
 };

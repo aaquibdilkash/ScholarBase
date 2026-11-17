@@ -84,6 +84,7 @@ vi.mock("@/lib/manuscript-storage", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
+  createDirectSubmissionAction,
   createManuscriptSubmissionAction,
   createManuscriptUploadUrlAction,
   declineTransferInvitationAction,
@@ -697,21 +698,30 @@ describe("createManuscriptSubmissionAction", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/workspace/editorial");
   });
 
-  it("copies the conference paper's co-authors onto the clone", async () => {
-    mocks.eventFindUnique.mockResolvedValue({
-      ...INVITATION_EVENT,
-      manuscript: {
-        ...INVITATION_EVENT.manuscript,
-        coAuthors: [{ name: "Asha Rao", affiliation: "IISc" }],
-      },
-    });
-
-    await createManuscriptSubmissionAction(EMPTY_SUBMIT, submissionForm());
+  it("stores the co-authors the form carried over from the conference paper", async () => {
+    await createManuscriptSubmissionAction(
+      EMPTY_SUBMIT,
+      submissionForm({
+        coAuthors: JSON.stringify([
+          { name: "Asha Rao", affiliation: "IISc" },
+        ]),
+      }),
+    );
 
     const created = mocks.manuscriptCreate.mock.calls[0][0].data;
     expect(created.coAuthors).toEqual([
       { name: "Asha Rao", affiliation: "IISc" },
     ]);
+  });
+
+  it("omits coAuthors when the author removed every row", async () => {
+    await createManuscriptSubmissionAction(
+      EMPTY_SUBMIT,
+      submissionForm({ coAuthors: "[]" }),
+    );
+
+    const created = mocks.manuscriptCreate.mock.calls[0][0].data;
+    expect(created).not.toHaveProperty("coAuthors");
   });
 
   it("refuses a second submission for the same invitation", async () => {
@@ -744,6 +754,224 @@ describe("createManuscriptSubmissionAction", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) expect(result.message).toMatch(/already with/i);
+  });
+});
+
+describe("createDirectSubmissionAction", () => {
+  const directForm = (overrides: Record<string, string> = {}) =>
+    formWith({
+      venueSlug: JOURNAL.slug,
+      title: "A new optics paper",
+      abstract: "A new abstract for a new submission.",
+      keywords: "optics, clinics",
+      coAuthors: "[]",
+      filePath: UPLOAD_PATH,
+      fileName: "paper.pdf",
+      fileSize: "1024",
+      sha256: SHA,
+      ...overrides,
+    });
+
+  beforeEach(() => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: false,
+      user: { id: "u-author" },
+    });
+    mocks.venueFindUnique.mockResolvedValue({ ...JOURNAL, isDemo: false });
+    mocks.roleFindFirst.mockResolvedValue(null);
+    mocks.roleFindMany.mockResolvedValue([
+      { userId: "u-eic" },
+      { userId: "u-eic" },
+      { userId: "u-chair" },
+    ]);
+  });
+
+  it("returns the frozen message without reading the venue", async () => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: true,
+      message: "Your account is frozen.",
+    });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result).toEqual({ success: false, message: "Your account is frozen." });
+    expect(mocks.venueFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns a rate-limit denial", async () => {
+    mocks.enforceRateLimit.mockResolvedValue({
+      allowed: false,
+      error: "Too many requests. Please slow down.",
+    });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mocks.venueFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("requires a venue slug", async () => {
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm({ venueSlug: "" }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mocks.venueFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("refuses a venue that does not exist", async () => {
+    mocks.venueFindUnique.mockResolvedValue(null);
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.message).toMatch(/not accepting/i);
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an unpublished venue", async () => {
+    mocks.venueFindUnique.mockResolvedValue({
+      ...JOURNAL,
+      isPublished: false,
+      isDemo: false,
+    });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses a demo venue", async () => {
+    mocks.venueFindUnique.mockResolvedValue({ ...JOURNAL, isDemo: true });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses an author who holds an editorial seat at the venue", async () => {
+    mocks.roleFindFirst.mockResolvedValue({ id: "role-eic" });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.message).toMatch(/editorial seat/i);
+    expect(mocks.verifyObject).not.toHaveBeenCalled();
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed co-authors before verification", async () => {
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm({ coAuthors: JSON.stringify([{ affiliation: "IISc" }]) }),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.message).toMatch(/needs a name/i);
+    expect(mocks.verifyObject).not.toHaveBeenCalled();
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("requires the PDF to be re-verified before creating the row", async () => {
+    mocks.verifyObject.mockResolvedValue({
+      ok: false,
+      message: "The uploaded file is not a PDF.",
+    });
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(mocks.deleteObject).toHaveBeenCalledWith(UPLOAD_PATH);
+    expect(mocks.manuscriptCreate).not.toHaveBeenCalled();
+  });
+
+  it("creates the manuscript, stores co-authors, and notifies the desk once per editor", async () => {
+    const coAuthors = [
+      { name: "Asha Rao", affiliation: "IISc Bengaluru" },
+      { name: "Vikram Shah" },
+    ];
+
+    const result = await createDirectSubmissionAction(
+      EMPTY_SUBMIT,
+      directForm({ coAuthors: JSON.stringify(coAuthors) }),
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message: `Submitted to ${JOURNAL.name}.`,
+      data: { id: "ms-journal" },
+    });
+    expect(mocks.manuscriptCreate).toHaveBeenCalledTimes(1);
+
+    const createArgs = mocks.manuscriptCreate.mock.calls[0][0];
+    expect(createArgs.data).toMatchObject({
+      title: "A new optics paper",
+      status: "SUBMITTED",
+      round: 0,
+      venueId: JOURNAL.id,
+      authorId: "u-author",
+      keywords: "optics, clinics",
+      coAuthors,
+    });
+    expect(createArgs.data.files.create).toMatchObject({
+      kind: "MANUSCRIPT",
+      filePath: UPLOAD_PATH,
+      sizeBytes: 1024,
+      sha256: SHA,
+    });
+    expect(createArgs.data.events.create).toMatchObject({
+      type: "SUBMITTED",
+      toStatus: "SUBMITTED",
+    });
+
+    expect(mocks.notifyUserById).toHaveBeenCalledTimes(2);
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-eic",
+        actorId: "u-author",
+        type: "manuscript-submitted",
+        targetId: "ms-journal",
+      }),
+    );
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: "u-chair" }),
+    );
+
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/workspace/submissions",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/workspace/editorial");
+  });
+
+  it("omits coAuthors entirely when the author lists none", async () => {
+    await createDirectSubmissionAction(EMPTY_SUBMIT, directForm());
+
+    const createArgs = mocks.manuscriptCreate.mock.calls[0][0];
+    expect(createArgs.data).not.toHaveProperty("coAuthors");
   });
 });
 

@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import {
   createVenueAction,
+  deleteVenueAction,
   grantEditorialRoleAction,
   revokeEditorialRoleAction,
   setVenuePublishedAction,
@@ -221,7 +222,9 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
   const [publishState, publishAction] = useActionState(setVenuePublishedAction, EMPTY_RESULT);
   const [roleState, roleAction] = useActionState(grantEditorialRoleAction, EMPTY_RESULT);
   const [revokeState, revokeAction] = useActionState(revokeEditorialRoleAction, EMPTY_RESULT);
+  const [deleteState, deleteAction] = useActionState(deleteVenueAction, EMPTY_RESULT);
   const [roles, setRoles] = useState(venue.roles);
+  const [removed, setRemoved] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -236,6 +239,7 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
       [publishState, "Venue status updated", "Could not update venue status"],
       [roleState, "Editorial role granted", "Could not grant editorial role"],
       [revokeState, "Editorial role revoked", "Could not revoke editorial role"],
+      [deleteState, "Venue deleted", "Could not delete venue"],
     ] as const) {
       if (!state.message) continue;
       toast({
@@ -244,17 +248,23 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
         variant: state.success ? "default" : "destructive",
       });
     }
-  }, [publishState, roleState, revokeState, toast]);
+  }, [deleteState, publishState, roleState, revokeState, toast]);
+
+  useEffect(() => {
+    if (deleteState.success) setRemoved(true);
+  }, [deleteState.success]);
 
   const path = `/${venue.type === "JOURNAL" ? "sbj" : "sbc"}/${venue.slug}`;
   const identifier = venue.issn ?? venue.eissn;
+
+  if (removed) return null;
 
   return (
     <article className="sb-card">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="sb-heading text-lg">{venue.name}</h3>
-          <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {venue.isPublished ? <Link href={path} className="underline hover:text-slate-900 dark:hover:text-white">{path}</Link> : path}
             {identifier ? ` · ISSN ${identifier}` : " · no ISSN yet"}
           </p>
@@ -286,8 +296,8 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
 
       <dl className="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-slate-300 dark:text-slate-300">Editor</dt>
-          <dd className="mt-1 font-medium text-slate-100">
+          <dt className="text-slate-600 dark:text-slate-300">Editor</dt>
+          <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">
             {venue.editorName ?? (() => {
               const editor = roles.find((role) => role.roleTitle === "EDITOR_IN_CHIEF");
               return editor?.userName ?? editor?.userEmail ?? "Not set";
@@ -295,16 +305,16 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
           </dd>
         </div>
         <div>
-          <dt className="text-slate-300 dark:text-slate-300">Board</dt>
-          <dd className="mt-1 font-medium text-slate-100">{venue.boardCount}</dd>
+          <dt className="text-slate-600 dark:text-slate-300">Board</dt>
+          <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">{venue.boardCount}</dd>
         </div>
         <div>
-          <dt className="text-slate-300 dark:text-slate-300">Submissions</dt>
-          <dd className="mt-1 font-medium text-slate-100">{venue.manuscriptCount}</dd>
+          <dt className="text-slate-600 dark:text-slate-300">Submissions</dt>
+          <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">{venue.manuscriptCount}</dd>
         </div>
         <div>
-          <dt className="text-slate-300 dark:text-slate-300">e-ISSN</dt>
-          <dd className="mt-1 font-medium text-slate-100">{venue.eissn ?? "—"}</dd>
+          <dt className="text-slate-600 dark:text-slate-300">e-ISSN</dt>
+          <dd className="mt-1 font-medium text-slate-900 dark:text-slate-100">{venue.eissn ?? "—"}</dd>
         </div>
       </dl>
 
@@ -320,14 +330,32 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
       </form>
       <ResultMessage state={publishState} />
 
+      {!venue.isPublished && (
+        <form
+          action={deleteAction}
+          className="mt-3"
+          onSubmit={(event) => {
+            if (!window.confirm(`Delete the empty draft venue “${venue.name}”? This cannot be undone.`)) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <input type="hidden" name="venueId" value={venue.id} />
+          <SubmitButton className="inline-flex items-center gap-2 border-red-500/40 text-red-300 hover:border-red-400 hover:text-red-200" pendingLabel="Deleting…">
+            <Trash2 className="h-4 w-4" /> Delete draft
+          </SubmitButton>
+        </form>
+      )}
+      <ResultMessage state={deleteState} />
+
       <div className="mt-6 border-t border-[var(--card-border)] pt-4">
-        <h4 className="text-base font-semibold text-slate-100">Editorial roles</h4>
-        <p className="mt-1 text-sm text-slate-300 dark:text-slate-300">
+        <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Editorial roles</h4>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Roles decide who can assign reviewers, decide, and publish at this venue.
         </p>
 
         {roles.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-300 dark:text-slate-300">
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             Nobody holds a role yet.
           </p>
         ) : (
@@ -335,11 +363,11 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
             {roles.map((role) => (
               <li
                 key={role.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--card-border)] px-3 py-2.5 text-sm text-slate-100"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--card-border)] px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100"
               >
                 <span>
                   <span className="font-medium">{role.userName ?? role.userEmail}</span>
-                  <span className="text-slate-300 dark:text-slate-300">
+                  <span className="text-slate-600 dark:text-slate-300">
                     {" · "}
                     {role.roleTitle.replace(/_/g, " ").toLowerCase()}
                   </span>

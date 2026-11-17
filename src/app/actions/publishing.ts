@@ -189,6 +189,57 @@ export async function setVenuePublishedAction(
   };
 }
 
+/**
+ * Deletes an empty, unpublished venue. Published venues and venues with
+ * manuscript history are intentionally retained so public citations and
+ * editorial records cannot be destroyed from the provisioning screen.
+ */
+export async function deleteVenueAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const admin = await requireAdmin();
+  const limit = await enforceRateLimit({
+    namespace: "venue:delete",
+    key: admin.id,
+    limit: 10,
+    window: "10 m",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const venueId = readFormValue(formData, "venueId");
+  const venue = await prisma.venue.findUnique({
+    where: { id: venueId },
+    select: { id: true, name: true, slug: true, type: true, isPublished: true },
+  });
+  if (!venue) return fail("That venue no longer exists.");
+  if (venue.isPublished) {
+    return fail("Unpublish the venue before deleting it.");
+  }
+
+  const manuscript = await prisma.manuscript.findFirst({
+    where: { venueId: venue.id },
+    select: { id: true },
+  });
+  if (manuscript) {
+    return fail("This venue has manuscript history and cannot be deleted.");
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.editorialRole.deleteMany({ where: { venueId: venue.id } });
+      await tx.editorialBoardMember.deleteMany({ where: { venueId: venue.id } });
+      await tx.venue.delete({ where: { id: venue.id } });
+    });
+  } catch {
+    return fail("The venue could not be deleted. It may have acquired records in another session.");
+  }
+
+  revalidatePath("/workspace/admin");
+  revalidatePath(`/${venue.type === "JOURNAL" ? "sbj" : "sbc"}/${venue.slug}`);
+  return { success: true, message: `${venue.name} was deleted.` };
+}
+
 export async function grantEditorialRoleAction(
   _previous: VenueActionResult,
   formData: FormData,

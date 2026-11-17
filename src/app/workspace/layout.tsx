@@ -25,9 +25,9 @@ export default async function WorkspaceLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <WorkspaceNav isAdmin={isAdmin} />
-        <div className="mt-6">{children}</div>
+        <div className="mt-8">{children}</div>
       </div>
     </div>
   );
