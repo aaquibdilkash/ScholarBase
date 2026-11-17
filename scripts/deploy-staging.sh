@@ -76,10 +76,26 @@ echo "Opening SSH tunnel on local port $LOCAL_PORT -> $DB_IP:5432..."
 ssh -N -o ExitOnForwardFailure=yes -i "$SSH_KEY" -L "$LOCAL_PORT:$DB_IP:5432" "$SSH_HOST" &
 TUNNEL_PID=$!
 
-sleep 2
+# Wait for the forwarded port to accept connections. `kill -0` alone only
+# proves the ssh process is alive; on a slow link the forward can still be a
+# second away, which surfaces as `ECONNREFUSED 127.0.0.1:15432` from the
+# failed-migration guard. Poll instead of assuming a fixed `sleep`.
+tunnel_ready=0
+for _ in $(seq 1 30); do
+  if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+    echo "ERROR: SSH tunnel exited. Is port $LOCAL_PORT already in use?"
+    exit 1
+  fi
+  if (exec 3<>"/dev/tcp/127.0.0.1/${LOCAL_PORT}") 2>/dev/null; then
+    exec 3>&-
+    tunnel_ready=1
+    break
+  fi
+  sleep 1
+done
 
-if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
-  echo "ERROR: SSH tunnel failed to start. Is port $LOCAL_PORT already in use?"
+if [ "$tunnel_ready" -ne 1 ]; then
+  echo "ERROR: SSH tunnel did not accept connections on 127.0.0.1:${LOCAL_PORT} within 30s."
   exit 1
 fi
 

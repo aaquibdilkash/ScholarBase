@@ -1,0 +1,365 @@
+"use client";
+
+import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
+
+import {
+  createVenueAction,
+  grantEditorialRoleAction,
+  revokeEditorialRoleAction,
+  setVenuePublishedAction,
+  type VenueActionResult,
+} from "@/app/actions/publishing";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  MAX_VENUE_NAME,
+  MAX_VENUE_SLUG,
+  normalizeVenueSlug,
+} from "@/lib/publishing/slug";
+
+export type VenueAdminRole = {
+  id: string;
+  roleTitle: string;
+  userName: string | null;
+  userEmail: string;
+};
+
+export type VenueAdminRow = {
+  id: string;
+  slug: string;
+  name: string;
+  type: "JOURNAL" | "CONFERENCE";
+  isPublished: boolean;
+  isDemo: boolean;
+  issn: string | null;
+  eissn: string | null;
+  editorName: string | null;
+  boardCount: number;
+  manuscriptCount: number;
+  roles: VenueAdminRole[];
+};
+
+const EMPTY_RESULT: VenueActionResult = { success: false, message: "" };
+const ROLE_OPTIONS = [
+  { value: "EDITOR_IN_CHIEF", label: "Editor-in-Chief" },
+  { value: "TRACK_CHAIR", label: "Track Chair" },
+  { value: "ASSOC_EDITOR", label: "Associate Editor" },
+] as const;
+
+function SubmitButton({
+  children,
+  className = "sb-button-primary",
+  pendingLabel = "Saving…",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  pendingLabel?: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button type="submit" disabled={pending} className={className}>
+      {pending ? (
+        <span className="inline-flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {pendingLabel}
+        </span>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
+
+function ResultMessage({ state }: { state: VenueActionResult }) {
+  if (!state.message) return null;
+
+  if (state.success) {
+    return (
+      <p
+        role="status"
+        className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-900/20 dark:text-emerald-200"
+      >
+        {state.message}
+      </p>
+    );
+  }
+
+  return (
+    <p
+      role="alert"
+      className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-900/20 dark:text-red-300"
+    >
+      {state.message}
+    </p>
+  );
+}
+
+function Counter({ value, max }: { value: number; max: number }) {
+  return (
+    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      {value}/{max} characters
+    </div>
+  );
+}
+
+function CreateVenueCard() {
+  const [state, formAction] = useActionState(createVenueAction, EMPTY_RESULT);
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+
+  // A venue slug is a permanent public URL (`/sbj/<slug>`), so it is derived
+  // from the name until the admin edits it deliberately.
+  useEffect(() => {
+    if (!slugTouched) setSlug(normalizeVenueSlug(name));
+  }, [name, slugTouched]);
+
+  useEffect(() => {
+    if (!state.success) return;
+    setName("");
+    setSlug("");
+    setSlugTouched(false);
+  }, [state]);
+
+  return (
+    <section className="sb-card">
+      <h2 className="sb-heading text-lg">Create a venue</h2>
+      <p className="sb-subtitle mt-1 text-sm">
+        A venue is one journal or one conference. It stays unpublished — and out of
+        the sitemap — until it has an editor, aims, and a board.
+      </p>
+
+      <form action={formAction} className="mt-5 space-y-4">
+        <div>
+          <label htmlFor="venue-name" className="sb-label inline-flex items-center gap-1.5">
+            Name
+            <InfoTooltip message="The title readers will see, and the title that must match your ISSN application." />
+          </label>
+          <input
+            id="venue-name"
+            name="name"
+            type="text"
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            maxLength={MAX_VENUE_NAME}
+            className="sb-input"
+            placeholder="Indian Journal of Optics"
+          />
+          <Counter value={name.length} max={MAX_VENUE_NAME} />
+        </div>
+
+        <div>
+          <label htmlFor="venue-slug" className="sb-label inline-flex items-center gap-1.5">
+            Slug
+            <InfoTooltip message="Permanent URL segment. Changing it after launch breaks citations and requires notifying the ISSN centre." />
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+              /sbj/
+            </span>
+            <input
+              id="venue-slug"
+              name="slug"
+              type="text"
+              required
+              value={slug}
+              onChange={(event) => {
+                setSlugTouched(true);
+                setSlug(normalizeVenueSlug(event.target.value));
+              }}
+              maxLength={MAX_VENUE_SLUG}
+              className="sb-input"
+              placeholder="indian-journal-of-optics"
+            />
+          </div>
+          <Counter value={slug.length} max={MAX_VENUE_SLUG} />
+        </div>
+
+        <div>
+          <label htmlFor="venue-type" className="sb-label inline-flex items-center gap-1.5">
+            Type
+            <InfoTooltip message="Journals accept journal submissions; conferences can accept papers to proceedings and transfer them to a journal." />
+          </label>
+          <select id="venue-type" name="type" className="sb-input" defaultValue="JOURNAL">
+            <option value="JOURNAL">Journal</option>
+            <option value="CONFERENCE">Conference</option>
+          </select>
+        </div>
+
+        <ResultMessage state={state} />
+
+        <SubmitButton>Create venue</SubmitButton>
+      </form>
+    </section>
+  );
+}
+
+function VenueCard({ venue }: { venue: VenueAdminRow }) {
+  const [publishState, publishAction] = useActionState(setVenuePublishedAction, EMPTY_RESULT);
+  const [roleState, roleAction] = useActionState(grantEditorialRoleAction, EMPTY_RESULT);
+  const [, revokeAction] = useActionState(revokeEditorialRoleAction, EMPTY_RESULT);
+
+  const path = `/${venue.type === "JOURNAL" ? "sbj" : "sbc"}/${venue.slug}`;
+  const identifier = venue.issn ?? venue.eissn;
+
+  return (
+    <article className="sb-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="sb-heading text-base">{venue.name}</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {path}
+            {identifier ? ` · ISSN ${identifier}` : " · no ISSN yet"}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            {venue.type === "JOURNAL" ? "Journal" : "Conference"}
+          </span>
+          <span
+            className={
+              venue.isPublished
+                ? "rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                : "rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300"
+            }
+          >
+            {venue.isPublished ? "Published" : "Draft"}
+          </span>
+        </div>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+        <div>
+          <dt className="text-slate-500 dark:text-slate-400">Editor</dt>
+          <dd className="mt-0.5 font-medium">{venue.editorName ?? "Not set"}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500 dark:text-slate-400">Board</dt>
+          <dd className="mt-0.5 font-medium">{venue.boardCount}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500 dark:text-slate-400">Submissions</dt>
+          <dd className="mt-0.5 font-medium">{venue.manuscriptCount}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500 dark:text-slate-400">e-ISSN</dt>
+          <dd className="mt-0.5 font-medium">{venue.eissn ?? "—"}</dd>
+        </div>
+      </dl>
+
+      <form action={publishAction} className="mt-4">
+        <input type="hidden" name="venueId" value={venue.id} />
+        <input type="hidden" name="published" value={venue.isPublished ? "false" : "true"} />
+        <SubmitButton
+          className="sb-button-soft"
+          pendingLabel={venue.isPublished ? "Unpublishing…" : "Publishing…"}
+        >
+          {venue.isPublished ? "Unpublish" : "Publish"}
+        </SubmitButton>
+      </form>
+      <ResultMessage state={publishState} />
+
+      <div className="mt-6 border-t border-[var(--card-border)] pt-4">
+        <h4 className="text-sm font-semibold">Editorial roles</h4>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Roles decide who can assign reviewers, decide, and publish at this venue.
+        </p>
+
+        {venue.roles.length === 0 ? (
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+            Nobody holds a role yet.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {venue.roles.map((role) => (
+              <li
+                key={role.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--card-border)] px-3 py-2 text-xs"
+              >
+                <span>
+                  <span className="font-medium">{role.userName ?? role.userEmail}</span>
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {" · "}
+                    {role.roleTitle.replace(/_/g, " ").toLowerCase()}
+                  </span>
+                </span>
+                <form action={revokeAction}>
+                  <input type="hidden" name="roleId" value={role.id} />
+                  <SubmitButton
+                    className="sb-button-soft px-2 py-1 text-xs"
+                    pendingLabel="Revoking…"
+                  >
+                    Revoke
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form action={roleAction} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+          <input type="hidden" name="venueId" value={venue.id} />
+          <div>
+            <label htmlFor={`role-email-${venue.id}`} className="sb-label">
+              Account email
+            </label>
+            <input
+              id={`role-email-${venue.id}`}
+              name="email"
+              type="email"
+              required
+              className="sb-input"
+              placeholder="editor@institution.ac.in"
+            />
+          </div>
+          <div>
+            <label htmlFor={`role-title-${venue.id}`} className="sb-label">
+              Role
+            </label>
+            <select
+              id={`role-title-${venue.id}`}
+              name="roleTitle"
+              className="sb-input"
+              defaultValue="EDITOR_IN_CHIEF"
+            >
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <SubmitButton className="sb-button-soft" pendingLabel="Granting…">
+              Grant
+            </SubmitButton>
+          </div>
+        </form>
+        <ResultMessage state={roleState} />
+      </div>
+    </article>
+  );
+}
+
+export function VenueAdminPanel({ venues }: { venues: VenueAdminRow[] }) {
+  return (
+    <div className="space-y-6">
+      <CreateVenueCard />
+
+      <section className="space-y-4">
+        <h2 className="sb-heading text-lg">Venues</h2>
+        {venues.length === 0 ? (
+          <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
+            No venues yet. Create the first journal above.
+          </p>
+        ) : (
+          venues.map((venue) => <VenueCard key={venue.id} venue={venue} />)
+        )}
+      </section>
+    </div>
+  );
+}

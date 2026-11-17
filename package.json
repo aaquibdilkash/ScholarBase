@@ -15,6 +15,7 @@
     "test:all": "npm run test:coverage && npm run test:integration",
     "test:watch": "vitest",
     "load:test:free-tier": "node scripts/free-tier-load-test.mjs",
+    "storage:manuscripts": "node scripts/setup-manuscripts-bucket.mjs",
     "generate:icons": "python3 scripts/generate-icons.py",
     "generate:ios-splash": "python3 scripts/generate-ios-splash.py",
     "dev:local": "bash scripts/start-local.sh",

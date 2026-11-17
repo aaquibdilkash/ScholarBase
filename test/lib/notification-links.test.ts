@@ -118,6 +118,18 @@ describe("target links", () => {
     ).toBe("/messages/conversation-1");
   });
 
+  it("routes a manuscript notice to the author's submissions", () => {
+    expect(
+      getNotificationLink(
+        notification({
+          type: "manuscript-transfer-invited",
+          targetType: "manuscript",
+          targetId: "ms-1",
+        }),
+      ),
+    ).toBe("/workspace/submissions");
+  });
+
   it("returns null when there is nothing to link to", () => {
     expect(getNotificationLink(notification({ targetId: "a-1" }))).toBeNull();
     expect(

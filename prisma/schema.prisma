@@ -162,6 +162,79 @@ enum EmbeddingEntityType {
   JOURNAL_REVIEW
 }
 
+/// First-party publishing: a `Venue` is either a journal or a conference we
+/// publish. Config lives in the database so a new title needs a row, not a
+/// deployment. See docs/publishing-runbook.md.
+enum VenueType {
+  JOURNAL
+  CONFERENCE
+}
+
+/// Manuscript lifecycle. `ACCEPTED_PROCEDINGS` and `ACCEPTED_JOURNAL` are
+/// distinct because a conference paper can be transferred into a journal queue
+/// as a new submission rather than re-reviewed from scratch.
+///
+/// Transitions are defined once in `src/lib/publishing/transitions.ts`; do not
+/// hand-roll status writes.
+enum ManuscriptStatus {
+  SUBMITTED
+  DESK_REJECTED
+  UNDER_REVIEW
+  REVISION_REQUIRED
+  ACCEPTED_PROCEDINGS
+  ACCEPTED_JOURNAL
+  PUBLISHED
+  REJECTED
+  WITHDRAWN
+}
+
+/// Venue-scoped editorial role. Platform administration is `User.isAdmin`, not
+/// a row here.
+enum EditorialRoleTitle {
+  EDITOR_IN_CHIEF
+  TRACK_CHAIR
+  ASSOC_EDITOR
+}
+
+enum ReviewDecision {
+  ACCEPT
+  MINOR_REVISION
+  MAJOR_REVISION
+  REJECT
+}
+
+/// Append-only manuscript history. One row per status change, assignment,
+/// review, revision, transfer, or publication. Drives the author timeline and
+/// the transfer provenance; there is no second history table.
+enum ManuscriptEventType {
+  SUBMITTED
+  STATUS_CHANGED
+  REVIEW_ASSIGNED
+  REVIEW_SUBMITTED
+  REVISION_UPLOADED
+  /// A conference editor invited the author to submit an extended version to a
+  /// journal. The author still creates the journal row; nothing is moved.
+  TRANSFER_INVITED
+  /// The author declined an invitation. Appended, never used to mutate the
+  /// invitation itself: open/closed is decided by the latest event for a
+  /// `(manuscriptId, targetVenueId)` pair.
+  TRANSFER_DECLINED
+  /// The author created the journal submission. Written on the conference
+  /// manuscript so its timeline records where the extended version went.
+  TRANSFERRED
+  PUBLISHED
+  WITHDRAWN
+}
+
+/// DOI lifecycle for the Zenodo/Crossref bridge. `PENDING` is written before
+/// the outbound call so a crashed run is retried, never double-minted.
+enum DoiStatus {
+  NONE
+  PENDING
+  MINTED
+  FAILED
+}
+
 enum CallForPaperCategory {
   CONFERENCE
   BOOK_CHAPTER
@@ -1304,6 +1377,12 @@ model User {
   publicationCommentVotes PublicationCommentVote[]
   publicationAuthors      PublicationAuthor[]
 
+  // First-party publishing (docs/publishing-runbook.md)
+  authoredManuscripts Manuscript[]      @relation("AuthoredPapers")
+  reviewAssignments   ReviewTask[]      @relation("ReviewAssignments")
+  editorialRoles      EditorialRole[]
+  manuscriptEvents    ManuscriptEvent[] @relation("ManuscriptEventActor")
+
   surveys            ResearchSurvey[]
   surveyVotes        SurveyVote[]
   surveyComments     SurveyComment[]
@@ -1653,7 +1732,7 @@ enum CoursePricing {
 }
 
 model Course {
-  id              String    @id @default(cuid())
+  id              String        @id @default(cuid())
   title           String
   provider        String?
   instructor      String?
@@ -1666,18 +1745,18 @@ model Course {
   pricing         CoursePricing @default(FREE)
   /// Amount for a paid course. Independent of `pricing`; may be empty.
   price           Float?
-  currency        String    @default("INR")
+  currency        String        @default("INR")
   /// Decimal to support values like 1.5 hours.
   durationValue   Float?
   durationUnit    String?
   link            String
   description     String
   authorId        String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   editedAt        DateTime?
-  isFrozen        Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  isFrozen        Boolean       @default(false)
+  hasActiveAppeal Boolean       @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2554,29 +2633,29 @@ model AdmissionCommentVote {
 }
 
 model AcademicPosition {
-  id               String       @id @default(cuid())
+  id               String         @id @default(cuid())
   title            String
   institution      String
   department       String?
   subject          String?
-  positionType     PositionType @default(OTHER)
+  positionType     PositionType   @default(OTHER)
   employmentType   EmploymentType @default(OTHER)
   salaryOrStipend  String?
   contractDuration String?
   startDate        DateTime?
   location         String?
-  isRemote         Boolean      @default(false)
+  isRemote         Boolean        @default(false)
   deadline         DateTime
   description      String
   imageUrl         String?
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean      @default(false)
-  hasActiveAppeal  Boolean      @default(false)
+  isFrozen         Boolean        @default(false)
+  hasActiveAppeal  Boolean        @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2888,4 +2967,224 @@ model ShieldUsage {
   @@index([userId, createdAt(sort: Desc)])
   // INDEX: the admin panel reads one tool's newest rows across all scholars.
   @@index([tool, createdAt(sort: Desc)])
+}
+
+/// A journal or conference we publish. Configuration lives in the database so a
+/// new title is a row, not a deployment. See docs/publishing-runbook.md.
+///
+/// `isPublished` gates indexing: an unpublished venue is excluded from the
+/// sitemap, gets `noindex`, and never appears in nav. Seeded demo venues must
+/// stay false so they are not crawled as thin content.
+model Venue {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  name          String
+  type          VenueType
+  publisherName String    @default("ScholarBase")
+
+  /// ISSN/e-ISSN are assigned by the National Centre for ISSN (CSIR-NIScPR) and
+  /// typed in by an admin. The app never mints them; `src/lib/publishing/identifiers.ts`
+  /// validates the check digit on write.
+  issn  String? @unique
+  eissn String? @unique
+
+  frequency    String?
+  contactEmail String?
+  launchedAt   DateTime?
+  isPublished  Boolean   @default(false)
+  isDemo       Boolean   @default(false)
+
+  // Venue CMS. HTML authored in the existing Tiptap `Editor`, sanitized on write
+  // and again by `RichContent` on render. Never rendered raw.
+  aimsAndScope     String? @db.Text
+  authorGuidelines String? @db.Text
+  peerReviewPolicy String? @db.Text
+  ethicsPolicy     String? @db.Text
+
+  // Structured fields required by a DOI/Crossref deposit — these cannot live in
+  // HTML without parsing it back out.
+  editorName        String?
+  editorAffiliation String?
+  editorOrcid       String?
+  licenseUrl        String? @default("https://creativecommons.org/licenses/by/4.0/")
+
+  manuscripts     Manuscript[]
+  team            EditorialRole[]
+  board           EditorialBoardMember[]
+  transferInvites ManuscriptEvent[]      @relation("ManuscriptTransferInvites")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, isPublished])
+}
+
+/// A submitted paper. Workflow entity, not social content: no vote/bookmark
+/// counters, no tri-split registration, no public list until PUBLISHED.
+model Manuscript {
+  id       String           @id @default(cuid())
+  title    String
+  abstract String?          @db.Text
+  keywords String?
+  status   ManuscriptStatus @default(SUBMITTED)
+  /// Revision round. Bumped on resubmission; pairs with ManuscriptFile.round.
+  round    Int              @default(0)
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  authorId String
+  author   User   @relation("AuthoredPapers", fields: [authorId], references: [id])
+
+  /// Ordered [{ name, affiliation, orcid, email }]. Kept as JSON because a
+  /// deposit/rendering consumer reads the whole array and never queries one
+  /// author; a join table would cost a chart of relations for no query.
+  coAuthors Json?
+
+  /// Golden Flow: a journal submission cloned from an accepted conference
+  /// paper. The conference row is never mutated, so its decision record
+  /// survives.
+  originalManuscriptId String?
+  originalManuscript   Manuscript?  @relation("ManuscriptTransfer", fields: [originalManuscriptId], references: [id], onDelete: SetNull)
+  transferredTo        Manuscript[] @relation("ManuscriptTransfer")
+
+  doi             String?   @unique
+  doiStatus       DoiStatus @default(NONE)
+  /// Idempotency key for the Zenodo/DataCite deposit. A retry must never create
+  /// a second deposit.
+  zenodoDepositId String?
+
+  /// ISBN of the proceedings volume this paper appears in, printed on the
+  /// volume's copyright page. Journal articles leave this null.
+  isbn String?
+
+  // Citation metadata. Nullable because a venue may not assign volumes yet.
+  volume    Int?
+  issue     Int?
+  firstPage String?
+  lastPage  String?
+
+  publishedAt DateTime?
+
+  files   ManuscriptFile[]
+  reviews ReviewTask[]
+  events  ManuscriptEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([venueId, status, createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  /// Transfer duplicate check: "is there a live clone of this conference paper
+  /// at this journal?" runs on every invitation and submission.
+  @@index([originalManuscriptId, venueId])
+}
+
+/// Immutable file record. A revision inserts a new row rather than overwriting
+/// the previous file, so the version that was reviewed stays recoverable and
+/// `sha256` proves which bytes were assessed.
+model ManuscriptFile {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  round     Int
+  kind      String
+  /// Path inside the PRIVATE `manuscripts` bucket. Never a public URL; the
+  /// server mints a short-lived signed URL after the permission check.
+  filePath  String
+  fileName  String
+  mimeType  String
+  /// Bytes; Integer is enough (Postgres INTEGER ceiling is 2 GB).
+  sizeBytes Int
+  sha256    String
+  createdAt DateTime @default(now())
+
+  @@index([manuscriptId, round])
+}
+
+model ReviewTask {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  reviewerId String
+  reviewer   User   @relation("ReviewAssignments", fields: [reviewerId], references: [id])
+
+  round          Int             @default(0)
+  score          Int?
+  decision       ReviewDecision?
+  /// [{ page: number, quote: string, body: string }]. Validated by Zod on write;
+  /// never rendered as HTML.
+  inlineComments Json?
+
+  isCompleted Boolean   @default(false)
+  assignedAt  DateTime  @default(now())
+  dueAt       DateTime?
+  completedAt DateTime?
+
+  @@unique([manuscriptId, reviewerId, round])
+  @@index([reviewerId, completedAt, assignedAt(sort: Desc)])
+}
+
+model EditorialRole {
+  id        String             @id @default(cuid())
+  roleTitle EditorialRoleTitle
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+
+  @@unique([userId, venueId, roleTitle])
+  @@index([venueId, roleTitle])
+}
+
+/// Public editorial board listing. Deliberately separate from `EditorialRole`:
+/// most board members are external, have no account, and hold no permission.
+/// Structured rows feed the ISSN application and `Periodical` JSON-LD without
+/// parsing HTML.
+model EditorialBoardMember {
+  id          String  @id @default(cuid())
+  name        String
+  /// Free text ("Editor-in-Chief", "Associate Editor", "Advisory Board") — the
+  /// public label does not have to map to a permission role.
+  roleTitle   String
+  affiliation String?
+  orcid       String?
+  sortOrder   Int     @default(0)
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([venueId, sortOrder])
+}
+
+/// Append-only history for one manuscript. `actorId` is nullable because system
+/// transitions exist and because a deleted account must not erase history.
+model ManuscriptEvent {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  type       ManuscriptEventType
+  actorId    String?
+  actor      User?               @relation("ManuscriptEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  fromStatus ManuscriptStatus?
+  toStatus   ManuscriptStatus?
+  note       String?             @db.Text
+
+  /// Set only on `TRANSFER_INVITED`: the journal the author was invited to.
+  /// Keeping it here means an invitation is an event on the existing append-only
+  /// log, not a second table with its own lifecycle.
+  targetVenueId String?
+  targetVenue   Venue?  @relation("ManuscriptTransferInvites", fields: [targetVenueId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([manuscriptId, createdAt])
+  @@index([targetVenueId, type])
 }

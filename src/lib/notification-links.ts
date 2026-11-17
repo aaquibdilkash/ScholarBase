@@ -67,6 +67,14 @@ const TARGETS = {
   // Scholar profile — used by admin moderation notifications so a frozen,
   // deleted or recovered user lands on their own profile page.
   profile: { link: (t: string) => `/scholars/${t}`, label: "Scholar", noun: "scholar" },
+  // Manuscript workflow notices (transfer invitations, decisions) all land on
+  // the author's submission list; there is deliberately no per-manuscript
+  // public route, because unpublished work is not content.
+  manuscript: {
+    link: () => `/workspace/submissions`,
+    label: "Submissions",
+    noun: "submission",
+  },
 } satisfies Record<string, TargetDef>;
 
 type CanonicalTarget = keyof typeof TARGETS;
@@ -104,6 +112,7 @@ const targetTypeAliases: Record<string, CanonicalTarget> = {
   researchsurvey: "survey",
   supervisor: "supervisor",
   profile: "profile",
+  manuscript: "manuscript",
 };
 
 function normalizeTargetType(targetType: string) {
