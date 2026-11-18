@@ -449,7 +449,7 @@ If the conference recurs under a stable title with a stated frequency ("Proceedi
 
 ---
 
-## 11. DOI — why ₹0 cannot resolve on your own domain
+## 11. DOI — Zenodo now, Crossref later
 
 A DOI resolves because `doi.org` looks up the prefix with a Registration Agency. The prefix `10.xxxxx` is allocated only by Crossref or DataCite. You cannot self-mint one, and self-hosting a resolver doesn't help — nobody resolves through your server.
 
@@ -457,14 +457,61 @@ A DOI resolves because `doi.org` looks up the prefix with a Registration Agency.
 |---|---|---|---|
 | **Crossref** (2026 low-volume tier) | **US$200/yr** for publishing revenue/expenses ≤ US$1,000, plus ~US$1 per article DOI | Yours | Target for year 2; what Scopus/DOAJ expect |
 | DataCite direct member | €2,000/yr, no per-DOI fee | Yours | Overkill |
-| **Zenodo** | Free | `zenodo.org/records/…` | Interim only |
+| **Zenodo** | Free | `zenodo.org/records/…` | Interim only; **implemented** |
 | ARK / PURL | Free | Yours | Legitimate in libraries, not in citation manager workflows |
 
-**Interim plan:** stable canonical URLs + `citation_public_url`, `Manuscript.doi` nullable with `doiStatus`, and a Zenodo deposit recorded in `zenodoDepositId`. When Crossref is affordable, add the prefix and backfill `doi` — no schema change.
+**The limitation to state plainly:** a Zenodo DOI lands on the Zenodo record, not on ScholarBase. Only a Crossref/DataCite membership lets us register our own landing page. The deposit metadata therefore links back to the article in two places: a `related_identifiers` entry with `relation: isIdenticalTo` and a "Version of record" link in the description. Do not promise an author that `doi.org/<doi>` opens this site.
 
-**Build Crossref-ready metadata now, pay later.** A deposit needs title, ordered authors with affiliations/ORCID, abstract, page range, licence URL, and ISSN on a resolving landing page — the article page has all of it. The only schema additions are `Manuscript.coAuthors` and `Venue.licenseUrl`.
+### How minting works
 
-The mint route (`/api/publishing/mint-doi`) must be idempotent: persist `doiStatus` **and** `zenodoDepositId` before/after the call, and never deposit twice on retry. Zenodo will happily create a duplicate.
+Built as `src/lib/publishing/{zenodo,doi-metadata}.ts` + `src/app/actions/doi.ts`, surfaced by `DoiPanel` on `/workspace/editorial/manuscripts/[id]`. Only the Editor-in-Chief (or a platform admin) can mint, and only on a `PUBLISHED` article. The desk's **Recently published** list is the way back into a paper after it leaves the accepted queue.
+
+The flow uses Zenodo's legacy deposit API (`create → upload → metadata → publish`) because it needs no DataCite account:
+
+```
+POST /api/deposit/depositions                     id + links.bucket
+PUT  {bucket}/{filename}                          the PDF version of record
+PUT  /api/deposit/depositions/{id}                { metadata }
+POST /api/deposit/depositions/{id}/actions/publish
+GET  /api/deposit/depositions/{id}                state, doi, record_url
+```
+
+Idempotency is enforced in the action, not in Zenodo — Zenodo will happily create a duplicate deposit:
+
+1. `Manuscript.doi` set → return success, no network call.
+2. Claim the row by writing `doiStatus = PENDING` **before** the first outbound request.
+3. Persist `zenodoDepositId` immediately after `create`.
+4. On retry, `GET` that deposit: if it is already `submitted`, record its DOI; otherwise upload only missing files, re-put metadata, and publish.
+5. Any failure records `FAILED`; the panel offers **Retry minting**, which resumes the same deposit.
+
+A fresh `PENDING` row is another editor's in-flight request. A `PENDING` row older than two minutes is treated as a crashed run and is safe to resume because the deposit id is reused. A crash between `PENDING` and `create` leaves no deposit id; that row is also reclaimable.
+
+### Environment
+
+| Variable | Meaning |
+|---|---|
+| `ZENODO_TOKEN` | Personal token with `deposit:write` + `deposit:actions`. Blank disables minting without breaking published articles. |
+| `ZENODO_SANDBOX` | `true` uses `sandbox.zenodo.org` (test DOI prefix `10.5072`). |
+| `ZENODO_API_URL` | Optional full API base override (proxy or self-hosted sandbox). |
+
+The mint action needs the service-role key to read the private PDF bucket, and `npm run storage:manuscripts` must have created the `manuscripts` bucket.
+
+### Metadata mapping
+
+`buildDoiMetadata` is pure and tested:
+
+- `upload_type: publication`, `publication_type: article | conferencepaper`
+- creators in `Family, Given` order with affiliations and bare ORCID iDs
+- abstract escaped into Zenodo's allowed HTML subset
+- licence from `Venue.licenseUrl` (`cc-by-4.0` by default); an unrecognised licence becomes `other-open`, never a false CC label
+- `journal_title`, `journal_volume`, `journal_issue`, `journal_pages`, `issn` for journals
+- `conference_title`, `isbn` for proceedings
+- publication date, keywords, publisher (`imprint_publisher`), and the canonical article URL as `isIdenticalTo`
+
+Once `Manuscript.doi` is written, the public article page, Highwire `citation_doi`, RIS/BibTeX downloads, and JSON-LD render it with no further work.
+
+**Crossref migration:** when the membership is affordable, add the prefix and backfill `doi` (and `zenodoDepositId` for the provenance trail). No schema change is needed. The old plan for an `/api/publishing/mint-doi` route was dropped in favour of a Server Action; there is no public mint endpoint.
+
 
 ---
 
@@ -509,17 +556,19 @@ Built today (all of these exist in `src/app/`):
 /workspace/submissions/[id]          one submission: authors, abstract, files, event timeline, withdraw
 /workspace/submissions/new           direct submission (`?venue=<slug>`) or invited extended version (`?invitation=<eventId>`)
 /workspace/editorial                 desk: papers awaiting action, your review queue, publish, transfer invite
-/workspace/editorial/manuscripts/[id] one paper's review workspace: assign reviewers, reports, decision
+/workspace/editorial/board           decision board: one column per stage, safe triage moves
+/workspace/editorial/manuscripts/[id] one paper's review workspace: assign reviewers, reports, decision, DOI
 /workspace/editorial/settings        EiC venue CMS
 /api/manuscripts/[id]/file           302 to a signed PDF for the author, its reviewers, and the desk
 /workspace/admin                     venue provisioning (gated on `User.isAdmin`)
 ```
 
-Not built: the decision Kanban. The board is a status-count view for the desk,
-not a new capability — every decision it would offer is already a button on
-`/workspace/editorial/manuscripts/[id]`, and a drag-and-drop column that writes
-the same transition is a second implementation of the state machine. Revisit
-only when a venue routinely carries more open papers than one page can show.
+The decision board is a view, not a second state machine. Columns come from
+`src/lib/publishing/board.ts`; a card offers only the reversible
+`UNDER_REVIEW ⇄ REVISION_REQUIRED` / `SUBMITTED → UNDER_REVIEW` moves that the
+actor's seat can set, and accepted cards link to the publication panel rather
+than publishing from a click. No drag-and-drop dependency was added; the writes
+go through `decideManuscriptAction`.
 
 Next 16: `params` is a `Promise` — `const { slug } = await params`. Metadata via `buildMetadata` (`src/lib/seo.ts`); add a thin scholarly wrapper rather than duplicating it.
 
@@ -591,6 +640,10 @@ Pure modules, unit tier (`npm test`, no DB):
 - `test/publishing/sanitize.test.ts` — `<script>`, `onerror`, `javascript:`, pasted `style`/`class` stripped from venue content
 - `test/publishing/reviews.test.ts` — assignment refusals (no seat, author, self, duplicate), the SUBMITTED → UNDER_REVIEW opening, report validation, the anonymous `REVIEW_SUBMITTED` event, decision refusals (no report, no letter, illegal edge, `PUBLISHED`), the lost-race path, and interest ranking
 - `test/publishing/manuscripts.test.ts` — direct/invited submission, publish, **and author withdrawal** (author only, not after acceptance, not when published, desk notified)
+- `test/publishing/zenodo.test.ts` — sandbox/production host resolution, token-free upload target, empty-`202` publish read-back, attached-file listing, bare DOI normalization
+- `test/publishing/doi-metadata.test.ts` — journal vs conference-paper schema, creator/ORCID mapping, HTML escaping, licence mapping, canonical `isIdenticalTo`
+- `test/publishing/doi.test.ts` — mint-once, already-minted short-circuit, resume of a submitted deposit, `FAILED` on error, non-published/non-EiC/no-PDF refusals, unconfigured degradation, concurrent-claim refusal
+- `test/publishing/board.test.ts` — column mapping, published/withdrawn excluded, and the safe one-click move set per seat
 
 Integration tier (`test/integration/**`, loopback Postgres only):
 
@@ -615,24 +668,24 @@ Finish every change with `npm run lint && npm run typecheck && npm run test:cove
 | 6 | `/sbj/[slug]` + article page + RIS + JSON-LD + Highwire | issue 1 |
 | 7 | `/workspace/admin` provisioning + `/workspace/editorial/settings` (Tiptap) | ISSN application |
 | 8 | **Publish issue 1 → apply for ISSN** | DOAJ |
-| 9 | Reviewer suggestions (**done**, §14); editorial Kanban (**not built**) | scale |
+| 9 | Reviewer suggestions (**done**, §14); editorial Kanban (**done** in `board.ts` + `/workspace/editorial/board`) | scale |
 | 10 | `/sbc/[slug]` + proceedings volume + ISBN | — |
 | 11 | Opportunity ETL staging pipeline | — |
-| 12 | Crossref application (budget permitting) | indexing |
+| 12 | Crossref application (budget permitting); Zenodo minting (**done**, §11) | indexing |
 | 13 | HTML full text — **deferred**, see §20 | — |
 
 Sitemap sharding is independent and can land any time after phase 1.
 
 **Where it stands:** phases 1–7, the review workspace (5), reviewer
-suggestions (9), and 10 are in place. The workspace shell, author submission
-flow (direct and invited), review workspace (assign → report → decide), author
-withdrawal, publish/transfer actions, the venue CMS with identifiers and board,
-and the public `/sbj` and `/sbc` sites all exist.
+suggestions (9), the decision board (9), Zenodo DOI minting (11), and 10 are in
+place. The workspace shell, author submission flow (direct and invited), review
+workspace (assign → report → decide), author withdrawal, publish/transfer
+actions, the venue CMS with identifiers and board, and the public `/sbj` and
+`/sbc` sites all exist.
 
-Not built: the decision Kanban (a status-count view; every action it would
-offer already exists on the review workspace), the opportunity ETL (11),
-Crossref/Zenodo minting (12 — schema fields exist, no code reads them), and HTML
-full text (13, deferred by §20).
+Not built: the opportunity ETL (11), Crossref (12 — the schema and the Zenodo
+bridge exist; a Crossref prefix is a paid membership), and HTML full text (13,
+deferred by §20).
 
 Phase 5 is a route change from the original spec: the reviewer split screen is
 `/workspace/editorial/manuscripts/[id]`, not `/workspace/reviews/[taskId]`.

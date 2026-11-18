@@ -98,7 +98,7 @@ export default async function EditorialPage() {
 
   const deskVenueIds = [...new Set(roles.map((role) => role.venue.id))];
 
-  const [transferManuscripts, journals, publishable, inbox] =
+  const [transferManuscripts, journals, publishable, inbox, recentPublished] =
     await Promise.all([
       conferenceIds.length
         ? prisma.manuscript.findMany({
@@ -163,6 +163,30 @@ export default async function EditorialPage() {
               status: true,
               createdAt: true,
               author: { select: { name: true, email: true } },
+              venue: { select: { name: true } },
+            },
+          })
+        : Promise.resolve([]),
+      // Publication is where the DOI panel lives, so the desk needs a way back
+      // into a paper after it leaves the accepted queue.
+      publisherVenueIds.length
+        ? prisma.manuscript.findMany({
+            where: {
+              venueId: { in: publisherVenueIds },
+              status: "PUBLISHED",
+            },
+            orderBy: [
+              { publishedAt: { sort: "desc", nulls: "last" } },
+              { createdAt: "desc" },
+            ],
+            take: 12,
+            select: {
+              id: true,
+              title: true,
+              volume: true,
+              issue: true,
+              publishedAt: true,
+              doi: true,
               venue: { select: { name: true } },
             },
           })
@@ -243,11 +267,20 @@ export default async function EditorialPage() {
   return (
     <main className="space-y-6">
       <header>
-        <h1 className="sb-heading text-2xl">Editorial</h1>
-        <p className="sb-subtitle mt-2 text-sm">
-          Review, decide, publish, and invite conference authors to submit an
-          extended version to a journal.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="sb-heading text-2xl">Editorial</h1>
+            <p className="sb-subtitle mt-2 text-sm">
+              Review, decide, publish, and invite conference authors to submit an
+              extended version to a journal.
+            </p>
+          </div>
+          {roles.length > 0 ? (
+            <Link className="sb-button-soft" href="/workspace/editorial/board">
+              Open decision board
+            </Link>
+          ) : null}
+        </div>
         {roles.length > 0 ? (
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             You hold:{" "}
@@ -338,6 +371,61 @@ export default async function EditorialPage() {
 
       {publisherVenueIds.length > 0 ? (
         <PublishManuscriptPanel candidates={publishCandidates} />
+      ) : null}
+
+      {publisherVenueIds.length > 0 && recentPublished.length > 0 ? (
+        <section className="sb-card">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+            Recently published
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Open a paper to register its DOI. Registration happens after
+            publication so an issue never waits on Zenodo.
+          </p>
+          <ul className="mt-3 divide-y divide-[var(--card-border)]">
+            {recentPublished.map((manuscript) => (
+              <li
+                className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                key={manuscript.id}
+              >
+                <div className="min-w-0">
+                  <Link
+                    className="text-sm font-medium text-slate-900 underline-offset-2 hover:underline dark:text-slate-100"
+                    href={`/workspace/editorial/manuscripts/${manuscript.id}`}
+                  >
+                    {manuscript.title}
+                  </Link>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    {manuscript.venue.name}
+                    {manuscript.volume
+                      ? ` ${manuscript.volume}${manuscript.issue ? `(${manuscript.issue})` : ""}`
+                      : ""}
+                    {manuscript.publishedAt
+                      ? ` · ${formatDate(manuscript.publishedAt)}`
+                      : ""}
+                  </p>
+                </div>
+                {manuscript.doi ? (
+                  <a
+                    className="text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
+                    href={`https://doi.org/${manuscript.doi}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    {manuscript.doi}
+                  </a>
+                ) : (
+                  <Link
+                    className="text-xs font-semibold text-blue-700 underline-offset-2 hover:underline dark:text-blue-300"
+                    href={`/workspace/editorial/manuscripts/${manuscript.id}`}
+                  >
+                    Mint DOI →
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {conferenceIds.length > 0 ? (

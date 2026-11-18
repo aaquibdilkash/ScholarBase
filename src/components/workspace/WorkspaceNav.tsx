@@ -7,6 +7,7 @@ import { BookOpenCheck, Plus } from "lucide-react";
 const LINKS = [
   { href: "/workspace/submissions", label: "Submissions" },
   { href: "/workspace/editorial", label: "Editorial" },
+  { href: "/workspace/editorial/board", label: "Board" },
   { href: "/workspace/editorial/settings", label: "Venue settings" },
 ] as const;
 

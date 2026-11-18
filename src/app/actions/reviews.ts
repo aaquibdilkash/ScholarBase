@@ -65,6 +65,7 @@ function fail(message: string): ReviewActionResult {
 
 function revalidateManuscript(manuscriptId: string) {
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
   revalidatePath(`/workspace/editorial/manuscripts/${manuscriptId}`);
   revalidatePath(`/workspace/submissions/${manuscriptId}`);
 }

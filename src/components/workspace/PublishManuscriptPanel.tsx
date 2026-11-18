@@ -184,7 +184,7 @@ export function PublishManuscriptPanel({
   }
 
   return (
-    <section className="sb-card">
+    <section className="sb-card" id="publication">
       <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
         Awaiting publication
       </h2>

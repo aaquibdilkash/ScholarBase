@@ -22,11 +22,13 @@ import {
   canEditorSetStatus,
   isStatusAllowedForVenue,
 } from "@/lib/publishing/permissions";
+import { isZenodoConfigured } from "@/lib/publishing/zenodo";
 import { nextStatuses } from "@/lib/publishing/transitions";
 import { ManuscriptStatusBadge } from "@/components/workspace/ManuscriptStatusBadge";
 import { AssignReviewerPanel } from "@/components/workspace/AssignReviewerPanel";
 import { ReviewReportForm } from "@/components/workspace/ReviewReportForm";
 import { DecisionPanel } from "@/components/workspace/DecisionPanel";
+import { DoiPanel } from "@/components/workspace/DoiPanel";
 
 export const metadata: Metadata = buildNoindexMetadata(
   "Review workspace - ScholarBase",
@@ -75,6 +77,8 @@ export default async function EditorialManuscriptPage({
       firstPage: true,
       lastPage: true,
       publishedAt: true,
+      doi: true,
+      doiStatus: true,
       venue: { select: { name: true, slug: true, type: true, isPublished: true } },
       author: { select: { name: true, email: true, orcidUrl: true } },
       files: {
@@ -131,6 +135,8 @@ export default async function EditorialManuscriptPage({
     .filter(Boolean);
 
   const actor = { roles: permissions.roles, isAdmin: permissions.isAdmin };
+  const canMintDoi = canEditorSetStatus(actor, "PUBLISHED");
+  const zenodoConfigured = isZenodoConfigured();
   const decisionOptions = nextStatuses(manuscript.status).filter(
     (status) =>
       // Publishing records the citation locator; withdrawal belongs to the
@@ -498,6 +504,16 @@ export default async function EditorialManuscriptPage({
             </section>
           ) : null}
 
+          {manuscript.status === "PUBLISHED" && permissions.isEditor ? (
+            <DoiPanel
+              canMint={canMintDoi}
+              configured={zenodoConfigured}
+              doi={manuscript.doi}
+              manuscriptId={manuscript.id}
+              status={manuscript.doiStatus}
+            />
+          ) : null}
+
           <section aria-labelledby="details-heading" className="sb-card">
             <h2
               id="details-heading"
@@ -541,6 +557,9 @@ export default async function EditorialManuscriptPage({
                   label="Published"
                   value={formatDate(manuscript.publishedAt)}
                 />
+              ) : null}
+              {manuscript.doi ? (
+                <DetailRow label="DOI" value={manuscript.doi} />
               ) : null}
             </dl>
           </section>

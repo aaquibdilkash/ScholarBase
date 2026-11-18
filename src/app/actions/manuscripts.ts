@@ -247,6 +247,7 @@ export async function inviteAuthorToJournalAction(
 
   revalidatePath("/workspace/submissions");
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
 
   return {
     success: true,
@@ -429,6 +430,7 @@ export async function createManuscriptSubmissionAction(
 
   revalidatePath("/workspace/submissions");
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
 
   return {
     success: true,
@@ -662,6 +664,7 @@ export async function createDirectSubmissionAction(
 
   revalidatePath("/workspace/submissions");
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
 
   return {
     success: true,
@@ -805,6 +808,7 @@ export async function declineTransferInvitationAction(
 
   revalidatePath("/workspace/submissions");
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
 
   return {
     success: true,
@@ -982,6 +986,7 @@ export async function publishManuscriptAction(
     revalidatePath(`/${prefix}/${manuscript.venue.slug}/proceedings/${volume}`);
   }
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
   revalidatePath(`/${prefix}`);
 
   return {
@@ -1091,6 +1096,7 @@ export async function withdrawManuscriptAction(
   revalidatePath("/workspace/submissions");
   revalidatePath(`/workspace/submissions/${manuscript.id}`);
   revalidatePath("/workspace/editorial");
+  revalidatePath("/workspace/editorial/board");
   revalidatePath(`/workspace/editorial/manuscripts/${manuscript.id}`);
 
   return {
