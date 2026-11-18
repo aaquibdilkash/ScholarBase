@@ -105,16 +105,55 @@ existing digest/email pipeline, never a synchronous send).
 | Author accepts and submits | the inviting editor **and** the target journal's EiC / Track Chairs | the editorial desk |
 | Author declines | the inviting editor | the editorial desk |
 | Author submits directly | the venue's EiC / Track Chairs | the editorial desk |
+| Editor assigns a reviewer | that reviewer | the paper's review workspace |
+| Reviewer submits a report | every seat holder at the venue except the reviewer | the paper's review workspace |
+| Editor records a decision | the author | the author's submission |
+| Author withdraws | every seat holder at the venue | the paper's review workspace |
 | Manuscript published | the author | the published submission (with its public article link) |
 | Venue published / unpublished | every role holder at that venue | the editorial desk |
 | Editorial role granted | the new editor | the editorial desk |
 
-An author's manuscript notice links to `/workspace/submissions/<id>`; editor
-notices link to `/workspace/editorial`. `notifyUserById` is a no-op when the
-recipient is the actor, and duplicate recipients are de-duplicated before
-queueing.
+Target types in `src/lib/notification-links.ts`: `manuscript` → the author's
+`/workspace/submissions/<id>`, `editorial` → the desk, and `editorialManuscript`
+→ that paper's review workspace. `notifyUserById` is a no-op when the recipient
+is the actor, and duplicate recipients are de-duplicated before queueing.
+
+The reviewer's report event is written with **no actor id** on purpose: the
+author's timeline shows that a report landed and the decision letter, never the
+reviewer's name. Reviewer identity lives only on `ReviewTask`, which the author
+cannot read.
 
 An invitation is open when the **latest** event for `(manuscriptId, targetVenueId)` is `TRANSFER_INVITED` and no live clone exists. Declining therefore closes it without mutating history, and the editor may invite again. Only `ACCEPTED_PROCEDINGS` is invitable; an invitation created before the proceedings volume is published stays actionable after the source moves to `PUBLISHED`.
+
+---
+
+### Review workspace
+
+One route serves both audiences, gated per capability
+(`src/lib/publishing/access.ts`):
+
+- **Desk** (`EDITOR_IN_CHIEF`, `TRACK_CHAIR`, `ASSOC_EDITOR`, or platform admin):
+  sees every report with reviewer names, may assign a reviewer, and may record a
+  decision from the options the state machine and their seat allow.
+- **Assigned reviewer**: sees their own report form only. They need no editorial
+  seat; the route and `/api/manuscripts/[id]/file` both admit them by
+  `ReviewTask` row for the current round.
+
+Assigning the first reviewer writes `REVIEW_ASSIGNED` and moves `SUBMITTED` →
+`UNDER_REVIEW` in one transaction (conditional on the status that was read, so
+two editors cannot double-transition). A report stores `score` (1–10),
+`decision`, and the prose in `inlineComments`, then appends `REVIEW_SUBMITTED`
+with **no actor** so the author's timeline stays anonymous. A decision appends
+`STATUS_CHANGED` with the decision letter as its note and notifies the author.
+
+A decision can never set `PUBLISHED` here: that belongs to the publication panel
+(§3), which records the citation locator in the same write. The decision action
+refuses acceptance or rejection without at least one completed report, and
+requires a decision letter for a rejection.
+
+The reviewer's report is `inlineComments: [{ body }]` — the stored note shape
+with no page anchor. `reviewReportBody` reads it, and also tolerates a bare
+string from any earlier row.
 
 ---
 
@@ -133,6 +172,19 @@ Implemented as `src/lib/publishing/transitions.ts` — a plain map, no database 
 | `DESK_REJECTED`, `REJECTED`, `WITHDRAWN` | *(terminal)* | — |
 
 `WITHDRAWN` is missing from the original spec and is required: authors must be able to withdraw before acceptance, and the record must survive.
+
+Author withdrawal is a **separate predicate** (`canAuthorWithdraw`), not an edge
+in the table above. The editorial table's invariant is "nothing reaches
+`PUBLISHED` without review"; author consent is a different question, and the
+common case — pulling a paper during review — is an edge the editor-facing
+table deliberately does not have. Withdrawal is allowed from `SUBMITTED`,
+`UNDER_REVIEW`, and `REVISION_REQUIRED`; `STATUS_ACTOR_ROLES.WITHDRAWN` stays
+empty, so no editor can withdraw a paper on an author's behalf.
+
+`decideManuscriptAction` refuses `PUBLISHED` outright: `publishManuscriptAction`
+is the only writer of that status because it also records the volume, issue, and
+pages. Any other route to `PUBLISHED` would create the empty archive entry an
+ISSN reviewer rejects.
 
 A transfer is **not a status transition**. The conference editor writes one
 `TRANSFER_INVITED` event (`ManuscriptEvent.targetVenueId`); the author then
@@ -454,17 +506,20 @@ Built today (all of these exist in `src/app/`):
 /api/papers/[id]/cite?format=ris|bibtex
 /workspace                           redirects to /workspace/submissions
 /workspace/submissions               author's manuscripts + open invitations
-/workspace/submissions/[id]          one submission: authors, abstract, files, event timeline
+/workspace/submissions/[id]          one submission: authors, abstract, files, event timeline, withdraw
 /workspace/submissions/new           direct submission (`?venue=<slug>`) or invited extended version (`?invitation=<eventId>`)
-/workspace/editorial                 publish an accepted paper; invite a conference author to a journal
+/workspace/editorial                 desk: papers awaiting action, your review queue, publish, transfer invite
+/workspace/editorial/manuscripts/[id] one paper's review workspace: assign reviewers, reports, decision
 /workspace/editorial/settings        EiC venue CMS
+/api/manuscripts/[id]/file           302 to a signed PDF for the author, its reviewers, and the desk
 /workspace/admin                     venue provisioning (gated on `User.isAdmin`)
 ```
 
-Not built (documented, no route yet): the reviewer split screen
-(`/workspace/reviews/[taskId]`) and the decision Kanban. Reviewer assignment and
-decisions currently exist as Server Actions and `ManuscriptEvent` writes; the
-public site only shows `PUBLISHED` papers, so their absence does not affect it.
+Not built: the decision Kanban. The board is a status-count view for the desk,
+not a new capability — every decision it would offer is already a button on
+`/workspace/editorial/manuscripts/[id]`, and a drag-and-drop column that writes
+the same transition is a second implementation of the state machine. Revisit
+only when a venue routinely carries more open papers than one page can show.
 
 Next 16: `params` is a `Promise` — `const { slug } = await params`. Metadata via `buildMetadata` (`src/lib/seo.ts`); add a thin scholarly wrapper rather than duplicating it.
 
@@ -485,17 +540,35 @@ Current state: `src/app/sitemap.ts` (force-dynamic, 24 h `unstable_cache`) + `sr
 
 ---
 
-## 14. Reviewer suggestion (one embedding call, no new pipeline)
+## 14. Reviewer suggestion (built: stated interests, no model call)
 
-- Endpoint: `POST /api/workspace/reviewer-suggestions` — editor-only, rate-limited, returns 10 candidates.
-- Embeds the abstract with `embedTexts` from `src/lib/semantic/model.ts` (singleton, 384-d MiniLM) and runs a `<=>` raw query against the existing `User.embedding` HNSW index, modelled on `findSimilarScholars` in `src/lib/semantic/matching.ts`.
-- Excludes the author, existing reviewers, and declared conflicts.
-- **Build gotcha:** `next.config.ts` traces ONNX binaries only for `/api/cron/embed-content`. A Server Action or page importing `transformers` works in `next dev` and dies in the Docker image. Add `/api/workspace/reviewer-suggestions` to `outputFileTracingIncludes` (and the matching excludes).
-- Fallback: if the model fails to load, rank by venue keywords so the modal is never a dead end.
+Built as `src/lib/publishing/reviewer-suggestions.ts`, rendered inside the
+`AssignReviewerPanel` on `/workspace/editorial/manuscripts/[id]`.
+
+- Candidates come from `User.interests` — the free-text field each scholar fills
+  in themselves — ranked by how many of the manuscript's keywords appear in it.
+  One query (a single `OR` over the keywords, `take: 40`), ranked in memory, top
+  5. No embedding, no new route, no round trip: the page already has the
+  keywords, so the shortlist is server-rendered with it.
+- Excludes the author, existing reviewers, frozen/deleted accounts, and anyone
+  with zero overlap. The editor still picks; the action still refuses the author,
+  the assigning editor, and a duplicate assignment.
+- Wording is deliberately modest ("from stated research interests", "matches
+  optics"). Interest text is self-declared, not evidence of expertise, and the UI
+  must not imply otherwise.
+- Upgrade path (not built): embed the abstract with `embedTexts` and rank on
+  `User.embedding` as `findSimilarScholars` does. That needs the ONNX tracing
+  fix first — `next.config.ts` traces the model only for
+  `/api/cron/embed-content`, so a page importing `transformers` works in
+  `next dev` and dies in the Docker image. Do not add it without that change.
 
 ---
 
-## 15. Opportunity ETL (build last)
+## 15. Opportunity ETL (not built — do not scaffold the table early)
+
+Status: nothing exists. No model, no migration, no route. A staging table with
+no reader, no writer, and no admin screen is dead schema, and the project rule
+is to delete before adding.
 
 Do **not** write AI-extracted rows into public content tables.
 
@@ -516,6 +589,8 @@ Pure modules, unit tier (`npm test`, no DB):
 - `test/publishing/transitions.test.ts` — every allowed edge, and that every illegal edge is rejected
 - `test/publishing/permissions.test.ts` — reviewer blinding, role matrix, `TRACK_CHAIR` cannot publish
 - `test/publishing/sanitize.test.ts` — `<script>`, `onerror`, `javascript:`, pasted `style`/`class` stripped from venue content
+- `test/publishing/reviews.test.ts` — assignment refusals (no seat, author, self, duplicate), the SUBMITTED → UNDER_REVIEW opening, report validation, the anonymous `REVIEW_SUBMITTED` event, decision refusals (no report, no letter, illegal edge, `PUBLISHED`), the lost-race path, and interest ranking
+- `test/publishing/manuscripts.test.ts` — direct/invited submission, publish, **and author withdrawal** (author only, not after acceptance, not when published, desk notified)
 
 Integration tier (`test/integration/**`, loopback Postgres only):
 
@@ -536,11 +611,11 @@ Finish every change with `npm run lint && npm run typecheck && npm run test:cove
 | 2 | `src/lib/publishing/{identifiers,transitions,permissions}.ts` + tests | actions, UI |
 | 3 | Storage: private bucket, signed upload, SHA-256, CSP `frame-src` | submissions, reviews |
 | 4 | `/workspace/submissions` + submit action | issue 1 |
-| 5 | `/workspace/reviews/[taskId]` + review action | issue 1 |
+| 5 | `/workspace/editorial/manuscripts/[id]` + assign/report/decide actions | issue 1 |
 | 6 | `/sbj/[slug]` + article page + RIS + JSON-LD + Highwire | issue 1 |
 | 7 | `/workspace/admin` provisioning + `/workspace/editorial/settings` (Tiptap) | ISSN application |
 | 8 | **Publish issue 1 → apply for ISSN** | DOAJ |
-| 9 | `/workspace/editorial` Kanban + reviewer suggestions | scale |
+| 9 | Reviewer suggestions (**done**, §14); editorial Kanban (**not built**) | scale |
 | 10 | `/sbc/[slug]` + proceedings volume + ISBN | — |
 | 11 | Opportunity ETL staging pipeline | — |
 | 12 | Crossref application (budget permitting) | indexing |
@@ -548,7 +623,22 @@ Finish every change with `npm run lint && npm run typecheck && npm run test:cove
 
 Sitemap sharding is independent and can land any time after phase 1.
 
-**Where it stands:** phases 1–4, 6, 7, and 10 are in place: the workspace shell and author submission flow (direct and invited), publish/transfer actions, the venue CMS with identifiers and board, and the public `/sbj` and `/sbc` sites including article landing pages, proceedings volumes, RIS/BibTeX, Highwire metadata, and JSON-LD. Not built: the review workspace (5), the editorial Kanban and reviewer suggestions (9), the opportunity ETL (11), Crossref deposits (12), and HTML full text (13, deferred).
+**Where it stands:** phases 1–7, the review workspace (5), reviewer
+suggestions (9), and 10 are in place. The workspace shell, author submission
+flow (direct and invited), review workspace (assign → report → decide), author
+withdrawal, publish/transfer actions, the venue CMS with identifiers and board,
+and the public `/sbj` and `/sbc` sites all exist.
+
+Not built: the decision Kanban (a status-count view; every action it would
+offer already exists on the review workspace), the opportunity ETL (11),
+Crossref/Zenodo minting (12 — schema fields exist, no code reads them), and HTML
+full text (13, deferred by §20).
+
+Phase 5 is a route change from the original spec: the reviewer split screen is
+`/workspace/editorial/manuscripts/[id]`, not `/workspace/reviews/[taskId]`.
+Editors and reviewers need the same page (title, abstract, PDF, timeline) and
+differ only in which sections they may see, so one route with a capability check
+beats two routes with duplicated context.
 
 ---
 
