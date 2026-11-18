@@ -10,6 +10,7 @@ import { readFormValue } from "@/lib/form";
 import {
   MAX_DECISION_NOTE,
   MAX_REVIEW_COMMENTS,
+  MAX_REVIEW_CONFLICT_REASON,
   MAX_REVIEW_SCORE,
   MIN_REVIEW_SCORE,
 } from "@/lib/publishing/constants";
@@ -22,6 +23,7 @@ import {
 import { canTransition, nextStatuses } from "@/lib/publishing/transitions";
 import { MANUSCRIPT_STATUS_LABELS } from "@/lib/publishing/labels";
 import { notifyUserById } from "@/lib/notifications";
+import { storedAuthorEmails } from "@/lib/publishing/coauthors";
 
 /**
  * The peer-review workflow: assign a reviewer, record a report, decide.
@@ -129,6 +131,7 @@ export async function assignReviewerAction(
       status: true,
       round: true,
       authorId: true,
+      coAuthors: true,
       venueId: true,
       venue: { select: { name: true } },
     },
@@ -140,6 +143,12 @@ export async function assignReviewerAction(
     return fail("Only an editor of this venue can assign reviewers.");
   }
 
+  const assigningRecusal = await prisma.manuscriptRecusal.findUnique({
+    where: { manuscriptId_userId: { manuscriptId, userId: auth.user.id } },
+    select: { id: true },
+  });
+  if (assigningRecusal) return fail("You recused from this manuscript and cannot assign its reviewers.");
+
   if (!ASSIGNABLE_STATUSES.includes(manuscript.status)) {
     return fail(
       `${MANUSCRIPT_STATUS_LABELS[manuscript.status]} manuscripts cannot take a new reviewer.`,
@@ -148,7 +157,7 @@ export async function assignReviewerAction(
 
   const reviewer = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, name: true, handle: true, isFrozen: true, isDeleted: true },
+    select: { id: true, name: true, handle: true, email: true, isFrozen: true, isDeleted: true },
   });
   if (!reviewer) {
     return fail(
@@ -160,6 +169,9 @@ export async function assignReviewerAction(
   }
   if (reviewer.id === manuscript.authorId) {
     return fail("The author of a paper cannot review it.");
+  }
+  if (reviewer.email && storedAuthorEmails(manuscript.coAuthors).includes(reviewer.email.toLowerCase())) {
+    return fail("A listed co-author cannot review this manuscript.");
   }
   if (reviewer.id === auth.user.id) {
     return fail("Assign someone else — self-review is a conflict of interest.");
@@ -181,6 +193,18 @@ export async function assignReviewerAction(
         ? `${reviewer.name ?? reviewer.handle ?? "That reviewer"} has already reported on this round.`
         : `${reviewer.name ?? reviewer.handle ?? "That reviewer"} is already assigned.`,
     );
+  }
+
+  const priorRecusal = await prisma.reviewTask.findFirst({
+    where: {
+      manuscriptId,
+      reviewerId: reviewer.id,
+      conflictDeclaredAt: { not: null },
+    },
+    select: { id: true },
+  });
+  if (priorRecusal) {
+    return fail("That reviewer has previously recused from this manuscript.");
   }
 
   const actorName = auth.user.email ?? "an editor";
@@ -242,6 +266,168 @@ export async function assignReviewerAction(
 }
 
 /**
+ * Let an invited reviewer recuse themselves with a durable reason. The task is
+ * retained rather than deleted so the desk can prove why the invitation did
+ * not produce a report and can never accidentally reassign the same person.
+ */
+export async function declareReviewConflictAction(
+  _previous: ReviewActionResult,
+  formData: FormData,
+): Promise<ReviewActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+
+  const limit = await enforceRateLimit({
+    namespace: "manuscript:review-conflict",
+    key: auth.user.id,
+    limit: 20,
+    window: "1 h",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const manuscriptId = readFormValue(formData, "manuscriptId");
+  const reason = readFormValue(formData, "reason").trim();
+  if (!manuscriptId) return fail("Choose a manuscript first.");
+  if (reason.length < 10) return fail("Explain the conflict in at least 10 characters.");
+  if (reason.length > MAX_REVIEW_CONFLICT_REASON) {
+    return fail(`Keep the conflict explanation under ${MAX_REVIEW_CONFLICT_REASON} characters.`);
+  }
+
+  const manuscript = await prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    select: { id: true, round: true, venueId: true, title: true },
+  });
+  if (!manuscript) return fail("That manuscript no longer exists.");
+
+  const assignment = await prisma.reviewTask.findUnique({
+    where: {
+      manuscriptId_reviewerId_round: {
+        manuscriptId,
+        reviewerId: auth.user.id,
+        round: manuscript.round,
+      },
+    },
+    select: { id: true, conflictDeclaredAt: true, isCompleted: true },
+  });
+  if (!assignment) return fail("You are not assigned to review this manuscript.");
+  if (assignment.isCompleted) return fail("A completed report cannot be recused.");
+  if (assignment.conflictDeclaredAt) return fail("You have already recused from this manuscript.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reviewTask.update({
+      where: { id: assignment.id },
+      data: { conflictDeclaredAt: new Date(), conflictReason: reason },
+    });
+    await tx.manuscriptEvent.create({
+      data: {
+        manuscriptId,
+        type: "REVIEW_RECUSAL_DECLARED",
+        actorId: auth.user.id,
+        note: "Assigned reviewer declared a conflict and was recused.",
+      },
+    });
+  });
+
+  const recipients = (await deskRecipients(manuscript.venueId)).filter(
+    (recipientId) => recipientId !== auth.user.id,
+  );
+  await Promise.all(
+    recipients.map((recipientId) =>
+      notifyUserById({
+        recipientId,
+        actorId: auth.user.id,
+        type: "manuscript-review-conflict",
+        targetType: "editorialManuscript",
+        targetId: manuscriptId,
+        title: `Reviewer recused: ${manuscript.title}`,
+        body: "An assigned reviewer declared a conflict of interest. Assign a replacement reviewer.",
+      }),
+    ),
+  );
+
+  revalidateManuscript(manuscriptId);
+  return { success: true, message: "Conflict recorded. You are recused from this manuscript." };
+}
+
+/**
+ * Recuse an editorial seat from one manuscript. This does not remove the
+ * venue role; it only creates a durable per-manuscript prohibition that every
+ * assignment, decision, and publication path checks server-side.
+ */
+export async function declareEditorialRecusalAction(
+  _previous: ReviewActionResult,
+  formData: FormData,
+): Promise<ReviewActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+
+  const limit = await enforceRateLimit({
+    namespace: "manuscript:editorial-recusal",
+    key: auth.user.id,
+    limit: 20,
+    window: "1 h",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const manuscriptId = readFormValue(formData, "manuscriptId");
+  const reason = readFormValue(formData, "reason").trim();
+  if (!manuscriptId) return fail("Choose a manuscript first.");
+  if (reason.length < 10) return fail("Explain the conflict in at least 10 characters.");
+  if (reason.length > MAX_REVIEW_CONFLICT_REASON) {
+    return fail(`Keep the conflict explanation under ${MAX_REVIEW_CONFLICT_REASON} characters.`);
+  }
+
+  const manuscript = await prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    select: { id: true, title: true, venueId: true },
+  });
+  if (!manuscript) return fail("That manuscript no longer exists.");
+
+  const actor = await actorFor(auth.user.id, manuscript.venueId);
+  if (!canAssignReviewer(actor)) return fail("Only an editor of this venue can recuse from a manuscript.");
+
+  const existing = await prisma.manuscriptRecusal.findUnique({
+    where: { manuscriptId_userId: { manuscriptId, userId: auth.user.id } },
+    select: { id: true },
+  });
+  if (existing) return fail("You have already recused from this manuscript.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.manuscriptRecusal.create({
+      data: { manuscriptId, userId: auth.user.id, reason },
+    });
+    await tx.manuscriptEvent.create({
+      data: {
+        manuscriptId,
+        type: "EDITORIAL_RECUSAL_DECLARED",
+        actorId: auth.user.id,
+        note: "An editorial seat declared a conflict and recused from this manuscript.",
+      },
+    });
+  });
+
+  const recipients = (await deskRecipients(manuscript.venueId)).filter(
+    (recipientId) => recipientId !== auth.user.id,
+  );
+  await Promise.all(
+    recipients.map((recipientId) =>
+      notifyUserById({
+        recipientId,
+        actorId: auth.user.id,
+        type: "manuscript-editorial-conflict",
+        targetType: "editorialManuscript",
+        targetId: manuscriptId,
+        title: `Editor recused: ${manuscript.title}`,
+        body: "An editorial seat declared a conflict. Another editor must handle this manuscript.",
+      }),
+    ),
+  );
+
+  revalidateManuscript(manuscriptId);
+  return { success: true, message: "Conflict recorded. You are recused from this manuscript." };
+}
+
+/**
  * Record a reviewer's report.
  *
  * The report is stored on the reviewer's own `ReviewTask` row, and the timeline
@@ -293,9 +479,10 @@ export async function submitReviewReportAction(
         round: manuscript.round,
       },
     },
-    select: { id: true, isCompleted: true },
+    select: { id: true, isCompleted: true, conflictDeclaredAt: true },
   });
   if (!assignment) return fail("You are not assigned to review this manuscript.");
+  if (assignment.conflictDeclaredAt) return fail("You are recused from this manuscript and cannot submit a report.");
 
   const score = Number(readFormValue(formData, "score"));
   if (
@@ -437,6 +624,22 @@ export async function decideManuscriptAction(
     return fail(
       `${MANUSCRIPT_STATUS_LABELS[toStatus]} is not available at a ${manuscript.venue.type.toLowerCase()}.`,
     );
+  }
+
+  const editorialRecusal = await prisma.manuscriptRecusal.findUnique({
+    where: { manuscriptId_userId: { manuscriptId, userId: auth.user.id } },
+    select: { id: true },
+  });
+  if (editorialRecusal) {
+    return fail("You recused from this manuscript and cannot record its decision.");
+  }
+
+  const recusedAssignment = await prisma.reviewTask.findFirst({
+    where: { manuscriptId, reviewerId: auth.user.id, conflictDeclaredAt: { not: null } },
+    select: { id: true },
+  });
+  if (recusedAssignment) {
+    return fail("You declared a conflict on this manuscript and cannot record its decision.");
   }
 
   const requiresReport =

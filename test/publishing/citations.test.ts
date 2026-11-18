@@ -36,6 +36,7 @@ const conference: CitationVenue = {
 const article: CitationArticle = {
   id: "ms_1",
   title: "Rural clinics & the cost of care",
+  abstract: "A study of access and outcomes.",
   keywords: "health, rural policy",
   doi: "10.1234/sb.2026.001",
   volume: 2,
@@ -223,6 +224,9 @@ describe("buildHighwireMeta", () => {
     expect(meta.citation_issn).toBe("1234-567X");
     expect(meta.citation_pdf_url).toBe("https://example.test/a.pdf");
     expect(meta.citation_keywords).toEqual(["health", "rural policy"]);
+    expect(meta["dc.creator"]).toEqual(["Jane Doe", "Arun Rao"]);
+    expect(meta["prism.doi"]).toBe(article.doi);
+    expect(meta["prism.volume"]).toBe("2");
   });
 
   it("omits citation_pdf_url when no file exists", () => {
@@ -245,6 +249,7 @@ describe("buildHighwireMeta", () => {
     expect(meta).not.toHaveProperty("citation_journal_title");
     expect(meta).not.toHaveProperty("citation_publication_date");
     expect(meta).not.toHaveProperty("citation_keywords");
+    expect(meta).not.toHaveProperty("dc.date");
     expect(Object.values(meta)).not.toContain("");
   });
 });

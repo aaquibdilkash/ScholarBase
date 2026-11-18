@@ -112,6 +112,11 @@ export type ArticleSummary = {
   title: string;
   abstract: string | null;
   keywords: string | null;
+  fundingStatement: string | null;
+  dataAvailabilityStatement: string | null;
+  ethicsStatement: string | null;
+  competingInterests: string | null;
+  aiUseStatement: string | null;
   doi: string | null;
   isbn: string | null;
   volume: number | null;
@@ -124,6 +129,13 @@ export type ArticleSummary = {
   /** File name of the version of record, when one exists. */
   fileName: string | null;
   sizeBytes: number | null;
+  publicationNotices: Array<{
+    id: string;
+    type: string;
+    title: string;
+    body: string;
+    effectiveAt: Date;
+  }>;
 };
 
 export type PublicConferenceEdition = {
@@ -217,6 +229,11 @@ const ARTICLE_SELECT = {
   title: true,
   abstract: true,
   keywords: true,
+  fundingStatement: true,
+  dataAvailabilityStatement: true,
+  ethicsStatement: true,
+  competingInterests: true,
+  aiUseStatement: true,
   doi: true,
   isbn: true,
   volume: true,
@@ -232,6 +249,10 @@ const ARTICLE_SELECT = {
     take: 1,
     select: { fileName: true, sizeBytes: true },
   },
+  publicationNotices: {
+    orderBy: { effectiveAt: "desc" },
+    select: { id: true, type: true, title: true, body: true, effectiveAt: true },
+  },
 } satisfies Prisma.ManuscriptSelect;
 
 type ArticleRow = {
@@ -239,6 +260,11 @@ type ArticleRow = {
   title: string;
   abstract: string | null;
   keywords: string | null;
+  fundingStatement: string | null;
+  dataAvailabilityStatement: string | null;
+  ethicsStatement: string | null;
+  competingInterests: string | null;
+  aiUseStatement: string | null;
   doi: string | null;
   isbn: string | null;
   volume: number | null;
@@ -249,6 +275,7 @@ type ArticleRow = {
   coAuthors: unknown;
   author: { name: string | null; orcidUrl: string | null };
   files: Array<{ fileName: string; sizeBytes: number }>;
+  publicationNotices: Array<{ id: string; type: string; title: string; body: string; effectiveAt: Date }>;
 };
 
 function toArticleSummary(row: ArticleRow): ArticleSummary {
@@ -257,6 +284,11 @@ function toArticleSummary(row: ArticleRow): ArticleSummary {
     title: row.title,
     abstract: row.abstract,
     keywords: row.keywords,
+    fundingStatement: row.fundingStatement,
+    dataAvailabilityStatement: row.dataAvailabilityStatement,
+    ethicsStatement: row.ethicsStatement,
+    competingInterests: row.competingInterests,
+    aiUseStatement: row.aiUseStatement,
     doi: row.doi,
     isbn: row.isbn,
     volume: row.volume,
@@ -268,6 +300,7 @@ function toArticleSummary(row: ArticleRow): ArticleSummary {
     authors: buildAuthorList(row.author, row.coAuthors),
     fileName: row.files[0]?.fileName ?? null,
     sizeBytes: row.files[0]?.sizeBytes ?? null,
+    publicationNotices: row.publicationNotices,
   };
 }
 
@@ -452,6 +485,7 @@ export function toCitationArticle(article: ArticleSummary): CitationArticle {
   return {
     id: article.id,
     title: article.title,
+    abstract: article.abstract,
     keywords: article.keywords,
     doi: article.doi,
     volume: article.volume,

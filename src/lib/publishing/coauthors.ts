@@ -52,7 +52,39 @@ export type CoAuthorParseResult =
   | { ok: true; authors: CoAuthorDraft[] }
   | { ok: false; message: string };
 
+/** Email addresses in the stored byline, used for reviewer conflict checks. */
+export function storedAuthorEmails(value: unknown): string[] {
+  const entries = Array.isArray(value)
+    ? value
+    : typeof value === "object" && value !== null
+      ? [
+          (value as { correspondingAuthor?: unknown }).correspondingAuthor,
+          ...((value as { coAuthors?: unknown }).coAuthors instanceof Array
+            ? (value as { coAuthors: unknown[] }).coAuthors
+            : []),
+        ]
+      : [];
+
+  return [...new Set(
+    entries
+      .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+      .map((entry) => text(entry.email).toLowerCase())
+      .filter(Boolean),
+  )];
+}
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** Validates an ORCID iD using the ISO 7064 MOD 11-2 check digit. */
+export function isValidOrcid(value: string): boolean {
+  const match = value.trim().match(/(?:https?:\/\/)?(?:www\.)?orcid\.org\/([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])/i) ?? value.trim().match(/^([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/i);
+  if (!match) return false;
+  const id = match[1].replace(/-/g, "").toUpperCase();
+  let total = 0;
+  for (const digit of id.slice(0, 15)) total = (total + Number(digit)) * 2;
+  const check = (12 - (total % 11)) % 11;
+  return (check === 10 ? "X" : String(check)) === id[15];
+}
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -112,6 +144,9 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
     }
     if (orcid.length > MAX_CO_AUTHOR_ORCID) {
       return { ok: false, message: "An ORCID iD must be 64 characters or fewer." };
+    }
+    if (orcid && !isValidOrcid(orcid)) {
+      return { ok: false, message: `"${orcid}" is not a valid ORCID iD.` };
     }
     if (email && (email.length > MAX_CO_AUTHOR_EMAIL || !EMAIL_PATTERN.test(email))) {
       return { ok: false, message: `"${email}" is not a valid co-author email.` };
@@ -195,6 +230,9 @@ export function parseCorrespondingAuthorDraft(
       ok: false,
       message: "The corresponding author's ORCID iD must be 64 characters or fewer.",
     };
+  }
+  if (orcid && !isValidOrcid(orcid)) {
+    return { ok: false, message: `"${orcid}" is not a valid ORCID iD.` };
   }
   if (email && (email.length > MAX_CO_AUTHOR_EMAIL || !EMAIL_PATTERN.test(email))) {
     return {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CopyCitation } from "@/components/publishing/CopyCitation";
+import { RichContent } from "@/components/content/RichContent";
 import {
   VenueImprint,
   VenueMasthead,
@@ -124,6 +125,19 @@ export function ArticleView({
             {article.title}
           </h1>
 
+          {article.publicationNotices.length > 0 ? (
+            <section className="mt-5 space-y-3" aria-label="Publication notices">
+              {article.publicationNotices.map((notice) => (
+                <div key={notice.id} className={notice.type === "RETRACTION" ? "rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-950/30" : "rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/20"}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">{notice.type.replace(/_/g, " ")}</p>
+                  <h2 className="mt-1 font-semibold text-slate-950 dark:text-slate-50">{notice.title}</h2>
+                  <div className="mt-2 text-sm text-slate-700 dark:text-slate-200"><RichContent content={notice.body} /></div>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Effective {formatDate(notice.effectiveAt)}</p>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
           <ul className="mt-4 space-y-1 text-sm">
             {article.authors.map((author, index) => (
               <li key={`${author.name}-${index}`} className="text-slate-800 dark:text-slate-200">
@@ -201,6 +215,34 @@ export function ArticleView({
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {[
+            ["Funding", article.fundingStatement],
+            ["Data and code availability", article.dataAvailabilityStatement],
+            ["Ethics approval and consent", article.ethicsStatement],
+            ["Competing interests", article.competingInterests],
+            ["AI use", article.aiUseStatement],
+          ].some(([, value]) => Boolean(value)) ? (
+            <section className="mt-8" aria-label="Research integrity declarations">
+              <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+                Research integrity
+              </h2>
+              <dl className="mt-3 divide-y divide-[var(--card-border)] rounded-xl border border-[var(--card-border)] px-4">
+                {[
+                  ["Funding", article.fundingStatement],
+                  ["Data and code availability", article.dataAvailabilityStatement],
+                  ["Ethics approval and consent", article.ethicsStatement],
+                  ["Competing interests", article.competingInterests],
+                  ["AI use", article.aiUseStatement],
+                ].map(([label, value]) => value ? (
+                  <div className="py-3" key={label}>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</dt>
+                    <dd className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 dark:text-slate-300">{value}</dd>
+                  </div>
+                ) : null)}
+              </dl>
             </section>
           ) : null}
 

@@ -240,6 +240,9 @@ enum ManuscriptEventType {
   REVIEW_ASSIGNED
   REVIEW_SUBMITTED
   REVISION_UPLOADED
+  REVIEW_RECUSAL_DECLARED
+  EDITORIAL_RECUSAL_DECLARED
+  PUBLICATION_NOTICE_ADDED
   /// A conference editor invited the author to submit an extended version to a
   /// journal. The author still creates the journal row; nothing is moved.
   TRANSFER_INVITED
@@ -261,6 +264,12 @@ enum DoiStatus {
   PENDING
   MINTED
   FAILED
+}
+
+enum PublicationNoticeType {
+  CORRECTION
+  RETRACTION
+  EXPRESSION_OF_CONCERN
 }
 
 enum CallForPaperCategory {
@@ -1410,6 +1419,8 @@ model User {
   reviewAssignments   ReviewTask[]      @relation("ReviewAssignments")
   editorialRoles      EditorialRole[]
   manuscriptEvents    ManuscriptEvent[] @relation("ManuscriptEventActor")
+  publicationNotices  PublicationNotice[]
+  manuscriptRecusals  ManuscriptRecusal[] @relation("ManuscriptRecusals")
 
   surveys            ResearchSurvey[]
   surveyVotes        SurveyVote[]
@@ -3148,6 +3159,11 @@ model Manuscript {
   title    String
   abstract String?          @db.Text
   keywords String?
+  fundingStatement String? @db.Text
+  dataAvailabilityStatement String? @db.Text
+  ethicsStatement String? @db.Text
+  competingInterests String? @db.Text
+  aiUseStatement String? @db.Text
   status   ManuscriptStatus @default(SUBMITTED)
   /// Revision round. Bumped on resubmission; pairs with ManuscriptFile.round.
   round    Int              @default(0)
@@ -3203,6 +3219,8 @@ model Manuscript {
   files   ManuscriptFile[]
   reviews ReviewTask[]
   events  ManuscriptEvent[]
+  editorialRecusals ManuscriptRecusal[]
+  publicationNotices PublicationNotice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3214,6 +3232,40 @@ model Manuscript {
   /// Transfer duplicate check: "is there a live clone of this conference paper
   /// at this journal?" runs on every invitation and submission.
   @@index([originalManuscriptId, venueId])
+}
+
+/// Immutable public notice attached to a published work. Notices are never
+/// edited or deleted; a later notice supersedes or clarifies an earlier one.
+model PublicationNotice {
+  id           String                @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript            @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+  type         PublicationNoticeType
+  title        String
+  body         String                @db.Text
+  effectiveAt  DateTime              @default(now())
+  createdAt    DateTime              @default(now())
+  createdById  String
+  createdBy    User                  @relation(fields: [createdById], references: [id])
+
+  @@index([manuscriptId, effectiveAt(sort: Desc)])
+  @@index([type, effectiveAt(sort: Desc)])
+}
+
+/// An immutable, manuscript-specific editorial conflict declaration. The
+/// editor keeps their venue seat but cannot assign, decide, or publish this
+/// manuscript after recusing themselves.
+model ManuscriptRecusal {
+  id           String     @id @default(cuid())
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation("ManuscriptRecusals", fields: [userId], references: [id], onDelete: Restrict)
+  reason       String     @db.Text
+  createdAt    DateTime   @default(now())
+
+  @@unique([manuscriptId, userId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 /// Immutable file record. A revision inserts a new row rather than overwriting
@@ -3258,9 +3310,12 @@ model ReviewTask {
   assignedAt  DateTime  @default(now())
   dueAt       DateTime?
   completedAt DateTime?
+  conflictDeclaredAt DateTime?
+  conflictReason String? @db.Text
 
   @@unique([manuscriptId, reviewerId, round])
   @@index([reviewerId, completedAt, assignedAt(sort: Desc)])
+  @@index([manuscriptId, reviewerId, conflictDeclaredAt])
 }
 
 model EditorialRole {

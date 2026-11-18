@@ -24,6 +24,7 @@ export const MAX_MANUSCRIPT_ABSTRACT = 3000;
 export const MAX_MANUSCRIPT_KEYWORDS = 256;
 export const MAX_MANUSCRIPT_KEYWORD_LENGTH = 24;
 export const MAX_MANUSCRIPT_KEYWORD_COUNT = 8;
+export const MAX_MANUSCRIPT_DECLARATION = 2000;
 
 /**
  * Peer-review limits. Shared by the reviewer report form (counters) and the
@@ -31,6 +32,7 @@ export const MAX_MANUSCRIPT_KEYWORD_COUNT = 8;
  * the server ignores.
  */
 export const MAX_REVIEW_COMMENTS = 6000;
+export const MAX_REVIEW_CONFLICT_REASON = 2000;
 export const MIN_REVIEW_SCORE = 1;
 export const MAX_REVIEW_SCORE = 10;
 /** A decision letter is optional for accept/revision, required for reject. */

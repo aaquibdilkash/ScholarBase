@@ -16,7 +16,7 @@ export function JournalIssuePage({ venue, issue, articles, preview }: { venue: P
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">Volume {issue.volume}, Issue {issue.number}</h1>
           {issue.coverImageUrl ? <Image src={issue.coverImageUrl} alt="" width={960} height={320} unoptimized className="mt-4 h-48 w-full rounded-xl object-cover" /> : null}
           {issue.title ? <p className="mt-2 text-lg text-slate-600 dark:text-slate-300">{issue.title}</p> : null}
-          {issue.description ? <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-400">{issue.description}</p> : null}
+          {issue.description ? <div className="mt-4"><RichContent content={issue.description} /></div> : null}
         </section>
         {issue.editorialHtml ? <section className="sb-card"><h2 className="text-xl font-semibold">Editorial</h2><div className="mt-4"><RichContent content={issue.editorialHtml} /></div></section> : null}
         <section className="sb-card"><h2 className="text-xl font-semibold">Articles</h2><div className="mt-4">{articles.length ? <ArticleList venue={venue} articles={articles} /> : <p className="text-sm text-slate-600 dark:text-slate-400">No articles have been published in this issue yet.</p>}</div></section>

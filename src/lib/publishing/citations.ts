@@ -19,6 +19,7 @@ export type CitationAuthor = {
 export type CitationArticle = {
   id: string;
   title: string;
+  abstract?: string | null;
   keywords?: string | null;
   doi?: string | null;
   volume?: number | null;
@@ -234,6 +235,7 @@ export function buildRisRecord(
     `TY  - ${isConference ? "CPAPER" : "JOUR"}`,
     ...article.authors.map((author) => `AU  - ${invertAuthorName(author.name)}`),
     `TI  - ${article.title}`,
+    article.abstract?.trim() ? `AB  - ${article.abstract.trim()}` : null,
     isConference ? `T2  - ${venue.name}` : `JO  - ${venue.name}`,
     `PY  - ${citationYear(article) ?? ""}`,
     article.volume ? `VL  - ${article.volume}` : null,
@@ -285,6 +287,7 @@ function bibtexKey(article: CitationArticle, venue: CitationVenue): string {
       "author",
       article.authors.map((author) => bibtexEscape(invertAuthorName(author.name))).join(" and "),
     ],
+    ["abstract", article.abstract ? bibtexEscape(article.abstract) : ""],
     [isConference ? "booktitle" : "journal", bibtexEscape(venue.name)],
     ["year", citationYear(article) ?? ""],
     ["volume", article.volume ? String(article.volume) : ""],
@@ -333,7 +336,21 @@ export function buildHighwireMeta(
     citation_publication_date: highwireDate(article.publishedAt) ?? "",
     citation_publisher: venue.publisherName,
     citation_abstract_html_url: urls.articleUrl,
+    // Dublin Core and PRISM provide fallbacks for harvesters that do not
+    // implement the Highwire vocabulary completely.
+    "dc.title": article.title,
+    "dc.creator": article.authors.map((author) => author.name),
+    "dc.publisher": venue.publisherName,
+    "dc.relation.ispartof": venue.name,
+    "prism.url": urls.articleUrl,
+    "prism.publicationName": venue.name,
   };
+
+  if (article.publishedAt) meta["dc.date"] = highwireDate(article.publishedAt) ?? "";
+  if (article.doi) {
+    meta["dc.identifier"] = `https://doi.org/${article.doi}`;
+    meta["prism.doi"] = article.doi;
+  }
 
   if (venue.type === "CONFERENCE") {
     meta.citation_conference_title = venue.name;
@@ -346,12 +363,20 @@ export function buildHighwireMeta(
   if (article.isbn) meta.citation_isbn = article.isbn;
   if (article.volume !== null && article.volume !== undefined) {
     meta.citation_volume = String(article.volume);
+    meta["prism.volume"] = String(article.volume);
   }
   if (article.issue !== null && article.issue !== undefined) {
     meta.citation_issue = String(article.issue);
+    meta["prism.number"] = String(article.issue);
   }
-  if (article.firstPage) meta.citation_firstpage = article.firstPage;
-  if (article.lastPage) meta.citation_lastpage = article.lastPage;
+  if (article.firstPage) {
+    meta.citation_firstpage = article.firstPage;
+    meta["prism.startingPage"] = article.firstPage;
+  }
+  if (article.lastPage) {
+    meta.citation_lastpage = article.lastPage;
+    meta["prism.endingPage"] = article.lastPage;
+  }
   if (article.doi) meta.citation_doi = article.doi;
   if (urls.pdfUrl) meta.citation_pdf_url = urls.pdfUrl;
 

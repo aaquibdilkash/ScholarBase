@@ -4,7 +4,9 @@ import {
   MAX_CO_AUTHORS,
   MAX_CO_AUTHOR_AFFILIATION,
   MAX_CO_AUTHOR_NAME,
+  isValidOrcid,
   parseCoAuthorDraft,
+  storedAuthorEmails,
 } from "@/lib/publishing/coauthors";
 
 /**
@@ -12,6 +14,18 @@ import {
  * rather than tolerates: every accepted name is printed in the byline.
  */
 describe("parseCoAuthorDraft", () => {
+  it("validates ORCID check digits and accepts ORCID URLs", () => {
+    expect(isValidOrcid("0000-0002-1825-0097")).toBe(true);
+    expect(isValidOrcid("https://orcid.org/0000-0002-1825-0097")).toBe(true);
+    expect(isValidOrcid("0000-0002-1825-0098")).toBe(false);
+  });
+
+  it("extracts corresponding and co-author emails for conflict checks", () => {
+    expect(storedAuthorEmails({
+      correspondingAuthor: { name: "A", email: "A@Example.edu" },
+      coAuthors: [{ name: "B", email: "b@example.edu" }],
+    })).toEqual(["a@example.edu", "b@example.edu"]);
+  });
   it("treats an empty field and an empty array as no co-authors", () => {
     expect(parseCoAuthorDraft("")).toEqual({ ok: true, authors: [] });
     expect(parseCoAuthorDraft("   ")).toEqual({ ok: true, authors: [] });

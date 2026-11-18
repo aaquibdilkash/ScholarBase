@@ -26,6 +26,7 @@ import {
   MANUSCRIPT_PDF_MIME,
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
+  MAX_MANUSCRIPT_DECLARATION,
   MAX_MANUSCRIPT_KEYWORDS,
   MAX_MANUSCRIPT_SIZE_LABEL,
   MAX_MANUSCRIPT_TITLE,
@@ -95,6 +96,14 @@ type CoAuthorRow = {
   affiliation: string;
   orcid: string;
   email: string;
+};
+
+type SubmissionDeclarations = {
+  fundingStatement: string;
+  dataAvailabilityStatement: string;
+  ethicsStatement: string;
+  competingInterests: string;
+  aiUseStatement: string;
 };
 
 function emptyCoAuthor(): CoAuthorRow {
@@ -206,6 +215,13 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
   const [coAuthors, setCoAuthors] = useState<CoAuthorRow[]>(() =>
     initialCoAuthorRows(props),
   );
+  const [declarations, setDeclarations] = useState<SubmissionDeclarations>({
+    fundingStatement: "",
+    dataAvailabilityStatement: "",
+    ethicsStatement: "",
+    competingInterests: "",
+    aiUseStatement: "",
+  });
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [stage, setStage] = useState<UploadStage>("idle");
@@ -217,6 +233,9 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
     title.length > MAX_MANUSCRIPT_TITLE ||
     abstractText.length > MAX_MANUSCRIPT_ABSTRACT ||
     keywords.length > MAX_MANUSCRIPT_KEYWORDS;
+  const declarationsOverLimit = Object.values(declarations).some(
+    (value) => value.length > MAX_MANUSCRIPT_DECLARATION,
+  );
 
   function acceptFile(selected: File | null) {
     setError("");
@@ -261,7 +280,7 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
       setError("Add an abstract for the manuscript.");
       return;
     }
-    if (overLimit) {
+    if (overLimit || declarationsOverLimit) {
       setError("Shorten the fields marked over their limit.");
       return;
     }
@@ -315,6 +334,9 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
       formData.set("title", title.trim());
       formData.set("abstract", abstractText.trim());
       formData.set("keywords", keywords.trim());
+      for (const [key, value] of Object.entries(declarations)) {
+        formData.set(key, value.trim());
+      }
       formData.set("coAuthors", serializeCoAuthors(coAuthors));
       formData.set("filePath", ticket.data.path);
       formData.set("fileName", file.name);
@@ -431,6 +453,32 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
             maxLength={MAX_MANUSCRIPT_KEYWORDS}
             placeholder="optics, telemedicine, low-resource settings"
           />
+        </Field>
+      </section>
+
+      <section className="sb-card space-y-5">
+        <header>
+          <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
+            Research integrity declarations
+          </h2>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+            State what applies to this work. Use “None” or “Not applicable” when appropriate; the accepted declarations appear with the published record.
+          </p>
+        </header>
+        <Field id="funding-statement" label="Funding" tooltip="List every funder and grant number, or state that no specific funding supported this work." counter={<Counter value={declarations.fundingStatement.length} max={MAX_MANUSCRIPT_DECLARATION} />}>
+          <textarea id="funding-statement" className="sb-textarea min-h-20" maxLength={MAX_MANUSCRIPT_DECLARATION} value={declarations.fundingStatement} onChange={(event) => setDeclarations((current) => ({ ...current, fundingStatement: event.target.value }))} placeholder="Example: This work received no specific funding." />
+        </Field>
+        <Field id="data-availability-statement" label="Data and code availability" tooltip="Tell readers where the data, code, materials, or preregistration can be accessed, or why they cannot be shared." counter={<Counter value={declarations.dataAvailabilityStatement.length} max={MAX_MANUSCRIPT_DECLARATION} />}>
+          <textarea id="data-availability-statement" className="sb-textarea min-h-20" maxLength={MAX_MANUSCRIPT_DECLARATION} value={declarations.dataAvailabilityStatement} onChange={(event) => setDeclarations((current) => ({ ...current, dataAvailabilityStatement: event.target.value }))} placeholder="Example: Data and analysis code are available at…" />
+        </Field>
+        <Field id="ethics-statement" label="Ethics approval and consent" tooltip="Give the approving body and reference, consent details, or state why approval and consent were not required." counter={<Counter value={declarations.ethicsStatement.length} max={MAX_MANUSCRIPT_DECLARATION} />}>
+          <textarea id="ethics-statement" className="sb-textarea min-h-20" maxLength={MAX_MANUSCRIPT_DECLARATION} value={declarations.ethicsStatement} onChange={(event) => setDeclarations((current) => ({ ...current, ethicsStatement: event.target.value }))} placeholder="Example: Ethics approval was not required for this study." />
+        </Field>
+        <Field id="competing-interests" label="Competing interests" tooltip="Disclose financial, personal, professional, or intellectual conflicts, or state that the authors have none." counter={<Counter value={declarations.competingInterests.length} max={MAX_MANUSCRIPT_DECLARATION} />}>
+          <textarea id="competing-interests" className="sb-textarea min-h-20" maxLength={MAX_MANUSCRIPT_DECLARATION} value={declarations.competingInterests} onChange={(event) => setDeclarations((current) => ({ ...current, competingInterests: event.target.value }))} placeholder="Example: The authors declare no competing interests." />
+        </Field>
+        <Field id="ai-use-statement" label="AI use" tooltip="Disclose generative AI or automated tools used in research, analysis, writing, editing, or image creation, or state that none were used." counter={<Counter value={declarations.aiUseStatement.length} max={MAX_MANUSCRIPT_DECLARATION} />}>
+          <textarea id="ai-use-statement" className="sb-textarea min-h-20" maxLength={MAX_MANUSCRIPT_DECLARATION} value={declarations.aiUseStatement} onChange={(event) => setDeclarations((current) => ({ ...current, aiUseStatement: event.target.value }))} placeholder="Example: No generative AI tools were used in preparing this manuscript." />
         </Field>
       </section>
 

@@ -27,8 +27,11 @@ import { nextStatuses } from "@/lib/publishing/transitions";
 import { ManuscriptStatusBadge } from "@/components/workspace/ManuscriptStatusBadge";
 import { AssignReviewerPanel } from "@/components/workspace/AssignReviewerPanel";
 import { ReviewReportForm } from "@/components/workspace/ReviewReportForm";
+import { ReviewConflictForm } from "@/components/workspace/ReviewConflictForm";
+import { EditorialRecusalForm } from "@/components/workspace/EditorialRecusalForm";
 import { DecisionPanel } from "@/components/workspace/DecisionPanel";
 import { DoiPanel } from "@/components/workspace/DoiPanel";
+import { PublicationNoticeForm } from "@/components/workspace/PublicationNoticeForm";
 
 export const metadata: Metadata = buildNoindexMetadata(
   "Review workspace - ScholarBase",
@@ -66,6 +69,11 @@ export default async function EditorialManuscriptPage({
       title: true,
       abstract: true,
       keywords: true,
+      fundingStatement: true,
+      dataAvailabilityStatement: true,
+      ethicsStatement: true,
+      competingInterests: true,
+      aiUseStatement: true,
       coAuthors: true,
       status: true,
       round: true,
@@ -101,6 +109,8 @@ export default async function EditorialManuscriptPage({
           decision: true,
           inlineComments: true,
           isCompleted: true,
+          conflictDeclaredAt: true,
+          conflictReason: true,
           assignedAt: true,
           completedAt: true,
           reviewer: { select: { id: true, name: true, handle: true } },
@@ -116,6 +126,14 @@ export default async function EditorialManuscriptPage({
           toStatus: true,
           actor: { select: { name: true } },
         },
+      },
+      publicationNotices: {
+        orderBy: { effectiveAt: "desc" },
+        select: { id: true, type: true, title: true, body: true, effectiveAt: true, createdAt: true },
+      },
+      editorialRecusals: {
+        where: { userId: user.id },
+        select: { id: true, reason: true, createdAt: true },
       },
     },
   });
@@ -134,8 +152,10 @@ export default async function EditorialManuscriptPage({
     .map((keyword) => keyword.trim())
     .filter(Boolean);
 
+  const hasEditorialRecusal = manuscript.editorialRecusals.length > 0;
+
   const actor = { roles: permissions.roles, isAdmin: permissions.isAdmin };
-  const canMintDoi = canEditorSetStatus(actor, "PUBLISHED");
+  const canMintDoi = !hasEditorialRecusal && canEditorSetStatus(actor, "PUBLISHED");
   const zenodoConfigured = isZenodoConfigured();
   const decisionOptions = nextStatuses(manuscript.status).filter(
     (status) =>
@@ -143,6 +163,7 @@ export default async function EditorialManuscriptPage({
       // author. Neither is an editorial decision.
       status !== "PUBLISHED" &&
       status !== "WITHDRAWN" &&
+      !hasEditorialRecusal &&
       canEditorSetStatus(actor, status) &&
       isStatusAllowedForVenue(status, manuscript.venue.type),
   );
@@ -158,10 +179,10 @@ export default async function EditorialManuscriptPage({
   const completedReports = manuscript.reviews.filter(
     (review) => review.isCompleted,
   ).length;
-  const canAssign = ASSIGNABLE.includes(
+  const canAssign = !hasEditorialRecusal && ASSIGNABLE.includes(
     manuscript.status as (typeof ASSIGNABLE)[number],
   );
-  const canReport = REPORTABLE.includes(
+  const canReport = !hasEditorialRecusal && REPORTABLE.includes(
     manuscript.status as (typeof REPORTABLE)[number],
   );
 
@@ -233,7 +254,18 @@ export default async function EditorialManuscriptPage({
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
-          {canReport && permissions.isReviewer ? (
+          {canReport && permissions.isReviewer && ownTask?.conflictDeclaredAt ? (
+            <section aria-labelledby="recusal-heading" className="sb-card">
+              <h2 id="recusal-heading" className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                Review recusal recorded
+              </h2>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                You declared a conflict and cannot submit a report for this manuscript. The editorial desk has been notified.
+              </p>
+            </section>
+          ) : null}
+
+          {canReport && permissions.isReviewer && !ownTask?.conflictDeclaredAt ? (
             <section aria-labelledby="report-heading" className="sb-card">
               <h2
                 id="report-heading"
@@ -260,6 +292,7 @@ export default async function EditorialManuscriptPage({
                   }
                 />
               </div>
+              <ReviewConflictForm manuscriptId={manuscript.id} />
             </section>
           ) : null}
 
@@ -324,6 +357,34 @@ export default async function EditorialManuscriptPage({
               </ul>
             ) : null}
           </section>
+
+          {[
+            ["Funding", manuscript.fundingStatement],
+            ["Data and code availability", manuscript.dataAvailabilityStatement],
+            ["Ethics approval and consent", manuscript.ethicsStatement],
+            ["Competing interests", manuscript.competingInterests],
+            ["AI use", manuscript.aiUseStatement],
+          ].some(([, value]) => Boolean(value)) ? (
+            <section aria-labelledby="declarations-heading" className="sb-card">
+              <h2 id="declarations-heading" className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                Research integrity declarations
+              </h2>
+              <dl className="mt-3 divide-y divide-[var(--card-border)]">
+                {[
+                  ["Funding", manuscript.fundingStatement],
+                  ["Data and code availability", manuscript.dataAvailabilityStatement],
+                  ["Ethics approval and consent", manuscript.ethicsStatement],
+                  ["Competing interests", manuscript.competingInterests],
+                  ["AI use", manuscript.aiUseStatement],
+                ].map(([label, value]) => value ? (
+                  <div className="py-3 first:pt-0 last:pb-0" key={label}>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</dt>
+                    <dd className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700 dark:text-slate-300">{value}</dd>
+                  </div>
+                ) : null)}
+              </dl>
+            </section>
+          ) : null}
 
           <section aria-labelledby="files-heading" className="sb-card">
             <h2
@@ -392,12 +453,19 @@ export default async function EditorialManuscriptPage({
                               "Reviewer"}
                           </p>
                           <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {review.isCompleted
+                            {review.conflictDeclaredAt
+                              ? `Recused ${formatDate(review.conflictDeclaredAt)}`
+                              : review.isCompleted
                               ? `Reported ${review.completedAt ? formatDate(review.completedAt) : ""}`
                               : `Invited ${formatDate(review.assignedAt)} · awaiting report`}
                           </span>
                         </div>
-                        {review.isCompleted ? (
+                        {review.conflictDeclaredAt ? (
+                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                            Conflict: {review.conflictReason}
+                          </p>
+                        ) : null}
+                        {review.isCompleted && !review.conflictDeclaredAt ? (
                           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                             Score {review.score ?? "—"}/10
                             {review.decision
@@ -440,6 +508,15 @@ export default async function EditorialManuscriptPage({
             </section>
           ) : null}
 
+          {permissions.isEditor && manuscript.status === "PUBLISHED" ? (
+            <section aria-labelledby="integrity-heading" className="sb-card">
+              <h2 id="integrity-heading" className="text-base font-semibold text-slate-950 dark:text-slate-50">Publication integrity</h2>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Published work is not silently edited. Record a correction, retraction, or expression of concern as an immutable public notice.</p>
+              {manuscript.publicationNotices.length > 0 ? <ul className="mt-3 space-y-2">{manuscript.publicationNotices.map((notice) => <li key={notice.id} className="rounded-lg border border-[var(--card-border)] p-3 text-sm"><strong>{notice.type.replace(/_/g, " ")}</strong> · {notice.title}</li>)}</ul> : null}
+              <div className="mt-4"><PublicationNoticeForm manuscriptId={manuscript.id} /></div>
+            </section>
+          ) : null}
+
           <section aria-labelledby="timeline-heading" className="sb-card">
             <h2
               id="timeline-heading"
@@ -478,6 +555,21 @@ export default async function EditorialManuscriptPage({
 
         <aside className="space-y-6">
           {permissions.isEditor ? (
+            <section aria-labelledby="recusal-heading" className="sb-card">
+              <h2 id="recusal-heading" className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                Editorial conflict
+              </h2>
+              {hasEditorialRecusal ? (
+                <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+                  You recused from this manuscript on {formatDate(manuscript.editorialRecusals[0].createdAt)}. Assignment, decision, and publication controls are disabled for your seat.
+                </p>
+              ) : (
+                <EditorialRecusalForm manuscriptId={manuscript.id} />
+              )}
+            </section>
+          ) : null}
+
+          {permissions.isEditor ? (
             <section aria-labelledby="assign-heading" className="sb-card">
               <h2
                 id="assign-heading"
@@ -493,7 +585,9 @@ export default async function EditorialManuscriptPage({
               <div className="mt-4">
                 <AssignReviewerPanel
                   disabledReason={
-                    canAssign
+                    hasEditorialRecusal
+                      ? "You recused from this manuscript and cannot assign its reviewers."
+                      : canAssign
                       ? undefined
                       : `A ${MANUSCRIPT_STATUS_LABELS[manuscript.status].toLowerCase()} manuscript cannot take a new reviewer.`
                   }

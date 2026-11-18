@@ -14,6 +14,9 @@ const mocks = vi.hoisted(() => ({
   manuscriptUpdateMany: vi.fn(),
   roleFindMany: vi.fn(),
   taskFindUnique: vi.fn(),
+  taskFindFirst: vi.fn(),
+  manuscriptRecusalFindUnique: vi.fn(),
+  manuscriptRecusalCreate: vi.fn(),
   taskCreate: vi.fn(),
   taskUpdate: vi.fn(),
   taskCount: vi.fn(),
@@ -36,9 +39,14 @@ vi.mock("@/lib/db", () => ({
     editorialRole: { findMany: mocks.roleFindMany },
     reviewTask: {
       findUnique: mocks.taskFindUnique,
+      findFirst: mocks.taskFindFirst,
       create: mocks.taskCreate,
       update: mocks.taskUpdate,
       count: mocks.taskCount,
+    },
+    manuscriptRecusal: {
+      findUnique: mocks.manuscriptRecusalFindUnique,
+      create: mocks.manuscriptRecusalCreate,
     },
     manuscriptEvent: { create: mocks.eventCreate },
     user: { findUnique: mocks.userFindUnique },
@@ -60,6 +68,8 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import {
   assignReviewerAction,
+  declareEditorialRecusalAction,
+  declareReviewConflictAction,
   decideManuscriptAction,
   submitReviewReportAction,
   type ReviewActionResult,
@@ -96,12 +106,15 @@ beforeEach(() => {
   mocks.manuscriptFindUnique.mockResolvedValue(MANUSCRIPT);
   mocks.roleFindMany.mockResolvedValue([{ roleTitle: "EDITOR_IN_CHIEF" }]);
   mocks.taskFindUnique.mockResolvedValue(null);
+  mocks.taskFindFirst.mockResolvedValue(null);
+  mocks.manuscriptRecusalFindUnique.mockResolvedValue(null);
   mocks.taskCount.mockResolvedValue(1);
   mocks.manuscriptUpdateMany.mockResolvedValue({ count: 1 });
   mocks.transaction.mockImplementation(
     async (callback: (tx: unknown) => Promise<void>) =>
       callback({
-        reviewTask: { create: mocks.taskCreate },
+        reviewTask: { create: mocks.taskCreate, update: mocks.taskUpdate },
+        manuscriptRecusal: { create: mocks.manuscriptRecusalCreate },
         manuscript: { updateMany: mocks.manuscriptUpdateMany },
         manuscriptEvent: { create: mocks.eventCreate },
       }),
@@ -155,6 +168,22 @@ describe("assignReviewerAction", () => {
     );
 
     expect(result.message).toMatch(/self-review/i);
+    expect(mocks.taskCreate).not.toHaveBeenCalled();
+  });
+
+  it("refuses a listed co-author as a reviewer", async () => {
+    mocks.userFindUnique.mockResolvedValue({ ...reviewer, email: "coauthor@uni.edu" });
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...MANUSCRIPT,
+      coAuthors: { coAuthors: [{ name: "Co-author", email: "coauthor@uni.edu" }] },
+    });
+
+    const result = await assignReviewerAction(
+      EMPTY,
+      formWith({ manuscriptId: MANUSCRIPT.id, reviewerEmail: "coauthor@uni.edu" }),
+    );
+
+    expect(result.message).toMatch(/co-author/i);
     expect(mocks.taskCreate).not.toHaveBeenCalled();
   });
 
@@ -299,6 +328,108 @@ describe("submitReviewReportAction", () => {
     expect(event.type).toBe("REVIEW_SUBMITTED");
     expect(event.actorId).toBeUndefined();
     expect(event.note).not.toMatch(/editor-1/);
+  });
+
+  it("refuses a reviewer who has recused", async () => {
+    mocks.taskFindUnique.mockResolvedValue({
+      id: "task-1",
+      isCompleted: false,
+      conflictDeclaredAt: new Date(),
+    });
+
+    const result = await submitReviewReportAction(
+      EMPTY,
+      formWith({
+        manuscriptId: REPORTABLE.id,
+        score: "8",
+        decision: "ACCEPT",
+        comments: "A careful and complete piece of work that I recommend.",
+      }),
+    );
+
+    expect(result.message).toMatch(/recused/i);
+    expect(mocks.taskUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("declareReviewConflictAction", () => {
+  it("records the recusal and appends an audit event", async () => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: false,
+      user: { id: "reviewer-1", email: "reader@university.edu" },
+    });
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      id: MANUSCRIPT.id,
+      round: 0,
+      venueId: MANUSCRIPT.venueId,
+      title: MANUSCRIPT.title,
+    });
+    mocks.taskFindUnique.mockResolvedValue({
+      id: "task-1",
+      conflictDeclaredAt: null,
+      isCompleted: false,
+    });
+
+    const result = await declareReviewConflictAction(
+      EMPTY,
+      formWith({
+        manuscriptId: MANUSCRIPT.id,
+        reason: "I collaborated with one of the authors recently.",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.taskUpdate).toHaveBeenCalledWith({
+      where: { id: "task-1" },
+      data: expect.objectContaining({
+        conflictReason: "I collaborated with one of the authors recently.",
+      }),
+    });
+    expect(mocks.eventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        manuscriptId: MANUSCRIPT.id,
+        type: "REVIEW_RECUSAL_DECLARED",
+        actorId: "reviewer-1",
+      }),
+    });
+  });
+});
+
+describe("declareEditorialRecusalAction", () => {
+  it("records an editor recusal and notifies the remaining desk", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      id: MANUSCRIPT.id,
+      round: 0,
+      venueId: MANUSCRIPT.venueId,
+      title: MANUSCRIPT.title,
+    });
+    mocks.roleFindMany.mockResolvedValue([
+      { userId: "editor-1", roleTitle: "EDITOR_IN_CHIEF" },
+      { userId: "editor-2", roleTitle: "ASSOC_EDITOR" },
+    ]);
+
+    const result = await declareEditorialRecusalAction(
+      EMPTY,
+      formWith({
+        manuscriptId: MANUSCRIPT.id,
+        reason: "I have a financial relationship with an author.",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.manuscriptRecusalCreate).toHaveBeenCalledWith({
+      data: {
+        manuscriptId: MANUSCRIPT.id,
+        userId: "editor-1",
+        reason: "I have a financial relationship with an author.",
+      },
+    });
+    expect(mocks.eventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: "EDITORIAL_RECUSAL_DECLARED",
+        actorId: "editor-1",
+      }),
+    });
   });
 });
 

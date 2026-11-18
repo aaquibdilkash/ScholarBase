@@ -27,6 +27,13 @@ const VENUE_TYPE_LABELS = {
   CONFERENCE: "Conference",
 } as const;
 
+const AUTHOR_HIDDEN_EVENT_TYPES = new Set([
+  "REVIEW_ASSIGNED",
+  "REVIEW_SUBMITTED",
+  "REVIEW_RECUSAL_DECLARED",
+  "EDITORIAL_RECUSAL_DECLARED",
+]);
+
 /**
  * One submission, as its author sees it.
  *
@@ -324,7 +331,11 @@ export default async function SubmissionDetailPage({
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {formatDate(event.createdAt)}
-                      {event.actor?.name ? ` · ${event.actor.name}` : " · System"}
+                      {AUTHOR_HIDDEN_EVENT_TYPES.has(event.type)
+                        ? " · Editorial office"
+                        : event.actor?.name
+                          ? ` · ${event.actor.name}`
+                          : " · System"}
                     </p>
                     {event.note ? (
                       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">

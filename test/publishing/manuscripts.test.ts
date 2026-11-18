@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   venueFindUnique: vi.fn(),
   roleFindMany: vi.fn(),
   roleFindFirst: vi.fn(),
+  manuscriptRecusalFindUnique: vi.fn(),
   eventFindUnique: vi.fn(),
   eventFindFirst: vi.fn(),
   eventCreate: vi.fn(),
@@ -51,6 +52,7 @@ vi.mock("@/lib/db", () => ({
       findMany: mocks.roleFindMany,
       findFirst: mocks.roleFindFirst,
     },
+    manuscriptRecusal: { findUnique: mocks.manuscriptRecusalFindUnique },
     manuscriptEvent: {
       findUnique: mocks.eventFindUnique,
       findFirst: mocks.eventFindFirst,
@@ -206,6 +208,7 @@ beforeEach(() => {
   mocks.venueFindUnique.mockResolvedValue(JOURNAL);
   mocks.roleFindMany.mockResolvedValue([SOURCE_ROLE]);
   mocks.eventFindFirst.mockResolvedValue(null);
+  mocks.manuscriptRecusalFindUnique.mockResolvedValue(null);
   mocks.manuscriptFindFirst.mockResolvedValue(null);
   mocks.eventCreate.mockResolvedValue({ id: "event-1" });
 

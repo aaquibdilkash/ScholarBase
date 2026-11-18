@@ -16,6 +16,7 @@ import { isValidIsbn13, normalizeIsbn } from "@/lib/publishing/identifiers";
 import {
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
+  MAX_MANUSCRIPT_DECLARATION,
   MAX_MANUSCRIPT_KEYWORDS,
   MAX_MANUSCRIPT_TITLE,
   MANUSCRIPT_PDF_MIME,
@@ -407,6 +408,11 @@ export async function createManuscriptSubmissionAction(
       title: input.title,
       abstract: input.abstract,
       keywords,
+      fundingStatement: input.fundingStatement,
+      dataAvailabilityStatement: input.dataAvailabilityStatement,
+      ethicsStatement: input.ethicsStatement,
+      competingInterests: input.competingInterests,
+      aiUseStatement: input.aiUseStatement,
       coAuthors,
       filePath: input.filePath,
       fileName: safeManuscriptFileName(input.fileName),
@@ -477,6 +483,11 @@ type SubmissionInput = {
   title: string;
   abstract: string;
   keywordsRaw: string;
+  fundingStatement: string;
+  dataAvailabilityStatement: string;
+  ethicsStatement: string;
+  competingInterests: string;
+  aiUseStatement: string;
   correspondingAuthorRaw: string;
   coAuthorsRaw: string;
   filePath: string;
@@ -490,6 +501,11 @@ function readSubmissionInput(formData: FormData): SubmissionInput {
     title: readFormValue(formData, "title"),
     abstract: readFormValue(formData, "abstract"),
     keywordsRaw: readFormValue(formData, "keywords"),
+    fundingStatement: readFormValue(formData, "fundingStatement").trim(),
+    dataAvailabilityStatement: readFormValue(formData, "dataAvailabilityStatement").trim(),
+    ethicsStatement: readFormValue(formData, "ethicsStatement").trim(),
+    competingInterests: readFormValue(formData, "competingInterests").trim(),
+    aiUseStatement: readFormValue(formData, "aiUseStatement").trim(),
     correspondingAuthorRaw: readFormValue(formData, "correspondingAuthor"),
     coAuthorsRaw: readFormValue(formData, "coAuthors"),
     filePath: readFormValue(formData, "filePath"),
@@ -517,6 +533,17 @@ function validateSubmissionInput(input: SubmissionInput): string | null {
   }
   if (input.keywordsRaw.length > MAX_MANUSCRIPT_KEYWORDS) {
     return `Keywords must be ${MAX_MANUSCRIPT_KEYWORDS} characters or fewer.`;
+  }
+  for (const [label, value] of [
+    ["Funding statement", input.fundingStatement],
+    ["Data availability statement", input.dataAvailabilityStatement],
+    ["Ethics statement", input.ethicsStatement],
+    ["Competing interests statement", input.competingInterests],
+    ["AI use statement", input.aiUseStatement],
+  ] as const) {
+    if (value.length > MAX_MANUSCRIPT_DECLARATION) {
+      return `${label} must be ${MAX_MANUSCRIPT_DECLARATION} characters or fewer.`;
+    }
   }
   return validateManuscriptKeywords(input.keywordsRaw);
 }
@@ -655,6 +682,11 @@ export async function createDirectSubmissionAction(
       title: input.title,
       abstract: input.abstract,
       keywords: keywords || null,
+      fundingStatement: input.fundingStatement || null,
+      dataAvailabilityStatement: input.dataAvailabilityStatement || null,
+      ethicsStatement: input.ethicsStatement || null,
+      competingInterests: input.competingInterests || null,
+      aiUseStatement: input.aiUseStatement || null,
       status: "SUBMITTED",
       round: 0,
       venueId: venue.id,
@@ -725,6 +757,11 @@ async function createJournalManuscript(params: {
   title: string;
   abstract: string;
   keywords: string;
+  fundingStatement: string;
+  dataAvailabilityStatement: string;
+  ethicsStatement: string;
+  competingInterests: string;
+  aiUseStatement: string;
   coAuthors: { coAuthors?: Prisma.InputJsonValue };
   filePath: string;
   fileName: string;
@@ -752,6 +789,11 @@ async function createJournalManuscript(params: {
           title: params.title,
           abstract: params.abstract,
           keywords: params.keywords || null,
+          fundingStatement: params.fundingStatement || null,
+          dataAvailabilityStatement: params.dataAvailabilityStatement || null,
+          ethicsStatement: params.ethicsStatement || null,
+          competingInterests: params.competingInterests || null,
+          aiUseStatement: params.aiUseStatement || null,
           status: "SUBMITTED",
           round: 0,
           venueId: params.invitation.targetVenue.id,
@@ -930,6 +972,14 @@ export async function publishManuscriptAction(
   }
   if (!canEditorSetStatus(actor, "PUBLISHED")) {
     return fail("Only the Editor-in-Chief can publish a manuscript.");
+  }
+
+  const editorialRecusal = await prisma.manuscriptRecusal.findUnique({
+    where: { manuscriptId_userId: { manuscriptId, userId: auth.user.id } },
+    select: { id: true },
+  });
+  if (editorialRecusal) {
+    return fail("You recused from this manuscript and cannot publish it.");
   }
 
   const editionId = readFormValue(formData, "editionId").trim();

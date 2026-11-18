@@ -4,6 +4,10 @@ Journals (`/sbj`), conferences (`/sbc`), the editorial workspace, ISSN/ISBN regi
 
 This file is the single reference for both the registration process and the implementation. Where it conflicts with `AGENTS.md`, `AGENTS.md` wins on engineering rules; this file wins on publishing process.
 
+The standards gap register is maintained separately in
+[`docs/publishing-gap-register.md`](publishing-gap-register.md). It defines the
+evidence required before ScholarBase claims world-class publisher status.
+
 ---
 
 ## 1. Locked decisions
@@ -574,6 +578,27 @@ must resolve to ScholarBase.
 
 Once `Manuscript.doi` is written, the public article page, Highwire `citation_doi`, RIS/BibTeX downloads, and JSON-LD render it with no further work.
 
+### Reference-manager and browser-extension compatibility
+
+The article landing page is intentionally compatible with multiple importer
+families, not just DOI lookup:
+
+- Highwire tags repeat `citation_author` and expose `citation_title`, venue,
+  date, volume/issue/pages, DOI, `citation_abstract_html_url`, and the public
+  `citation_pdf_url`.
+- Dublin Core and PRISM fallbacks expose the title, creators, publisher,
+  journal/conference, canonical URL, DOI, date, volume, issue, and pages.
+- The visible page contains JSON-LD `ScholarlyArticle` metadata and stable
+  canonical URLs.
+- RIS and BibTeX downloads use the same citation projection as the page; RIS
+  includes the abstract when present.
+
+Therefore Zotero/Mendeley DOI lookup works after a Zenodo DOI is minted, while
+the Zotero Connector, Mendeley Web Importer, and similar browser extensions
+can import directly from the ScholarBase article URL. Zenodo remains the DOI
+landing page until ScholarBase registers its own Crossref/DataCite prefix; the
+`isIdenticalTo` relation and canonical URL preserve the version-of-record link.
+
 **Crossref migration:** when the membership is affordable, add the prefix and backfill `doi` (and `zenodoDepositId` for the provenance trail). No schema change is needed. The old plan for an `/api/publishing/mint-doi` route was dropped in favour of a Server Action; there is no public mint endpoint.
 
 
@@ -702,7 +727,7 @@ Pure modules, unit tier (`npm test`, no DB):
 - `test/publishing/transitions.test.ts` — every allowed edge, and that every illegal edge is rejected
 - `test/publishing/permissions.test.ts` — reviewer blinding, role matrix, `TRACK_CHAIR` cannot publish
 - `test/publishing/sanitize.test.ts` — `<script>`, `onerror`, `javascript:`, pasted `style`/`class` stripped from venue content
-- `test/publishing/reviews.test.ts` — assignment refusals (no seat, author, self, duplicate), the SUBMITTED → UNDER_REVIEW opening, report validation, the anonymous `REVIEW_SUBMITTED` event, decision refusals (no report, no letter, illegal edge, `PUBLISHED`), the lost-race path, and interest ranking
+- `test/publishing/reviews.test.ts` — assignment refusals (no seat, author, self, duplicate, prior recusal), the SUBMITTED → UNDER_REVIEW opening, report validation, reviewer recusal, the anonymous `REVIEW_SUBMITTED` event, decision refusals (no report, no letter, illegal edge, `PUBLISHED`), the lost-race path, and interest ranking
 - `test/publishing/manuscripts.test.ts` — direct/invited submission, publish, **and author withdrawal** (author only, not after acceptance, not when published, desk notified)
 - `test/publishing/zenodo.test.ts` — sandbox/production host resolution, token-free upload target, empty-`202` publish read-back, attached-file listing, bare DOI normalization
 - `test/publishing/doi-metadata.test.ts` — journal vs conference-paper schema, creator/ORCID mapping, HTML escaping, licence mapping, canonical `isIdenticalTo`
@@ -818,6 +843,12 @@ unpublished until their public preview is complete.
 5. Review and publish the journal article into the created issue.
 6. Verify notifications, author timeline, reviewer blinding, and unauthorized
    access for every private PDF.
+7. Have one assigned reviewer declare a conflict. Verify the task is recused,
+   the reviewer cannot submit a report, the desk is notified, the manuscript
+   timeline records the recusal, and the same reviewer cannot be assigned again.
+8. On a published article, record a correction, retraction, and expression of
+   concern in separate staging tests. Verify the notice is public, sanitized,
+   timestamped, visible on the article, and cannot be edited or deleted.
 
 ### Zenodo sandbox test
 
