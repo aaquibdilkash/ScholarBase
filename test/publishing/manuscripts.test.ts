@@ -90,6 +90,7 @@ import {
   declineTransferInvitationAction,
   inviteAuthorToJournalAction,
   publishManuscriptAction,
+  withdrawManuscriptAction,
   type ManuscriptActionResult,
   type ManuscriptSubmitResult,
 } from "@/app/actions/manuscripts";
@@ -1342,3 +1343,111 @@ describe("publishManuscriptAction", () => {
   });
 });
 
+
+describe("withdrawManuscriptAction", () => {
+  const WITHDRAWABLE = {
+    id: "ms-review",
+    title: "Low-cost optics for rural clinics",
+    status: "UNDER_REVIEW",
+    authorId: "u-author",
+    venueId: "venue-journal",
+    venue: { name: "Indian Journal of Optics" },
+  };
+
+  beforeEach(() => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: false,
+      user: { id: "u-author" },
+    });
+    mocks.manuscriptFindUnique.mockResolvedValue(WITHDRAWABLE);
+    mocks.roleFindMany.mockResolvedValue([{ userId: "u-editor" }]);
+  });
+
+  it("refuses a viewer who is not the author", async () => {
+    mocks.getActiveUser.mockResolvedValue({
+      frozen: false,
+      user: { id: "u-stranger" },
+    });
+
+    const result = await withdrawManuscriptAction(
+      EMPTY,
+      formWith({ manuscriptId: WITHDRAWABLE.id }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/only the author/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses to withdraw a published article", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...WITHDRAWABLE,
+      status: "PUBLISHED",
+    });
+
+    const result = await withdrawManuscriptAction(
+      EMPTY,
+      formWith({ manuscriptId: WITHDRAWABLE.id }),
+    );
+
+    expect(result.message).toMatch(/published article/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses once the paper has been accepted", async () => {
+    mocks.manuscriptFindUnique.mockResolvedValue({
+      ...WITHDRAWABLE,
+      status: "ACCEPTED_JOURNAL",
+    });
+
+    const result = await withdrawManuscriptAction(
+      EMPTY,
+      formWith({ manuscriptId: WITHDRAWABLE.id }),
+    );
+
+    expect(result.message).toMatch(/already been decided/i);
+    expect(mocks.manuscriptUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("records the withdrawal and tells the desk", async () => {
+    mocks.manuscriptUpdateMany.mockResolvedValue({ count: 1 });
+
+    const result = await withdrawManuscriptAction(
+      EMPTY,
+      formWith({ manuscriptId: WITHDRAWABLE.id }),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.manuscriptUpdateMany).toHaveBeenCalledWith({
+      where: { id: WITHDRAWABLE.id, status: "UNDER_REVIEW" },
+      data: { status: "WITHDRAWN" },
+    });
+    expect(mocks.eventCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: "WITHDRAWN",
+        fromStatus: "UNDER_REVIEW",
+        toStatus: "WITHDRAWN",
+        actorId: "u-author",
+      }),
+    });
+    expect(mocks.notifyUserById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientId: "u-editor",
+        type: "manuscript-withdrawn",
+        targetType: "editorialManuscript",
+      }),
+    );
+  });
+
+  it("reports a lost race instead of withdrawing twice", async () => {
+    mocks.manuscriptUpdateMany.mockResolvedValue({ count: 0 });
+
+    const result = await withdrawManuscriptAction(
+      EMPTY,
+      formWith({ manuscriptId: WITHDRAWABLE.id }),
+    );
+
+    expect(result.message).toMatch(/another session/i);
+    expect(mocks.eventCreate).not.toHaveBeenCalled();
+  });
+});

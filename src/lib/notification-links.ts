@@ -81,6 +81,12 @@ const TARGETS = {
     label: "Editorial",
     noun: "submission",
   },
+  // One paper's review workspace. Editors and its assigned reviewers only.
+  editorialManuscript: {
+    link: (t: string) => `/workspace/editorial/manuscripts/${t}`,
+    label: "Editorial",
+    noun: "submission",
+  },
 } satisfies Record<string, TargetDef>;
 
 type CanonicalTarget = keyof typeof TARGETS;
@@ -120,6 +126,7 @@ const targetTypeAliases: Record<string, CanonicalTarget> = {
   profile: "profile",
   manuscript: "manuscript",
   editorial: "editorial",
+  editorialmanuscript: "editorialManuscript",
 };
 
 function normalizeTargetType(targetType: string) {

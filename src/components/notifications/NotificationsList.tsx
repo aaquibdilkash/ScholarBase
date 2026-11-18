@@ -68,6 +68,14 @@ function typeLabel(type: string) {
       return "Declined";
     case "manuscript-published":
       return "Published";
+    case "manuscript-review-assigned":
+      return "Review requested";
+    case "manuscript-review-completed":
+      return "Review report";
+    case "manuscript-decision":
+      return "Decision";
+    case "manuscript-withdrawn":
+      return "Withdrawn";
     case "editorial-role-granted":
       return "Editorial role";
     case "venue-published":

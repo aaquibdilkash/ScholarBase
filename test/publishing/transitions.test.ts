@@ -12,6 +12,7 @@ import type { ManuscriptStatus } from "@prisma/client";
 import {
   MANUSCRIPT_TRANSITIONS,
   TERMINAL_MANUSCRIPT_STATUSES,
+  canAuthorWithdraw,
   canTransition,
   isTerminalStatus,
   nextStatuses,
@@ -82,5 +83,32 @@ describe("terminal statuses", () => {
     for (const status of ALL_STATUSES) {
       expect(isTerminalStatus(status)).toBe(MANUSCRIPT_TRANSITIONS[status].length === 0);
     }
+  });
+});
+
+describe("author withdrawal", () => {
+  it("allows a paper the author may still pull back", () => {
+    for (const status of ["SUBMITTED", "UNDER_REVIEW", "REVISION_REQUIRED"] as const) {
+      expect(canAuthorWithdraw(status), status).toBe(true);
+    }
+  });
+
+  it("refuses once the venue has committed to the paper", () => {
+    for (const status of [
+      "ACCEPTED_JOURNAL",
+      "ACCEPTED_PROCEDINGS",
+      "PUBLISHED",
+      "REJECTED",
+      "DESK_REJECTED",
+      "WITHDRAWN",
+    ] as const) {
+      expect(canAuthorWithdraw(status), status).toBe(false);
+    }
+  });
+
+  it("does not widen the editorial decision graph", () => {
+    // Withdrawal has its own predicate precisely so the editor-facing table
+    // keeps meaning "what an editor may decide".
+    expect(canTransition("UNDER_REVIEW", "WITHDRAWN")).toBe(false);
   });
 });

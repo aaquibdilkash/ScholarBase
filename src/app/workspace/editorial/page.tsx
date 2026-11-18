@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import type { EditorialRoleTitle } from "@prisma/client";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -9,6 +10,7 @@ import {
   INVITATION_EVENT_TYPES,
   latestInvitationByTarget,
 } from "@/lib/publishing/invitations";
+import { ManuscriptStatusBadge } from "@/components/workspace/ManuscriptStatusBadge";
 import {
   TransferInvitePanel,
   type TransferCandidate,
@@ -47,6 +49,30 @@ export default async function EditorialPage() {
     select: {
       roleTitle: true,
       venue: { select: { id: true, name: true, type: true } },
+    },
+  });
+
+  // A reviewer may hold no editorial seat at all. Their queue lives here so a
+  // review request is reachable without going back through the notification.
+  const reviewQueue = await prisma.reviewTask.findMany({
+    where: {
+      reviewerId: user.id,
+      isCompleted: false,
+      manuscript: { status: { in: ["UNDER_REVIEW", "REVISION_REQUIRED"] } },
+    },
+    orderBy: { assignedAt: "asc" },
+    select: {
+      id: true,
+      assignedAt: true,
+      manuscript: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          venue: { select: { name: true } },
+          author: { select: { name: true, email: true } },
+        },
+      },
     },
   });
 
@@ -121,15 +147,20 @@ export default async function EditorialPage() {
             },
           })
         : Promise.resolve([]),
-      // The desk inbox: papers an author submitted directly. Read-only until
-      // the review workspace lands; the row proves the submission arrived.
+      // The desk inbox: papers at this desk that still need someone to act.
+      // A paper in review is not finished business, so it stays here until it
+      // is decided — otherwise it disappears the moment a reviewer is assigned.
       deskVenueIds.length
         ? prisma.manuscript.findMany({
-            where: { venueId: { in: deskVenueIds }, status: "SUBMITTED" },
+            where: {
+              venueId: { in: deskVenueIds },
+              status: { in: ["SUBMITTED", "UNDER_REVIEW", "REVISION_REQUIRED"] },
+            },
             orderBy: { createdAt: "asc" },
             select: {
               id: true,
               title: true,
+              status: true,
               createdAt: true,
               author: { select: { name: true, email: true } },
               venue: { select: { name: true } },
@@ -191,7 +222,7 @@ export default async function EditorialPage() {
     status: manuscript.status,
   }));
 
-  if (roles.length === 0) {
+  if (roles.length === 0 && reviewQueue.length === 0) {
     return (
       <main>
         <header className="mb-6">
@@ -202,8 +233,8 @@ export default async function EditorialPage() {
           </p>
         </header>
         <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
-          You do not hold an editorial seat. A platform administrator can grant
-          one from the Administration page.
+          You do not hold an editorial seat and have no review assigned. A
+          platform administrator can grant a seat from the Administration page.
         </p>
       </main>
     );
@@ -214,47 +245,91 @@ export default async function EditorialPage() {
       <header>
         <h1 className="sb-heading text-2xl">Editorial</h1>
         <p className="sb-subtitle mt-2 text-sm">
-          Publish accepted manuscripts and invite conference authors to submit an
+          Review, decide, publish, and invite conference authors to submit an
           extended version to a journal.
         </p>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-          You hold:{" "}
-          {roles
-            .map(
-              (role) =>
-                `${EDITORIAL_ROLE_LABELS[role.roleTitle]} at ${role.venue.name}`,
-            )
-            .join(" · ")}
-        </p>
+        {roles.length > 0 ? (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            You hold:{" "}
+            {roles
+              .map(
+                (role) =>
+                  `${EDITORIAL_ROLE_LABELS[role.roleTitle]} at ${role.venue.name}`,
+              )
+              .join(" · ")}
+          </p>
+        ) : null}
+        {roles.length === 0 && reviewQueue.length > 0 ? (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            You have no editorial seat. The queue below is the work assigned to
+            you as a reviewer.
+          </p>
+        ) : null}
       </header>
+
+      {reviewQueue.length > 0 ? (
+        <section aria-labelledby="review-queue-heading">
+          <h2 id="review-queue-heading" className="sb-heading text-lg">
+            Reviews requested
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Papers waiting for your report. Reports are private; the author never
+            sees your name.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {reviewQueue.map((task) => (
+              <li key={task.id}>
+                <Link
+                  href={`/workspace/editorial/manuscripts/${task.manuscript.id}`}
+                  className="sb-card flex flex-wrap items-start justify-between gap-3 transition hover:border-slate-400 dark:hover:border-slate-600"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-950 dark:text-slate-50">
+                      {task.manuscript.title}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      {task.manuscript.author.name ??
+                        task.manuscript.author.email}
+                      {` · ${task.manuscript.venue.name}`}
+                      {` · invited ${formatDate(task.assignedAt)}`}
+                    </p>
+                  </div>
+                  <ManuscriptStatusBadge status={task.manuscript.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {inbox.length > 0 ? (
         <section aria-labelledby="inbox-heading">
           <h2 id="inbox-heading" className="sb-heading text-lg">
-            New submissions
+            At your desk
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Submitted directly by authors and waiting at your desk.
+            Submitted, under review, or awaiting a revision — open one to assign
+            reviewers and record the decision.
           </p>
           <ul className="mt-3 space-y-3">
             {inbox.map((manuscript) => (
-              <li
-                key={manuscript.id}
-                className="sb-card flex flex-wrap items-start justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-950 dark:text-slate-50">
-                    {manuscript.title}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    {manuscript.author.name ?? manuscript.author.email}
-                    {` · ${manuscript.venue.name}`}
-                    {` · ${formatDate(manuscript.createdAt)}`}
-                  </p>
-                </div>
-                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
-                  Awaiting triage
-                </span>
+              <li key={manuscript.id}>
+                <Link
+                  href={`/workspace/editorial/manuscripts/${manuscript.id}`}
+                  className="sb-card flex flex-wrap items-start justify-between gap-3 transition hover:border-slate-400 dark:hover:border-slate-600"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-950 dark:text-slate-50">
+                      {manuscript.title}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      {manuscript.author.name ?? manuscript.author.email}
+                      {` · ${manuscript.venue.name}`}
+                      {` · ${formatDate(manuscript.createdAt)}`}
+                    </p>
+                  </div>
+                  <ManuscriptStatusBadge status={manuscript.status} />
+                </Link>
               </li>
             ))}
           </ul>
@@ -270,7 +345,7 @@ export default async function EditorialPage() {
           candidates={transferCandidates}
           journals={journals}
         />
-      ) : publisherVenueIds.length === 0 ? (
+      ) : publisherVenueIds.length === 0 && roles.length > 0 ? (
         <p className="sb-card text-sm text-slate-500 dark:text-slate-400">
           You do not hold an Editor-in-Chief or Track Chair seat at a conference,
           so there is no accepted paper to invite to a journal.

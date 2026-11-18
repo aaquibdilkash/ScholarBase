@@ -44,3 +44,23 @@ export function nextStatuses(from: ManuscriptStatus): readonly ManuscriptStatus[
 export function isTerminalStatus(status: ManuscriptStatus): boolean {
   return MANUSCRIPT_TRANSITIONS[status].length === 0;
 }
+
+/**
+ * Statuses an author may withdraw their own paper from.
+ *
+ * Deliberately not an edge in `MANUSCRIPT_TRANSITIONS`: that table is the
+ * *editorial* decision machine, and its invariant is that nothing reaches
+ * `PUBLISHED` without review. Author consent is a different question — a paper
+ * under review is exactly when an author most often needs to withdraw — so it
+ * gets its own set. Editors cannot use it either: `STATUS_ACTOR_ROLES` gives
+ * `WITHDRAWN` no editorial owner.
+ */
+const AUTHOR_WITHDRAWABLE_STATUSES: readonly ManuscriptStatus[] = [
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "REVISION_REQUIRED",
+];
+
+export function canAuthorWithdraw(status: ManuscriptStatus): boolean {
+  return AUTHOR_WITHDRAWABLE_STATUSES.includes(status);
+}

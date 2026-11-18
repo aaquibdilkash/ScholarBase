@@ -9,11 +9,13 @@ import { buildNoindexMetadata } from "@/lib/seo";
 import { formatDate } from "@/utils/date";
 import { formatFileSize } from "@/lib/format";
 import { buildAuthorList } from "@/lib/publishing/citations";
+import { canAuthorWithdraw } from "@/lib/publishing/transitions";
 import {
   MANUSCRIPT_EVENT_LABELS,
   MANUSCRIPT_STATUS_LABELS,
 } from "@/lib/publishing/labels";
 import { ManuscriptStatusBadge } from "@/components/workspace/ManuscriptStatusBadge";
+import { WithdrawSubmissionButton } from "@/components/workspace/WithdrawSubmissionButton";
 
 export const metadata: Metadata = buildNoindexMetadata(
   "Submission - Workspace - ScholarBase",
@@ -283,10 +285,13 @@ export default async function SubmissionDetailPage({
                       Download PDF
                     </a>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <a
+                      href={`/api/manuscripts/${manuscript.id}/file`}
+                      className="sb-button-soft inline-flex items-center gap-1.5 text-xs"
+                    >
                       <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-                      Private until published
-                    </span>
+                      Download PDF
+                    </a>
                   )}
                 </li>
               ))}
@@ -407,6 +412,24 @@ export default async function SubmissionDetailPage({
               >
                 View the conference paper
               </Link>
+            </section>
+          ) : null}
+
+          {canAuthorWithdraw(manuscript.status) ? (
+            <section aria-labelledby="withdraw-heading" className="sb-card">
+              <h2
+                id="withdraw-heading"
+                className="text-base font-semibold text-slate-950 dark:text-slate-50"
+              >
+                Withdraw
+              </h2>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Withdrawing notifies the editor and closes this submission. It
+                stays in your workspace as a record.
+              </p>
+              <div className="mt-3">
+                <WithdrawSubmissionButton manuscriptId={manuscript.id} />
+              </div>
             </section>
           ) : null}
         </aside>

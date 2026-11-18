@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 
 import { Select } from "@/components/ui/Select";
+import { ActionResultMessage } from "@/components/workspace/ActionResultMessage";
 import {
   inviteAuthorToJournalAction,
   type ManuscriptActionResult,
@@ -55,23 +56,6 @@ function SubmitButton() {
         "Send invitation"
       )}
     </button>
-  );
-}
-
-function ResultMessage({ state }: { state: ManuscriptActionResult }) {
-  if (!state.message) return null;
-
-  return (
-    <p
-      role={state.success ? "status" : "alert"}
-      className={
-        state.success
-          ? "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-900/20 dark:text-emerald-200"
-          : "rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-900/20 dark:text-red-300"
-      }
-    >
-      {state.message}
-    </p>
   );
 }
 
@@ -152,7 +136,7 @@ function InviteForm({
       )}
 
       <div className="mt-3 empty:hidden">
-        <ResultMessage state={state} />
+        <ActionResultMessage state={state} />
       </div>
     </article>
   );

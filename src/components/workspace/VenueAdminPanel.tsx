@@ -13,6 +13,7 @@ import {
   setVenuePublishedAction,
   type VenueActionResult,
 } from "@/app/actions/publishing";
+import { ActionResultMessage } from "@/components/workspace/ActionResultMessage";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
@@ -73,30 +74,6 @@ function SubmitButton({
         children
       )}
     </button>
-  );
-}
-
-function ResultMessage({ state }: { state: VenueActionResult }) {
-  if (!state.message) return null;
-
-  if (state.success) {
-    return (
-      <p
-        role="status"
-        className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-900/20 dark:text-emerald-200"
-      >
-        {state.message}
-      </p>
-    );
-  }
-
-  return (
-    <p
-      role="alert"
-      className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-900/20 dark:text-red-300"
-    >
-      {state.message}
-    </p>
   );
 }
 
@@ -211,7 +188,7 @@ function CreateVenueCard() {
           <Counter value={slug.length} max={MAX_VENUE_SLUG} />
         </div>
 
-        <ResultMessage state={state} />
+        <ActionResultMessage state={state} />
 
         <SubmitButton>Create venue</SubmitButton>
       </form>
@@ -329,7 +306,7 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
           {venue.isPublished ? "Unpublish" : "Publish"}
         </SubmitButton>
       </form>
-      <ResultMessage state={publishState} />
+      <ActionResultMessage state={publishState} />
 
       {!venue.isPublished && (
         <form
@@ -347,7 +324,7 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
           </SubmitButton>
         </form>
       )}
-      <ResultMessage state={deleteState} />
+      <ActionResultMessage state={deleteState} />
 
       <div className="mt-6 border-t border-[var(--card-border)] pt-4">
         <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Editorial roles</h4>
@@ -446,7 +423,7 @@ function VenueCard({ venue }: { venue: VenueAdminRow }) {
             </SubmitButton>
           </div>
         </form>
-        <ResultMessage state={roleState} />
+        <ActionResultMessage state={roleState} />
       </div>
     </article>
   );

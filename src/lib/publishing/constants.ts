@@ -25,6 +25,17 @@ export const MAX_MANUSCRIPT_KEYWORDS = 256;
 export const MAX_MANUSCRIPT_KEYWORD_LENGTH = 24;
 export const MAX_MANUSCRIPT_KEYWORD_COUNT = 8;
 
+/**
+ * Peer-review limits. Shared by the reviewer report form (counters) and the
+ * Server Action that accepts it, so the counter can never advertise a ceiling
+ * the server ignores.
+ */
+export const MAX_REVIEW_COMMENTS = 6000;
+export const MIN_REVIEW_SCORE = 1;
+export const MAX_REVIEW_SCORE = 10;
+/** A decision letter is optional for accept/revision, required for reject. */
+export const MAX_DECISION_NOTE = 4000;
+
 /** Venue CMS limits shared by the settings form and its Server Action. */
 export const MAX_VENUE_EDITOR_NAME = 120;
 export const MAX_VENUE_EDITOR_AFFILIATION = 200;

@@ -11,7 +11,7 @@ import {
   canEditorSetStatus,
   canTransferToJournal,
 } from "@/lib/publishing/permissions";
-import { canTransition } from "@/lib/publishing/transitions";
+import { canTransition, canAuthorWithdraw } from "@/lib/publishing/transitions";
 import { isValidIsbn13, normalizeIsbn } from "@/lib/publishing/identifiers";
 import {
   MAX_MANUSCRIPT_ABSTRACT,
@@ -991,3 +991,112 @@ export async function publishManuscriptAction(
 }
 
 class PublishConflict extends Error {}
+
+/**
+ * Withdraw a submission.
+ *
+ * Withdrawal is a status, not a delete: the row, its files, and its review
+ * history stay, because a withdrawn paper is still part of the venue's record.
+ * It has no reputation consequence — manuscripts carry no vote counters, so
+ * there is nothing to reverse.
+ *
+ * Only the author may withdraw, only from a pre-acceptance status, and the desk
+ * is told so an editor does not keep chasing reports for a paper that is gone.
+ */
+export async function withdrawManuscriptAction(
+  _previous: ManuscriptActionResult,
+  formData: FormData,
+): Promise<ManuscriptActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+
+  const limit = await enforceRateLimit({
+    namespace: "manuscript:withdraw",
+    key: auth.user.id,
+    limit: 5,
+    window: "1 h",
+  });
+  if (!limit.allowed) return { success: false, message: limit.error };
+
+  const manuscriptId = readFormValue(formData, "manuscriptId");
+  if (!manuscriptId) return fail("Choose a submission to withdraw.");
+
+  const manuscript = await prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      authorId: true,
+      venueId: true,
+      venue: { select: { name: true } },
+    },
+  });
+  if (!manuscript) return fail("That submission no longer exists.");
+  if (manuscript.authorId !== auth.user.id) {
+    return fail("Only the author can withdraw this submission.");
+  }
+  if (!canAuthorWithdraw(manuscript.status)) {
+    return fail(
+      manuscript.status === "PUBLISHED"
+        ? "A published article cannot be withdrawn from the workspace. Contact the editor about a correction or retraction."
+        : "This submission has already been decided and can no longer be withdrawn.",
+    );
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.manuscript.updateMany({
+        where: { id: manuscriptId, status: manuscript.status },
+        data: { status: "WITHDRAWN" },
+      });
+      if (updated.count === 0) throw new WithdrawConflict();
+
+      await tx.manuscriptEvent.create({
+        data: {
+          manuscriptId,
+          type: "WITHDRAWN",
+          actorId: auth.user.id,
+          fromStatus: manuscript.status,
+          toStatus: "WITHDRAWN",
+          note: "Withdrawn by the author.",
+        },
+      });
+    });
+  } catch (error) {
+    if (error instanceof WithdrawConflict) {
+      return fail("This submission changed in another session. Reload and retry.");
+    }
+    throw error;
+  }
+
+  const desk = await prisma.editorialRole.findMany({
+    where: { venueId: manuscript.venueId },
+    select: { userId: true },
+  });
+  await Promise.all(
+    [...new Set(desk.map((seat) => seat.userId))].map((recipientId) =>
+      notifyUserById({
+        recipientId,
+        actorId: auth.user.id,
+        type: "manuscript-withdrawn",
+        targetType: "editorialManuscript",
+        targetId: manuscript.id,
+        title: `Withdrawn: ${manuscript.title}`,
+        body: `The author withdrew this submission from ${manuscript.venue.name}.`,
+      }),
+    ),
+  );
+
+  revalidatePath("/workspace/submissions");
+  revalidatePath(`/workspace/submissions/${manuscript.id}`);
+  revalidatePath("/workspace/editorial");
+  revalidatePath(`/workspace/editorial/manuscripts/${manuscript.id}`);
+
+  return {
+    success: true,
+    message: `"${manuscript.title}" has been withdrawn. The record stays in your workspace.`,
+  };
+}
+
+class WithdrawConflict extends Error {}

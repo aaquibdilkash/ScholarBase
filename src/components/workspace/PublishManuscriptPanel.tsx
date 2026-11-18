@@ -6,6 +6,7 @@ import {
   publishManuscriptAction,
   type ManuscriptActionResult,
 } from "@/app/actions/manuscripts";
+import { ActionResultMessage } from "@/components/workspace/ActionResultMessage";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
@@ -53,23 +54,6 @@ function Field({
         <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{hint}</span>
       ) : null}
     </label>
-  );
-}
-
-function ResultMessage({ state }: { state: ManuscriptActionResult }) {
-  if (!state.message) return null;
-
-  return (
-    <p
-      role={state.success ? "status" : "alert"}
-      className={
-        state.success
-          ? "mt-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-900/20 dark:text-emerald-200"
-          : "mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-900/20 dark:text-red-300"
-      }
-    >
-      {state.message}
-    </p>
   );
 }
 
@@ -180,7 +164,7 @@ function PublishForm({ candidate }: { candidate: PublishCandidate }) {
         </span>
       </div>
 
-      <ResultMessage state={state} />
+      <ActionResultMessage className="mt-3" state={state} />
     </form>
   );
 }

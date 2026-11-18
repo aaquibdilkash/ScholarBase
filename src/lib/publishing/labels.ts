@@ -2,6 +2,7 @@ import type {
   EditorialRoleTitle,
   ManuscriptEventType,
   ManuscriptStatus,
+  ReviewDecision,
 } from "@prisma/client";
 
 /**
@@ -49,6 +50,14 @@ export const EDITORIAL_ROLE_LABELS: Record<EditorialRoleTitle, string> = {
   EDITOR_IN_CHIEF: "Editor-in-Chief",
   TRACK_CHAIR: "Track Chair",
   ASSOC_EDITOR: "Associate Editor",
+};
+
+/** Reviewer recommendations, as shown to the desk and to the reviewer. */
+export const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
+  ACCEPT: "Accept",
+  MINOR_REVISION: "Minor revision",
+  MAJOR_REVISION: "Major revision",
+  REJECT: "Reject",
 };
 
 /**
