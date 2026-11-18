@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import {
   MANUSCRIPT_BUCKET,
+  MANUSCRIPT_DOCX_MIME,
   MANUSCRIPT_PDF_MIME,
   MAX_MANUSCRIPT_BYTES,
 } from "@/lib/publishing/constants";
@@ -25,10 +26,14 @@ import { createServiceClient } from "@/utils/supabase/service";
  */
 
 const MANUSCRIPT_PATH_PATTERN =
-  /^users\/([A-Za-z0-9_-]+)\/manuscripts\/([A-Za-z0-9-]+)\.pdf$/;
+  /^users\/([A-Za-z0-9_-]+)\/manuscripts\/([A-Za-z0-9-]+)\.(pdf|docx)$/;
 
 export function manuscriptObjectPath(userId: string, objectId: string): string {
   return `users/${userId}/manuscripts/${objectId}.pdf`;
+}
+
+export function manuscriptSourceObjectPath(userId: string, objectId: string): string {
+  return `users/${userId}/manuscripts/${objectId}.docx`;
 }
 
 export function isManuscriptObjectPathForUser(
@@ -61,8 +66,11 @@ export type ManuscriptUploadTicket = {
  */
 export async function createManuscriptUploadTicket(
   userId: string,
+  kind: "PDF" | "DOCX" = "PDF",
 ): Promise<ManuscriptUploadTicket | null> {
-  const path = manuscriptObjectPath(userId, randomUUID());
+  const path = kind === "DOCX"
+    ? manuscriptSourceObjectPath(userId, randomUUID())
+    : manuscriptObjectPath(userId, randomUUID());
 
   try {
     const { data, error } = await createServiceClient()
@@ -81,9 +89,9 @@ export type ManuscriptObjectCheck =
   | { ok: true; sizeBytes: number; sha256: string }
   | { ok: false; message: string };
 
-function isPdfContentType(contentType: string | null | undefined): boolean {
+function isAllowedContentType(contentType: string | null | undefined, expected: string): boolean {
   if (!contentType) return false;
-  return contentType.split(";")[0]?.trim().toLowerCase() === MANUSCRIPT_PDF_MIME;
+  return contentType.split(";")[0]?.trim().toLowerCase() === expected;
 }
 
 /**
@@ -98,12 +106,16 @@ export async function verifyManuscriptObject(params: {
   path: string;
   declaredBytes: number;
   expectedSha256: string;
+  expectedMimeType?: string;
+  maxBytes?: number;
 }): Promise<ManuscriptObjectCheck> {
   if (!isManuscriptObjectPathForUser(params.userId, params.path)) {
     return { ok: false, message: "That upload does not belong to your account." };
   }
 
   const expectedSha256 = params.expectedSha256.trim().toLowerCase();
+  const expectedMimeType = params.expectedMimeType ?? MANUSCRIPT_PDF_MIME;
+  const maxBytes = params.maxBytes ?? MAX_MANUSCRIPT_BYTES;
   if (!isSha256Hex(expectedSha256)) {
     return { ok: false, message: "The file checksum is missing. Please upload the PDF again." };
   }
@@ -123,15 +135,15 @@ export async function verifyManuscriptObject(params: {
     }
 
     sizeBytes = info.data.size ?? 0;
-    if (!isPdfContentType(info.data.contentType)) {
-      return { ok: false, message: "The uploaded file is not a PDF." };
+    if (!isAllowedContentType(info.data.contentType, expectedMimeType)) {
+      return { ok: false, message: expectedMimeType === MANUSCRIPT_DOCX_MIME ? "The uploaded source is not a DOCX file." : "The uploaded file is not a PDF." };
     }
   } catch {
     return { ok: false, message: "We could not read the uploaded PDF. Please try again." };
   }
 
-  if (sizeBytes <= 0 || sizeBytes > MAX_MANUSCRIPT_BYTES) {
-    return { ok: false, message: "The uploaded PDF is empty or larger than 25 MB." };
+  if (sizeBytes <= 0 || sizeBytes > maxBytes) {
+    return { ok: false, message: "The uploaded file is empty or larger than 25 MB." };
   }
   if (sizeBytes !== params.declaredBytes) {
     return {

@@ -418,7 +418,6 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
       formData.set("fileName", file.name);
       formData.set("fileSize", String(file.size));
       formData.set("sha256", sha256);
-
       const result = isInvitation
         ? await createManuscriptSubmissionAction(EMPTY_RESULT, formData)
         : await createDirectSubmissionAction(EMPTY_RESULT, formData);

@@ -137,6 +137,10 @@ const PUBLISHABLE = {
     slug: "indian-journal-of-optics",
     type: "JOURNAL",
   },
+  files: [
+    { kind: "CAMERA_READY" },
+    { kind: "PRODUCTION_SOURCE" },
+  ],
 };
 
 const INVITATION_EVENT = {

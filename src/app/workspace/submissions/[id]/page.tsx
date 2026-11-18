@@ -307,7 +307,7 @@ export default async function SubmissionDetailPage({
             </ul>
           </section>
 
-          {manuscript.status === ("ACCEPTED_PROCEEDINGS" as typeof manuscript.status) ? <CameraReadyUploadPanel manuscriptId={manuscript.id} /> : null}
+          {manuscript.status === "ACCEPTED_PROCEDINGS" || manuscript.status === "ACCEPTED_JOURNAL" ? <CameraReadyUploadPanel manuscriptId={manuscript.id} /> : null}
 
           <section aria-labelledby="timeline-heading" className="sb-card">
             <h2

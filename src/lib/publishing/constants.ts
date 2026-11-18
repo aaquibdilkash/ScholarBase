@@ -13,11 +13,13 @@
 /** Supabase Storage bucket. Private — no public read policy exists. */
 export const MANUSCRIPT_BUCKET = "manuscripts";
 
-/** The version of record is a PDF. No DOCX, no HTML conversion. */
+/** The submitted version of record is a PDF; DOCX is reserved for production. */
 export const MANUSCRIPT_PDF_MIME = "application/pdf";
+export const MANUSCRIPT_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /** Upload ceiling. Also applied to the bucket by `npm run storage:manuscripts`. */
 export const MAX_MANUSCRIPT_BYTES = 25 * 1024 * 1024;
+export const MAX_MANUSCRIPT_SOURCE_BYTES = 25 * 1024 * 1024;
 
 export const MAX_MANUSCRIPT_TITLE = 200;
 export const MAX_MANUSCRIPT_ABSTRACT = 3000;

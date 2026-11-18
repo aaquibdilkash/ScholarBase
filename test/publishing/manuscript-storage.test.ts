@@ -11,6 +11,7 @@ import {
   isManuscriptObjectPathForUser,
   isSha256Hex,
   manuscriptObjectPath,
+  manuscriptSourceObjectPath,
   sha256Hex,
 } from "@/lib/manuscript-storage";
 
@@ -18,6 +19,12 @@ describe("manuscriptObjectPath", () => {
   it("scopes the object under the author", () => {
     expect(manuscriptObjectPath("u1", "abc-123")).toBe(
       "users/u1/manuscripts/abc-123.pdf",
+    );
+  });
+
+  it("uses a separate DOCX extension for the optional source", () => {
+    expect(manuscriptSourceObjectPath("u1", "abc-123")).toBe(
+      "users/u1/manuscripts/abc-123.docx",
     );
   });
 });
@@ -42,10 +49,8 @@ describe("isManuscriptObjectPathForUser", () => {
     ).toBe(false);
   });
 
-  it("rejects non-PDF objects and the bare prefix", () => {
-    expect(isManuscriptObjectPathForUser("u1", "users/u1/manuscripts/x.docx")).toBe(
-      false,
-    );
+  it("accepts a DOCX source and rejects the bare prefix", () => {
+    expect(isManuscriptObjectPathForUser("u1", "users/u1/manuscripts/x.docx")).toBe(true);
     expect(isManuscriptObjectPathForUser("u1", "users/u1/manuscripts/")).toBe(
       false,
     );

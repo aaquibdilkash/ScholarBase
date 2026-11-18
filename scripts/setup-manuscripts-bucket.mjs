@@ -3,7 +3,7 @@
  * scripts/setup-manuscripts-bucket.mjs
  *
  * Creates (or repairs) the private Supabase Storage bucket that holds
- * manuscript PDFs. Run once per environment, before the first submission:
+ * manuscript PDFs and accepted-stage DOCX production sources. Run once per environment:
  *
  *   npm run storage:manuscripts
  *
@@ -26,7 +26,10 @@ import { createClient } from "@supabase/supabase-js";
 
 const BUCKET = "manuscripts";
 const MAX_BYTES = 25 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = ["application/pdf"];
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 function loadEnvFile(path) {
   if (!existsSync(path)) return;
@@ -108,8 +111,8 @@ async function main() {
       current.public === false &&
       current.sizeLimit === MAX_BYTES &&
       Array.isArray(current.mimeTypes) &&
-      current.mimeTypes.length === 1 &&
-      current.mimeTypes[0] === "application/pdf";
+      current.mimeTypes.length === ALLOWED_MIME_TYPES.length &&
+      ALLOWED_MIME_TYPES.every((mime) => current.mimeTypes.includes(mime));
 
     if (alreadyCorrect) {
       console.log(`✔ Private bucket "${BUCKET}" already configured.`);
@@ -118,13 +121,13 @@ async function main() {
 
     const updated = await supabase.storage.updateBucket(BUCKET, options);
     if (updated.error) fail(`Could not update "${BUCKET}": ${updated.error.message}`);
-    console.log(`✔ Updated bucket "${BUCKET}" to private, 25 MB, PDF-only.`);
+    console.log(`✔ Updated bucket "${BUCKET}" to private, 25 MB, PDF and production DOCX sources.`);
     return;
   }
 
   const created = await supabase.storage.createBucket(BUCKET, options);
   if (created.error) fail(`Could not create "${BUCKET}": ${created.error.message}`);
-  console.log(`✔ Created private bucket "${BUCKET}" (25 MB, PDF-only).`);
+  console.log(`✔ Created private bucket "${BUCKET}" (25 MB, PDF and production DOCX sources).`);
 }
 
 await main();

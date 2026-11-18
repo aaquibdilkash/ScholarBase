@@ -17,9 +17,11 @@ import {
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
   MAX_MANUSCRIPT_DECLARATION,
+  MANUSCRIPT_DOCX_MIME,
   MAX_MANUSCRIPT_JEL_CODES,
   MAX_MANUSCRIPT_JEL_CODE_LENGTH,
   MAX_MANUSCRIPT_KEYWORDS,
+  MAX_MANUSCRIPT_SOURCE_BYTES,
   MAX_MANUSCRIPT_TITLE,
   MANUSCRIPT_PDF_MIME,
   parseManuscriptKeywords,
@@ -271,7 +273,9 @@ export async function inviteAuthorToJournalAction(
  * never served (the bucket is private and only the submission path can create
  * a `ManuscriptFile`); a later sweep can collect it.
  */
-export async function createManuscriptUploadUrlAction(): Promise<ManuscriptUploadTicketResult> {
+export async function createManuscriptUploadUrlAction(
+  kind: "PDF" | "DOCX" = "PDF",
+): Promise<ManuscriptUploadTicketResult> {
   const auth = await getActiveUser("Log in to upload a manuscript.");
   if (auth.frozen) return uploadFail(auth.message);
 
@@ -283,7 +287,9 @@ export async function createManuscriptUploadUrlAction(): Promise<ManuscriptUploa
   });
   if (!limit.allowed) return { success: false, message: limit.error };
 
-  const ticket = await createManuscriptUploadTicket(auth.user.id);
+  const ticket = kind === "PDF"
+    ? await createManuscriptUploadTicket(auth.user.id)
+    : await createManuscriptUploadTicket(auth.user.id, kind);
   if (!ticket) {
     return uploadFail(
       "Manuscript uploads are not configured yet. An administrator must create the private storage bucket.",
@@ -305,24 +311,39 @@ export async function submitCameraReadyAction(
     select: { id: true, authorId: true, status: true, round: true, venue: { select: { type: true } }, edition: { select: { cameraReadyAt: true } } },
   });
   if (!manuscript || manuscript.authorId !== auth.user.id) return { success: false, message: "That submission is not available." };
-  if (manuscript.venue.type !== "CONFERENCE" || manuscript.status !== ("ACCEPTED_PROCEEDINGS" as typeof manuscript.status)) return { success: false, message: "Camera-ready files are only accepted for conference papers after acceptance." };
-  if (manuscript.edition?.cameraReadyAt && manuscript.edition.cameraReadyAt.getTime() < Date.now()) return { success: false, message: "The camera-ready deadline has passed. Contact the conference editors." };
+  const accepted = manuscript.status === "ACCEPTED_JOURNAL" || manuscript.status === "ACCEPTED_PROCEDINGS";
+  if (!accepted) return { success: false, message: "Production files are accepted only after the manuscript is accepted." };
+  if (manuscript.venue.type === "CONFERENCE" && manuscript.edition?.cameraReadyAt && manuscript.edition.cameraReadyAt.getTime() < Date.now()) return { success: false, message: "The camera-ready deadline has passed. Contact the conference editors." };
   const filePath = readFormValue(formData, "filePath");
   const fileName = safeManuscriptFileName(readFormValue(formData, "fileName"));
   const declaredBytes = Number(readFormValue(formData, "fileSize"));
   const sha256 = readFormValue(formData, "sha256");
+  const sourceDocxPath = readFormValue(formData, "sourceDocxPath");
+  const sourceDocxName = safeManuscriptFileName(readFormValue(formData, "sourceDocxName") || "production-source.docx");
+  const sourceDocxBytes = Number(readFormValue(formData, "sourceDocxSize"));
+  const sourceDocxSha256 = readFormValue(formData, "sourceDocxSha256");
   const check = await verifyManuscriptObject({ userId: auth.user.id, path: filePath, declaredBytes, expectedSha256: sha256 });
   if (!check.ok) {
     await deleteManuscriptObject(filePath);
     return { success: false, message: check.message };
   }
+  if (!sourceDocxPath || !sourceDocxSha256 || !Number.isFinite(sourceDocxBytes) || sourceDocxBytes <= 0) {
+    await deleteManuscriptObject(filePath);
+    return { success: false, message: "Upload the DOCX production source together with the final PDF." };
+  }
+  const sourceCheck = await verifyManuscriptObject({ userId: auth.user.id, path: sourceDocxPath, declaredBytes: sourceDocxBytes, expectedSha256: sourceDocxSha256, expectedMimeType: MANUSCRIPT_DOCX_MIME, maxBytes: MAX_MANUSCRIPT_SOURCE_BYTES });
+  if (!sourceCheck.ok) {
+    await Promise.all([deleteManuscriptObject(filePath), deleteManuscriptObject(sourceDocxPath)]);
+    return { success: false, message: sourceCheck.message };
+  }
   await prisma.$transaction(async (tx) => {
     await tx.manuscriptFile.create({ data: { manuscriptId: manuscript.id, round: manuscript.round, kind: "CAMERA_READY", filePath, fileName, mimeType: MANUSCRIPT_PDF_MIME, sizeBytes: check.sizeBytes, sha256: check.sha256 } });
-    await tx.manuscriptEvent.create({ data: { manuscriptId: manuscript.id, type: "REVISION_UPLOADED", actorId: auth.user.id, note: "Camera-ready PDF uploaded for editorial production." } });
+    await tx.manuscriptFile.create({ data: { manuscriptId: manuscript.id, round: manuscript.round, kind: "PRODUCTION_SOURCE", filePath: sourceDocxPath, fileName: sourceDocxName, mimeType: MANUSCRIPT_DOCX_MIME, sizeBytes: sourceCheck.sizeBytes, sha256: sourceCheck.sha256 } });
+    await tx.manuscriptEvent.create({ data: { manuscriptId: manuscript.id, type: "REVISION_UPLOADED", actorId: auth.user.id, note: "Final PDF and DOCX production source uploaded for editorial production." } });
   });
   revalidatePath(`/workspace/submissions/${manuscript.id}`);
   revalidatePath("/workspace/editorial");
-  return { success: true, message: "Camera-ready PDF uploaded for editorial review." };
+  return { success: true, message: "Production package uploaded for editorial review." };
 }
 
 function safeManuscriptFileName(name: string): string {
@@ -395,7 +416,6 @@ export async function createManuscriptSubmissionAction(
 
   const check = await verifySubmissionUpload(auth.user.id, input);
   if (!check.ok) return submitFail(check.message);
-
   const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
   const jelCodes = parseManuscriptJelCodes(input.jelCodesRaw).join(", ");
   // The form pre-fills the conference byline, so whatever it sends is the
@@ -965,6 +985,10 @@ export async function publishManuscriptAction(
       edition: { select: { id: true, slug: true, label: true, volume: true, isbn: true, isPublished: true, status: true } },
       journalIssueId: true,
       journalIssue: { select: { id: true, volume: true, number: true, isPublished: true, status: true } },
+      files: {
+        where: { kind: { in: ["CAMERA_READY", "PRODUCTION_SOURCE"] } },
+        select: { kind: true },
+      },
     },
   });
   if (!manuscript) return fail("That manuscript no longer exists.");
@@ -987,6 +1011,12 @@ export async function publishManuscriptAction(
   }
   if (!canEditorSetStatus(actor, "PUBLISHED")) {
     return fail("Only the Editor-in-Chief can publish a manuscript.");
+  }
+
+  const hasFinalPdf = manuscript.files.some((file) => file.kind === "CAMERA_READY");
+  const hasProductionSource = manuscript.files.some((file) => file.kind === "PRODUCTION_SOURCE");
+  if (!hasFinalPdf || !hasProductionSource) {
+    return fail("Upload the final non-anonymous PDF and DOCX production source before publication.");
   }
 
   const editorialRecusal = await prisma.manuscriptRecusal.findUnique({

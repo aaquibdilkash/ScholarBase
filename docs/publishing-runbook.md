@@ -341,7 +341,7 @@ Do **not** convert PDF→HTML. `unpdf` yields text without figures, tables, or s
 |---|---|
 | Full text | Inline `<iframe>` with a signed/public PDF URL, plus a "Download PDF" link |
 | Metadata | Server-rendered `prose` block: title, authors + affiliations + CRediT roles, abstract, keywords, optional JEL classifications, licence, dates |
-| Citation export | **Route Handler**, not a Server Action: `GET /sbj/[slug]/article/[id]/citation.ris` |
+| Citation export | **Route Handler**, not a Server Action: RIS, BibTeX, and `GET /api/papers/[id]/jats` JATS/XML |
 | Structured data | `ScholarlyArticle` JSON-LD via `serializeJsonLd` + `<JsonLd>` |
 | Indexing | Highwire `<meta>` tags through `metadata.other` |
 
@@ -357,6 +357,34 @@ citation_volume, citation_issue, citation_firstpage, citation_lastpage, citation
 ```
 
 Also emit `Organization` / `Periodical` JSON-LD on `/sbj/[slug]` with `issn` and `publisher`.
+
+Every published article exposes a deterministic JATS/XML metadata export at
+`/api/papers/[id]/jats`. It includes the title, authors, affiliations, ORCID/ROR
+identifiers, CRediT roles, abstract, keywords/JEL codes, publication metadata,
+integrity declarations, licence, and a PDF self-reference. It deliberately
+does not invent a full-text body: the uploaded PDF remains the version of
+record until structured article content is supplied. This is generated on
+demand and adds no PDF-rendering workload.
+
+The submission form accepts a PDF only. After acceptance, the author must upload a
+production package containing the final non-anonymous PDF and a DOCX source.
+Those are stored as `CAMERA_READY` and `PRODUCTION_SOURCE`; publication is
+blocked until both exist. The final PDF is the public version of record, while
+the DOCX remains private and is never converted synchronously on the 2-CPU
+application server. Run `npm run storage:manuscripts` in each Supabase project
+after deployment so the private bucket accepts both PDF and DOCX MIME types.
+
+### Structured author metadata
+
+The submission form stores CRediT roles with each corresponding author and
+co-author. Affiliations may be linked to a selected Research Organization
+Registry (ROR) record; the server validates the ROR URL and the public article
+emits it as the affiliation organization's JSON-LD identifier. ROR search uses
+the free authenticated `/api/ror/organizations` proxy and never silently picks
+the first result. A free-text affiliation remains valid when ROR has no match.
+
+ORCID values are checksum-validated but are not yet ownership-verified through
+ORCID OAuth; that is a separate future integration.
 
 ### Accessibility (author guidelines, not the renderer)
 
@@ -892,7 +920,7 @@ unpublished until their public preview is complete.
    creates duplicate submissions, self-dealing, and papers in a journal queue
    that their author never agreed to submit.
 5. **PDF only at submission; no DOCX.** Reviewed 2026-11-17 and reaffirmed. A PDF is a fixed rendering, so it is the version of record and the file a reviewer can read inline; DOCX reflows per application, can carry tracked changes, comments, and OLE objects, and its MIME is a claim inside a ZIP rather than a fact `verifyManuscriptObject` can check. Converting server-side would mean headless LibreOffice (~700 MB, ARM64) rendering author-supplied archives on the same 2-core box. The author-facing cost is one menu item (`File → Save as → PDF` in Word, `Download → PDF` in Google Docs).
-   Deferred, not rejected: accept DOCX as an *optional supplementary source* file (`ManuscriptFile.kind` is already free text, so no migration) while the PDF stays the version of record. That needs bucket `allowedMimeTypes` widened on **both** Supabase projects via `npm run storage:manuscripts`, a second extension in `MANUSCRIPT_PATH_PATTERN`, a second upload in `ManuscriptSubmissionForm`, and review-UI copy that never implies DOCX is reviewable.
+   A DOCX is collected only after acceptance as a private production source, alongside the final non-anonymous PDF; it is not part of peer review or the public version of record.
 
 ---
 

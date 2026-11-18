@@ -202,6 +202,12 @@ export function ArticleView({
             >
               BibTeX
             </a>
+            <a
+              className="sb-button-soft"
+              href={`/api/papers/${article.id}/jats`}
+            >
+              JATS/XML
+            </a>
           </div>
 
           {article.abstract ? (

@@ -64,15 +64,22 @@ Supabase backups alone are not a public preservation policy.
 - Authenticated ORCID connection where an author claims ownership; the
   submission boundary now validates the ORCID checksum, but a typed ORCID is
   still not identity-verified.
-- ROR identifiers for affiliations and structured funder/grant metadata.
+- ROR affiliation linking is now implemented: the authenticated submission form
+  searches the free ROR v2 API, requires an explicit author selection, validates
+  the identifier server-side, and emits it in public JSON-LD. Structured funder
+  and grant metadata remains outstanding.
 - Explicit corresponding-author data is now stored with the structured byline;
   CRediT contributor roles are now captured per author. Funding,
   data/code availability, ethics approval, consent, competing-interest, and
   AI-use declarations and optional JEL classifications are now captured.
 - Article-level version-of-record, accepted-manuscript, correction, and
   retraction metadata with stable relationships.
-- JATS XML or another archival interchange format for published articles,
-  alongside the PDF—not a replacement for the PDF.
+- JATS/XML metadata export is now available for every published article at
+  `/api/papers/[id]/jats`, alongside the PDF. Full-text JATS body generation
+  remains outstanding until structured sections, tables, figures, equations,
+  and references are supplied by the author or production editor. A DOCX source
+  is required in the post-acceptance production package; it is not treated as the
+  version of record and is not converted on the request path.
 - Accessibility acceptance criteria: tagged PDF, meaningful figure alt text,
   heading order, language metadata, and keyboard-accessible public pages.
 - Crossref membership and deposits when the budget allows; Zenodo is a bridge,

@@ -246,7 +246,7 @@ const ARTICLE_SELECT = {
   coAuthors: true,
   author: { select: { name: true, orcidUrl: true } },
   files: {
-    where: { kind: "MANUSCRIPT" },
+    where: { kind: { in: ["MANUSCRIPT", "CAMERA_READY"] } },
     orderBy: [{ round: "desc" }, { createdAt: "desc" }],
     take: 1,
     select: { fileName: true, sizeBytes: true },
@@ -545,7 +545,7 @@ export async function getPublishedPdfPath(id: string): Promise<string | null> {
     where: { id, status: "PUBLISHED", venue: { isPublished: true } },
     select: {
       files: {
-        where: { kind: "MANUSCRIPT" },
+        where: { kind: { in: ["MANUSCRIPT", "CAMERA_READY"] } },
         orderBy: [{ round: "desc" }, { createdAt: "desc" }],
         take: 1,
         select: { filePath: true },
