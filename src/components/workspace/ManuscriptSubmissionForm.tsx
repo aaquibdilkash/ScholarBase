@@ -18,6 +18,7 @@ import {
   MAX_CO_AUTHOR_EMAIL,
   MAX_CO_AUTHOR_NAME,
   MAX_CO_AUTHOR_ORCID,
+  CREDIT_ROLES,
 } from "@/lib/publishing/coauthors";
 import { CitationAuthor } from "@/lib/publishing/citations";
 import {
@@ -27,6 +28,8 @@ import {
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
   MAX_MANUSCRIPT_DECLARATION,
+  MAX_MANUSCRIPT_JEL_CODES,
+  MAX_MANUSCRIPT_JEL_CODE_LENGTH,
   MAX_MANUSCRIPT_KEYWORDS,
   MAX_MANUSCRIPT_SIZE_LABEL,
   MAX_MANUSCRIPT_TITLE,
@@ -57,6 +60,7 @@ export type ManuscriptSubmissionProps =
         affiliation?: string | null;
         orcid?: string | null;
         email?: string | null;
+        creditRoles?: readonly string[];
       }[];
       defaultAuthor: {
         name: string;
@@ -96,6 +100,7 @@ type CoAuthorRow = {
   affiliation: string;
   orcid: string;
   email: string;
+  creditRoles: string[];
 };
 
 type SubmissionDeclarations = {
@@ -107,7 +112,7 @@ type SubmissionDeclarations = {
 };
 
 function emptyCoAuthor(): CoAuthorRow {
-  return { key: crypto.randomUUID(), name: "", affiliation: "", orcid: "", email: "" };
+  return { key: crypto.randomUUID(), name: "", affiliation: "", orcid: "", email: "", creditRoles: [] };
 }
 
 /**
@@ -124,6 +129,7 @@ function initialCoAuthorRows(props: ManuscriptSubmissionProps): CoAuthorRow[] {
     affiliation: author.affiliation ?? "",
     orcid: author.orcid ?? "",
     email: author.email ?? "",
+    creditRoles: [...(author.creditRoles ?? [])],
   }));
 }
 
@@ -152,6 +158,7 @@ function serializeCoAuthors(rows: readonly CoAuthorRow[]): string {
       ...(row.affiliation.trim() ? { affiliation: row.affiliation.trim() } : {}),
       ...(row.orcid.trim() ? { orcid: row.orcid.trim() } : {}),
       ...(row.email.trim() ? { email: row.email.trim() } : {}),
+      ...(row.creditRoles.length ? { creditRoles: row.creditRoles } : {}),
     })),
   );
 }
@@ -169,6 +176,51 @@ function Counter({ value, max }: { value: number; max: number }) {
       {value}/{max} characters
     </div>
   );
+}
+
+function CreditRolePicker({
+  idPrefix,
+  roles,
+  onChange,
+  disabled,
+}: {
+  idPrefix: string;
+  roles: readonly string[];
+  onChange: (roles: string[]) => void;
+  disabled: boolean;
+}) {
+  return (
+    <fieldset className="mt-3 rounded-lg border border-[var(--card-border)] p-3">
+      <legend className="px-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+        CRediT contributor roles
+      </legend>
+      <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+        Select every role this contributor performed.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {CREDIT_ROLES.map(([role, description]) => {
+          const id = `${idPrefix}-${role.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+          return (
+            <label key={role} htmlFor={id} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+              <input
+                id={id}
+                type="checkbox"
+                checked={roles.includes(role)}
+                onChange={() => onChange(toggleRoleValue(roles, role))}
+                disabled={disabled}
+                className="mt-0.5"
+              />
+              <span><span className="font-medium">{role}</span><span className="block text-slate-500 dark:text-slate-400">{description}</span></span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function toggleRoleValue(current: readonly string[], role: string): string[] {
+  return current.includes(role) ? current.filter((item) => item !== role) : [...current, role];
 }
 
 function Field({
@@ -212,6 +264,8 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
   const [keywords, setKeywords] = useState(
     isInvitation ? props.initialKeywords.slice(0, MAX_MANUSCRIPT_KEYWORDS) : "",
   );
+  const [jelCodes, setJelCodes] = useState("");
+  const [correspondingRoles, setCorrespondingRoles] = useState<string[]>([]);
   const [coAuthors, setCoAuthors] = useState<CoAuthorRow[]>(() =>
     initialCoAuthorRows(props),
   );
@@ -232,7 +286,8 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
   const overLimit =
     title.length > MAX_MANUSCRIPT_TITLE ||
     abstractText.length > MAX_MANUSCRIPT_ABSTRACT ||
-    keywords.length > MAX_MANUSCRIPT_KEYWORDS;
+    keywords.length > MAX_MANUSCRIPT_KEYWORDS ||
+    jelCodes.length > MAX_MANUSCRIPT_JEL_CODES * (MAX_MANUSCRIPT_JEL_CODE_LENGTH + 1);
   const declarationsOverLimit = Object.values(declarations).some(
     (value) => value.length > MAX_MANUSCRIPT_DECLARATION,
   );
@@ -334,6 +389,16 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
       formData.set("title", title.trim());
       formData.set("abstract", abstractText.trim());
       formData.set("keywords", keywords.trim());
+      formData.set("jelCodes", jelCodes.trim());
+      formData.set(
+        "correspondingAuthor",
+        JSON.stringify({
+          name: props.defaultAuthor.name,
+          email: props.defaultAuthor.email,
+          ...(props.defaultAuthor.orcid ? { orcid: props.defaultAuthor.orcid } : {}),
+          ...(correspondingRoles.length ? { creditRoles: correspondingRoles } : {}),
+        }),
+      );
       for (const [key, value] of Object.entries(declarations)) {
         formData.set(key, value.trim());
       }
@@ -454,6 +519,23 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
             placeholder="optics, telemedicine, low-resource settings"
           />
         </Field>
+
+        <Field
+          id="manuscript-jel-codes"
+          label="JEL classifications"
+          tooltip="Optional economics classifications used by RePEc and other scholarly indexes. Enter up to five standard codes, such as M12 or O33, separated by commas."
+          counter={<Counter value={jelCodes.length} max={MAX_MANUSCRIPT_JEL_CODES * (MAX_MANUSCRIPT_JEL_CODE_LENGTH + 1)} />}
+        >
+          <input
+            id="manuscript-jel-codes"
+            name="jelCodes"
+            className="sb-input"
+            value={jelCodes}
+            onChange={(event) => setJelCodes(event.target.value)}
+            maxLength={MAX_MANUSCRIPT_JEL_CODES * (MAX_MANUSCRIPT_JEL_CODE_LENGTH + 1)}
+            placeholder="M12, O33"
+          />
+        </Field>
       </section>
 
       <section className="sb-card space-y-5">
@@ -503,6 +585,18 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
             Add co-author
           </button>
         </header>
+
+        <div className="mt-4 rounded-xl border border-[var(--card-border)] p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Corresponding author · {props.defaultAuthor.name}
+          </p>
+          <CreditRolePicker
+            idPrefix="corresponding-author-role"
+            roles={correspondingRoles}
+            onChange={setCorrespondingRoles}
+            disabled={busy}
+          />
+        </div>
 
         {coAuthors.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-[var(--card-border)] px-3 py-4 text-xs text-slate-500 dark:text-slate-400">
@@ -630,6 +724,12 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
                     />
                   </div>
                 </div>
+                <CreditRolePicker
+                  idPrefix={`coauthor-${row.key}-role`}
+                  roles={row.creditRoles}
+                  onChange={(creditRoles) => updateCoAuthor(row.key, { creditRoles })}
+                  disabled={busy}
+                />
               </li>
             ))}
           </ol>

@@ -65,10 +65,10 @@ Supabase backups alone are not a public preservation policy.
   submission boundary now validates the ORCID checksum, but a typed ORCID is
   still not identity-verified.
 - ROR identifiers for affiliations and structured funder/grant metadata.
-- CRediT contributor roles and explicit corresponding-author data.
-- CRediT contributor roles and explicit corresponding-author data. Funding,
+- Explicit corresponding-author data is now stored with the structured byline;
+  CRediT contributor roles are now captured per author. Funding,
   data/code availability, ethics approval, consent, competing-interest, and
-  AI-use declarations are now captured; CRediT remains outstanding.
+  AI-use declarations and optional JEL classifications are now captured.
 - Article-level version-of-record, accepted-manuscript, correction, and
   retraction metadata with stable relationships.
 - JATS XML or another archival interchange format for published articles,

@@ -4,7 +4,9 @@ import {
   isPdfUpload,
   MAX_MANUSCRIPT_KEYWORD_COUNT,
   MAX_MANUSCRIPT_KEYWORD_LENGTH,
+  parseManuscriptJelCodes,
   parseManuscriptKeywords,
+  validateManuscriptJelCodes,
   validateManuscriptKeywords,
 } from "@/lib/publishing/constants";
 
@@ -56,5 +58,15 @@ describe("validateManuscriptKeywords", () => {
     expect(
       validateManuscriptKeywords("x".repeat(MAX_MANUSCRIPT_KEYWORD_LENGTH + 1)),
     ).toMatch(/characters or fewer/i);
+  });
+});
+
+describe("JEL classifications", () => {
+  it("normalizes and de-duplicates standard codes", () => {
+    expect(parseManuscriptJelCodes(" m12, O33, M12 ")).toEqual(["M12", "O33"]);
+  });
+
+  it("rejects malformed codes", () => {
+    expect(validateManuscriptJelCodes("M1, ECON")).toMatch(/format/i);
   });
 });

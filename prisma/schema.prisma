@@ -3159,6 +3159,9 @@ model Manuscript {
   title    String
   abstract String?          @db.Text
   keywords String?
+  /// Comma-separated, normalized JEL classification codes, for example `M12, O33`.
+  /// Nullable because JEL is discipline-specific and not required for every venue.
+  jelCodes String?
   fundingStatement String? @db.Text
   dataAvailabilityStatement String? @db.Text
   ethicsStatement String? @db.Text

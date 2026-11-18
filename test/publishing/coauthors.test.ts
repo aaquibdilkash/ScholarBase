@@ -150,6 +150,31 @@ describe("parseCoAuthorDraft", () => {
     }
   });
 
+  it("stores selected CRediT roles in the structured author entry", () => {
+    const result = parseCoAuthorDraft(JSON.stringify([
+      { name: "Asha Rao", creditRoles: ["Methodology", "Writing – original draft"] },
+    ]));
+
+    expect(result).toEqual({
+      ok: true,
+      authors: [{
+        name: "Asha Rao",
+        creditRoles: ["Methodology", "Writing – original draft"],
+      }],
+    });
+  });
+
+  it("rejects roles outside the CRediT taxonomy", () => {
+    const result = parseCoAuthorDraft(JSON.stringify([
+      { name: "Asha Rao", creditRoles: ["Invented role"] },
+    ]));
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Choose contributor roles from the CRediT taxonomy.",
+    });
+  });
+
   it("rejects malformed JSON and non-array payloads", () => {
     expect(parseCoAuthorDraft("{").ok).toBe(false);
     expect(parseCoAuthorDraft(JSON.stringify({ name: "Asha Rao" })).ok).toBe(

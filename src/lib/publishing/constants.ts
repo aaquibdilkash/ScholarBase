@@ -25,6 +25,8 @@ export const MAX_MANUSCRIPT_KEYWORDS = 256;
 export const MAX_MANUSCRIPT_KEYWORD_LENGTH = 24;
 export const MAX_MANUSCRIPT_KEYWORD_COUNT = 8;
 export const MAX_MANUSCRIPT_DECLARATION = 2000;
+export const MAX_MANUSCRIPT_JEL_CODES = 5;
+export const MAX_MANUSCRIPT_JEL_CODE_LENGTH = 3;
 
 /**
  * Peer-review limits. Shared by the reviewer report form (counters) and the
@@ -110,6 +112,31 @@ export function validateManuscriptKeywords(raw: string): string | null {
   }
   if (keywords.some((keyword) => keyword.length > MAX_MANUSCRIPT_KEYWORD_LENGTH)) {
     return `Each keyword must be ${MAX_MANUSCRIPT_KEYWORD_LENGTH} characters or fewer.`;
+  }
+  return null;
+}
+
+/** Normalizes JEL classification codes such as `M12, O33` into unique codes. */
+export function parseManuscriptJelCodes(raw: string): string[] {
+  const seen = new Set<string>();
+  const codes: string[] = [];
+  for (const part of raw.split(",")) {
+    const code = part.trim().toUpperCase();
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    codes.push(code);
+  }
+  return codes;
+}
+
+/** Validates the standard three-character JEL code format. */
+export function validateManuscriptJelCodes(raw: string): string | null {
+  const codes = parseManuscriptJelCodes(raw);
+  if (codes.length > MAX_MANUSCRIPT_JEL_CODES) {
+    return `Use at most ${MAX_MANUSCRIPT_JEL_CODES} JEL codes.`;
+  }
+  if (codes.some((code) => !/^[A-Z][0-9]{2}$/.test(code))) {
+    return "JEL codes must use the format one letter followed by two digits, for example M12 or O33.";
   }
   return null;
 }

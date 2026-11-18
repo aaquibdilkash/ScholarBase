@@ -82,7 +82,7 @@ export function articleMetadata({
   const base = buildMetadata({
     title: article.title,
     description:
-      article.keywords?.trim() ||
+      article.keywords?.trim() || article.jelCodes?.trim() ||
       (authorNames ? `${authorNames}. ${venue.name}.` : venue.name),
     path,
     type: "article",

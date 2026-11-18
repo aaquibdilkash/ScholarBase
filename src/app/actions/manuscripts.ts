@@ -17,10 +17,14 @@ import {
   MAX_MANUSCRIPT_ABSTRACT,
   MAX_MANUSCRIPT_BYTES,
   MAX_MANUSCRIPT_DECLARATION,
+  MAX_MANUSCRIPT_JEL_CODES,
+  MAX_MANUSCRIPT_JEL_CODE_LENGTH,
   MAX_MANUSCRIPT_KEYWORDS,
   MAX_MANUSCRIPT_TITLE,
   MANUSCRIPT_PDF_MIME,
   parseManuscriptKeywords,
+  parseManuscriptJelCodes,
+  validateManuscriptJelCodes,
   validateManuscriptKeywords,
 } from "@/lib/publishing/constants";
 import {
@@ -393,6 +397,7 @@ export async function createManuscriptSubmissionAction(
   if (!check.ok) return submitFail(check.message);
 
   const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
+  const jelCodes = parseManuscriptJelCodes(input.jelCodesRaw).join(", ");
   // The form pre-fills the conference byline, so whatever it sends is the
   // author's final, edited author list.
   const coAuthors = authorsForStore(
@@ -408,6 +413,7 @@ export async function createManuscriptSubmissionAction(
       title: input.title,
       abstract: input.abstract,
       keywords,
+      jelCodes,
       fundingStatement: input.fundingStatement,
       dataAvailabilityStatement: input.dataAvailabilityStatement,
       ethicsStatement: input.ethicsStatement,
@@ -483,6 +489,7 @@ type SubmissionInput = {
   title: string;
   abstract: string;
   keywordsRaw: string;
+  jelCodesRaw: string;
   fundingStatement: string;
   dataAvailabilityStatement: string;
   ethicsStatement: string;
@@ -501,6 +508,7 @@ function readSubmissionInput(formData: FormData): SubmissionInput {
     title: readFormValue(formData, "title"),
     abstract: readFormValue(formData, "abstract"),
     keywordsRaw: readFormValue(formData, "keywords"),
+    jelCodesRaw: readFormValue(formData, "jelCodes"),
     fundingStatement: readFormValue(formData, "fundingStatement").trim(),
     dataAvailabilityStatement: readFormValue(formData, "dataAvailabilityStatement").trim(),
     ethicsStatement: readFormValue(formData, "ethicsStatement").trim(),
@@ -534,6 +542,9 @@ function validateSubmissionInput(input: SubmissionInput): string | null {
   if (input.keywordsRaw.length > MAX_MANUSCRIPT_KEYWORDS) {
     return `Keywords must be ${MAX_MANUSCRIPT_KEYWORDS} characters or fewer.`;
   }
+  if (input.jelCodesRaw.length > MAX_MANUSCRIPT_JEL_CODES * (MAX_MANUSCRIPT_JEL_CODE_LENGTH + 1)) {
+    return `JEL classifications must be ${MAX_MANUSCRIPT_JEL_CODES * (MAX_MANUSCRIPT_JEL_CODE_LENGTH + 1)} characters or fewer.`;
+  }
   for (const [label, value] of [
     ["Funding statement", input.fundingStatement],
     ["Data availability statement", input.dataAvailabilityStatement],
@@ -545,7 +556,7 @@ function validateSubmissionInput(input: SubmissionInput): string | null {
       return `${label} must be ${MAX_MANUSCRIPT_DECLARATION} characters or fewer.`;
     }
   }
-  return validateManuscriptKeywords(input.keywordsRaw);
+  return validateManuscriptKeywords(input.keywordsRaw) ?? validateManuscriptJelCodes(input.jelCodesRaw);
 }
 
 type VerifiedUpload =
@@ -676,12 +687,14 @@ export async function createDirectSubmissionAction(
   if (!check.ok) return submitFail(check.message);
 
   const keywords = parseManuscriptKeywords(input.keywordsRaw).join(", ");
+  const jelCodes = parseManuscriptJelCodes(input.jelCodesRaw).join(", ");
 
   const created = await prisma.manuscript.create({
     data: {
       title: input.title,
       abstract: input.abstract,
       keywords: keywords || null,
+      jelCodes: jelCodes || null,
       fundingStatement: input.fundingStatement || null,
       dataAvailabilityStatement: input.dataAvailabilityStatement || null,
       ethicsStatement: input.ethicsStatement || null,
@@ -757,6 +770,7 @@ async function createJournalManuscript(params: {
   title: string;
   abstract: string;
   keywords: string;
+  jelCodes: string;
   fundingStatement: string;
   dataAvailabilityStatement: string;
   ethicsStatement: string;
@@ -789,6 +803,7 @@ async function createJournalManuscript(params: {
           title: params.title,
           abstract: params.abstract,
           keywords: params.keywords || null,
+          jelCodes: params.jelCodes || null,
           fundingStatement: params.fundingStatement || null,
           dataAvailabilityStatement: params.dataAvailabilityStatement || null,
           ethicsStatement: params.ethicsStatement || null,

@@ -14,6 +14,7 @@ export type CitationAuthor = {
   name: string;
   affiliation?: string | null;
   orcid?: string | null;
+  creditRoles?: readonly string[];
 };
 
 export type CitationArticle = {
@@ -21,6 +22,7 @@ export type CitationArticle = {
   title: string;
   abstract?: string | null;
   keywords?: string | null;
+  jelCodes?: string | null;
   doi?: string | null;
   volume?: number | null;
   issue?: number | null;
@@ -71,6 +73,9 @@ export function parseCoAuthors(value: unknown): CitationAuthor[] {
       name,
       affiliation: cleanString(entry.affiliation),
       orcid: cleanString(entry.orcid),
+      creditRoles: Array.isArray(entry.creditRoles)
+        ? entry.creditRoles.filter((role): role is string => typeof role === "string")
+        : undefined,
     });
   }
   return authors;
@@ -139,6 +144,7 @@ export function buildAuthorList(
       name: stored.name,
       ...(stored.affiliation ? { affiliation: stored.affiliation } : {}),
       ...(stored.orcid ? { orcid: stored.orcid } : {}),
+      ...(stored.creditRoles ? { creditRoles: stored.creditRoles } : {}),
     });
   } else if (primary.name?.trim()) {
     add({ name: primary.name.trim(), orcid: primary.orcidUrl ?? null });
@@ -384,7 +390,15 @@ export function buildHighwireMeta(
     ?.split(",")
     .map((keyword) => keyword.trim())
     .filter(Boolean);
-  if (keywords?.length) meta.citation_keywords = keywords;
+  const jelCodes = article.jelCodes
+    ?.split(",")
+    .map((code) => code.trim())
+    .filter(Boolean);
+  const subjects = [...(keywords ?? []), ...(jelCodes ?? []).map((code) => `JEL: ${code}`)];
+  if (subjects.length) {
+    meta.citation_keywords = subjects;
+    meta["dc.subject"] = subjects;
+  }
 
   // An empty value would render `<meta content="">`, which Scholar treats as a
   // present-but-broken field. Drop it instead.

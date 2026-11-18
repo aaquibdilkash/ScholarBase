@@ -17,7 +17,28 @@ export type CoAuthorDraft = {
   affiliation?: string;
   orcid?: string;
   email?: string;
+  creditRoles?: string[];
 };
+
+/** The 14 CRediT taxonomy roles (https://credit.niso.org/). */
+export const CREDIT_ROLES = [
+  ["Conceptualization", "Ideas and formulation of the research question."],
+  ["Methodology", "Design of the methods or model."],
+  ["Software", "Programming and software development."],
+  ["Validation", "Verification of results and reproducibility."],
+  ["Formal analysis", "Application of statistical or mathematical techniques."],
+  ["Investigation", "Conducting the research and collecting data."],
+  ["Resources", "Provision of materials, participants, or other resources."],
+  ["Data curation", "Management, annotation, and maintenance of research data."],
+  ["Writing – original draft", "Preparation and writing of the initial manuscript."],
+  ["Writing – review & editing", "Critical review and revision of the manuscript."],
+  ["Visualization", "Preparation and presentation of the results."],
+  ["Supervision", "Oversight and leadership responsibility."],
+  ["Project administration", "Coordination and administrative management."],
+  ["Funding acquisition", "Obtaining financial support for the project."],
+] as const;
+
+export type CreditRole = (typeof CREDIT_ROLES)[number][0];
 
 /**
  * The submitting author's byline for this manuscript.
@@ -47,6 +68,19 @@ export const MAX_CO_AUTHOR_NAME = 160;
 export const MAX_CO_AUTHOR_AFFILIATION = 200;
 export const MAX_CO_AUTHOR_ORCID = 64;
 export const MAX_CO_AUTHOR_EMAIL = 320;
+export const MAX_CREDIT_ROLES_PER_AUTHOR = CREDIT_ROLES.length;
+
+const CREDIT_ROLE_SET = new Set<string>(CREDIT_ROLES.map(([role]) => role));
+
+function parseCreditRoles(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const roles = [...new Set(value.filter((role): role is string => typeof role === "string" && CREDIT_ROLE_SET.has(role)))];
+  return roles.length ? roles : undefined;
+}
+
+function hasInvalidCreditRoles(value: unknown): boolean {
+  return Array.isArray(value) && value.some((role) => typeof role !== "string" || !CREDIT_ROLE_SET.has(role));
+}
 
 export type CoAuthorParseResult =
   | { ok: true; authors: CoAuthorDraft[] }
@@ -125,6 +159,10 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
     const affiliation = text(record.affiliation);
     const orcid = text(record.orcid);
     const email = text(record.email);
+    if (hasInvalidCreditRoles(record.creditRoles)) {
+      return { ok: false, message: "Choose contributor roles from the CRediT taxonomy." };
+    }
+    const creditRoles = parseCreditRoles(record.creditRoles);
 
     if (!name && !affiliation && !orcid && !email) continue;
     if (!name) {
@@ -161,6 +199,7 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
       ...(affiliation ? { affiliation } : {}),
       ...(orcid ? { orcid } : {}),
       ...(email ? { email } : {}),
+      ...(creditRoles ? { creditRoles } : {}),
     });
   }
 
@@ -208,6 +247,10 @@ export function parseCorrespondingAuthorDraft(
   const affiliation = text(record.affiliation);
   const orcid = text(record.orcid);
   const email = text(record.email);
+  if (hasInvalidCreditRoles(record.creditRoles)) {
+    return { ok: false, message: "Choose contributor roles from the CRediT taxonomy." };
+  }
+  const creditRoles = parseCreditRoles(record.creditRoles);
 
   if (!name) {
     if (!affiliation && !orcid && !email) return { ok: true, author: null };
@@ -248,6 +291,7 @@ export function parseCorrespondingAuthorDraft(
       ...(affiliation ? { affiliation } : {}),
       ...(orcid ? { orcid } : {}),
       ...(email ? { email } : {}),
+      ...(creditRoles ? { creditRoles } : {}),
     },
   };
 }

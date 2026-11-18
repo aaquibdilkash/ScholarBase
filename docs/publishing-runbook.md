@@ -340,7 +340,7 @@ Do **not** convert PDF→HTML. `unpdf` yields text without figures, tables, or s
 | Surface | Implementation |
 |---|---|
 | Full text | Inline `<iframe>` with a signed/public PDF URL, plus a "Download PDF" link |
-| Metadata | Server-rendered `prose` block: title, authors + affiliations, abstract, keywords, licence, dates |
+| Metadata | Server-rendered `prose` block: title, authors + affiliations + CRediT roles, abstract, keywords, optional JEL classifications, licence, dates |
 | Citation export | **Route Handler**, not a Server Action: `GET /sbj/[slug]/article/[id]/citation.ris` |
 | Structured data | `ScholarlyArticle` JSON-LD via `serializeJsonLd` + `<JsonLd>` |
 | Indexing | Highwire `<meta>` tags through `metadata.other` |

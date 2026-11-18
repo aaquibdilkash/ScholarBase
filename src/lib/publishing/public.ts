@@ -112,6 +112,7 @@ export type ArticleSummary = {
   title: string;
   abstract: string | null;
   keywords: string | null;
+  jelCodes: string | null;
   fundingStatement: string | null;
   dataAvailabilityStatement: string | null;
   ethicsStatement: string | null;
@@ -229,6 +230,7 @@ const ARTICLE_SELECT = {
   title: true,
   abstract: true,
   keywords: true,
+  jelCodes: true,
   fundingStatement: true,
   dataAvailabilityStatement: true,
   ethicsStatement: true,
@@ -260,6 +262,7 @@ type ArticleRow = {
   title: string;
   abstract: string | null;
   keywords: string | null;
+  jelCodes: string | null;
   fundingStatement: string | null;
   dataAvailabilityStatement: string | null;
   ethicsStatement: string | null;
@@ -284,6 +287,7 @@ function toArticleSummary(row: ArticleRow): ArticleSummary {
     title: row.title,
     abstract: row.abstract,
     keywords: row.keywords,
+    jelCodes: row.jelCodes,
     fundingStatement: row.fundingStatement,
     dataAvailabilityStatement: row.dataAvailabilityStatement,
     ethicsStatement: row.ethicsStatement,
@@ -487,6 +491,7 @@ export function toCitationArticle(article: ArticleSummary): CitationArticle {
     title: article.title,
     abstract: article.abstract,
     keywords: article.keywords,
+    jelCodes: article.jelCodes,
     doi: article.doi,
     volume: article.volume,
     issue: article.issue,

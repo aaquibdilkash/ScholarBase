@@ -61,6 +61,10 @@ export function ArticleView({
     ?.split(",")
     .map((keyword) => keyword.trim())
     .filter(Boolean);
+  const jelCodes = article.jelCodes
+    ?.split(",")
+    .map((code) => code.trim())
+    .filter(Boolean);
 
   const structuredData = [
     {
@@ -75,6 +79,7 @@ export function ArticleView({
         "@type": "Person",
         name: author.name,
         ...(author.affiliation ? { affiliation: author.affiliation } : {}),
+        ...(author.creditRoles?.length ? { knowsAbout: author.creditRoles } : {}),
       })),
       publisher: { "@type": "Organization", name: venue.publisherName },
       ...(article.publishedAt
@@ -89,7 +94,9 @@ export function ArticleView({
         ? { identifier: `https://doi.org/${article.doi}` }
         : { identifier: articleUrl }),
       ...(venue.licenseUrl ? { license: venue.licenseUrl } : {}),
-      ...(keywords?.length ? { keywords } : {}),
+      ...(keywords?.length || jelCodes?.length
+        ? { keywords: [...(keywords ?? []), ...(jelCodes ?? []).map((code) => `JEL: ${code}`)] }
+        : {}),
       ...(pages ? { pagination: pages } : {}),
       ...(article.isbn ? { isbn: article.isbn } : {}),
       inLanguage: "en",
@@ -215,6 +222,37 @@ export function ArticleView({
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {jelCodes?.length ? (
+            <section className="mt-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                JEL classifications
+              </h2>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {jelCodes.map((code) => (
+                  <li key={code} className="rounded-full border border-[var(--card-border)] px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300">
+                    {code}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {article.authors.some((author) => author.creditRoles?.length) ? (
+            <section className="mt-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Contributor roles
+              </h2>
+              <dl className="mt-2 space-y-2 text-sm">
+                {article.authors.map((author) => author.creditRoles?.length ? (
+                  <div key={author.name}>
+                    <dt className="font-medium text-slate-900 dark:text-slate-100">{author.name}</dt>
+                    <dd className="text-slate-700 dark:text-slate-300">{author.creditRoles.join(", ")}</dd>
+                  </div>
+                ) : null)}
+              </dl>
             </section>
           ) : null}
 
