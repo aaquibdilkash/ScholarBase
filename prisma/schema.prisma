@@ -170,6 +170,34 @@ enum VenueType {
   CONFERENCE
 }
 
+enum ConferenceEditionStatus {
+  DRAFT
+  CFP_OPEN
+  REVIEW
+  NOTIFICATION
+  PROGRAM
+  COMPLETED
+  ARCHIVED
+}
+
+enum JournalIssueStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ConferenceProgramItemType {
+  KEYNOTE
+  INVITED_TALK
+  PAPER
+  POSTER
+  WORKSHOP
+  BREAK
+  OTHER
+}
+
 /// Manuscript lifecycle. `ACCEPTED_PROCEDINGS` and `ACCEPTED_JOURNAL` are
 /// distinct because a conference paper can be transferred into a journal queue
 /// as a new submission rather than re-reviewed from scratch.
@@ -2981,6 +3009,7 @@ model Venue {
   name          String
   type          VenueType
   publisherName String    @default("ScholarBase")
+  coverImageUrl String?
 
   /// ISSN/e-ISSN are assigned by the National Centre for ISSN (CSIR-NIScPR) and
   /// typed in by an admin. The app never mints them; `src/lib/publishing/identifiers.ts`
@@ -3009,6 +3038,8 @@ model Venue {
   licenseUrl        String? @default("https://creativecommons.org/licenses/by/4.0/")
 
   manuscripts     Manuscript[]
+  editions        ConferenceEdition[]
+  journalIssues   JournalIssue[]
   team            EditorialRole[]
   board           EditorialBoardMember[]
   transferInvites ManuscriptEvent[]      @relation("ManuscriptTransferInvites")
@@ -3017,6 +3048,97 @@ model Venue {
   updatedAt DateTime @updatedAt
 
   @@index([type, isPublished])
+}
+
+/// One actual occurrence of a first-party conference. The venue is the stable
+/// series; this row owns the event dates and its one proceedings volume/ISBN.
+/// `term` is null for annual/biennial editions and is H1/H2 or Q1-Q4 for
+/// multiple occurrences in one year.
+model ConferenceEdition {
+  id        String   @id @default(cuid())
+  venueId   String
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  year      Int
+  term      String?
+  slug      String
+  label     String
+  coverImageUrl String?
+  status    ConferenceEditionStatus @default(DRAFT)
+  isPublished Boolean @default(false)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+  location String?
+  timezone String?
+  websiteUrl String?
+  cfpOpenAt DateTime?
+  submissionDeadline DateTime?
+  notificationAt DateTime?
+  cameraReadyAt DateTime?
+
+  volume Int?
+  isbn String?
+  proceedingsDoi String?
+
+  manuscripts Manuscript[]
+  programItems ConferenceProgramItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([venueId, slug])
+  @@unique([venueId, year, term])
+  @@index([venueId, isPublished, startsAt(sort: Desc)])
+  @@index([venueId, status])
+}
+
+/// A citable journal issue. The venue is the permanent journal; this row owns
+/// issue-level metadata and publication state. Manuscript volume/issue remain
+/// denormalized citation snapshots for zero-join article reads.
+model JournalIssue {
+  id        String   @id @default(cuid())
+  venueId   String
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  volume    Int
+  number    Int
+  title     String?
+  description String? @db.Text
+  status    JournalIssueStatus @default(DRAFT)
+  isPublished Boolean @default(false)
+  publicationDate DateTime?
+  coverImageUrl String?
+  doi       String? @unique
+  editorialHtml String? @db.Text
+
+  manuscripts Manuscript[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([venueId, volume, number])
+  @@index([venueId, isPublished, publicationDate(sort: Desc)])
+  @@index([venueId, status])
+}
+
+model ConferenceProgramItem {
+  id        String   @id @default(cuid())
+  editionId String
+  edition   ConferenceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  manuscriptId String?
+  manuscript Manuscript? @relation(fields: [manuscriptId], references: [id], onDelete: SetNull)
+  type      ConferenceProgramItemType @default(OTHER)
+  title     String
+  description String? @db.Text
+  speakers  String?
+  track     String?
+  room      String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+  externalUrl String?
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([editionId, startsAt, sortOrder])
+  @@index([manuscriptId])
 }
 
 /// A submitted paper. Workflow entity, not social content: no vote/bookmark
@@ -3032,6 +3154,14 @@ model Manuscript {
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id])
+
+  /// Required for new conference submissions; nullable for journals and
+  /// historical rows during the edition backfill.
+  editionId String?
+  edition   ConferenceEdition? @relation(fields: [editionId], references: [id], onDelete: SetNull)
+
+  journalIssueId String?
+  journalIssue JournalIssue? @relation(fields: [journalIssueId], references: [id], onDelete: SetNull)
 
   authorId String
   author   User   @relation("AuthoredPapers", fields: [authorId], references: [id])
@@ -3050,6 +3180,7 @@ model Manuscript {
   originalManuscriptId String?
   originalManuscript   Manuscript?  @relation("ManuscriptTransfer", fields: [originalManuscriptId], references: [id], onDelete: SetNull)
   transferredTo        Manuscript[] @relation("ManuscriptTransfer")
+  programItems         ConferenceProgramItem[]
 
   doi             String?   @unique
   doiStatus       DoiStatus @default(NONE)
@@ -3077,6 +3208,8 @@ model Manuscript {
   updatedAt DateTime @updatedAt
 
   @@index([venueId, status, createdAt(sort: Desc)])
+  @@index([editionId, status, createdAt(sort: Desc)])
+  @@index([journalIssueId, status, createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   /// Transfer duplicate check: "is there a live clone of this conference paper
   /// at this journal?" runs on every invitation and submission.

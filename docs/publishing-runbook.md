@@ -15,7 +15,8 @@ This file is the single reference for both the registration process and the impl
 | 3 | Budget | **₹0 for identifiers** | ISSN free, ISBN free, DOI deferred to Crossref's US$200 tier |
 | 4 | Kanban | **`dnd-kit`** accepted | 3 packages, client-only, imported in the editorial leaf |
 | 5 | Venue CMS | **Existing Tiptap `Editor` + `RichContent`** | Store HTML strings; sanitize on write and on render |
-| 6 | Article format | **PDF is the version of record; HTML carries metadata** | No PDF→HTML conversion; inline iframe viewer + `prose` metadata page |
+| 6 | Publishing covers | **Existing `content-images` bucket** | Venue, edition, and issue covers use separate folder kinds; no new bucket |
+| 7 | Article format | **PDF is the version of record; HTML carries metadata** | No PDF→HTML conversion; inline iframe viewer + `prose` metadata page |
 | 7 | Conference → journal | **Clone the manuscript, never move the row** | Preserves the conference decision record; `originalManuscriptId` links them |
 | 8 | Editorial board | **Structured rows (`EditorialBoardMember`), not HTML** | Feeds the ISSN application and JSON-LD without parsing HTML |
 | 9 | Tables in prose | **Deferred** — see §20 | Empirical tables live in the PDF, which is the version of record |
@@ -277,7 +278,7 @@ Reuse, do not rebuild:
 | Authoring | `src/components/ui/Editor.tsx` (Tiptap, `value`/`onChange`, `maxLength`, `showCharCount`, `onImageUpload`) |
 | Rendering | `src/components/content/RichContent.tsx` — the app's **only** `dangerouslySetInnerHTML` sink |
 | Sanitizing | `src/lib/sanitize.ts` → `sanitizeRichHtml` |
-| Image upload | existing `uploadContentImageAction` / `content-images` bucket |
+| Image upload | existing `uploadContentImageAction` / `content-images` bucket; `venue-cover`, `conference-cover`, and `journal-cover` folder kinds |
 
 Hard rules:
 
@@ -303,7 +304,7 @@ Run it against staging and production separately, then sign out and back in. Any
 
 | Card | Fields | Writes |
 |---|---|---|
-| Create venue | name (3–80, counter), slug (3–48, counter, auto-derived from the name until edited), type (`JOURNAL` / `CONFERENCE`) | `Venue` with `isPublished: false` — never published on creation |
+| Create venue | name (3–80, counter), slug (3–48, counter, auto-derived from the name until edited), type (`JOURNAL` / `CONFERENCE`), optional cover upload | `Venue` with `isPublished: false` — never published on creation |
 | Publish / unpublish | per venue | `isPublished` + `launchedAt`; publishing is refused until the venue has a named editor-in-chief, aims & scope, at least one editorial board member, and a valid slug |
 | Editorial roles | account email, role title (`EDITOR_IN_CHIEF`, `TRACK_CHAIR`, `ASSOC_EDITOR`) | `EditorialRole` row, idempotent upsert; revoke deletes it |
 
@@ -314,14 +315,14 @@ Choices the form **locks in permanently**, because no edit action exists:
 
 Rate limits (`enforceRateLimit`, per admin): 5 venue creations / 10 min, 20 publish toggles / 10 min, 30 role changes / 10 min.
 
-**What the form does not do.** It creates *name, slug, type* and nothing else. Identifiers (ISSN/eISSN/ISBN), aims & scope, author guidelines, policies, the structured board, and the editor contact fields belong to the editor-in-chief on `/workspace/editorial/settings`. Until those are filled in, the publish gate refuses the venue, so provisioning alone produces unpublished venues.
+**What the form does not do.** It does not set identifiers (ISSN/eISSN/ISBN), aims & scope, author guidelines, policies, the structured board, or editor contact fields. Those belong to the editor-in-chief on `/workspace/editorial/settings`. Until those are filled in, the publish gate refuses the venue, so provisioning alone produces unpublished venues. The settings page is organized into **General**, **Policies**, and **Editions/Issues** tabs.
 
 **Status.** Built: `/workspace/admin`, `createVenueAction`, `setVenuePublishedAction`, `grantEditorialRoleAction`, `revokeEditorialRoleAction`, `/workspace/editorial/settings` (venue CMS + board + identifiers), and the public `/sbj` / `/sbc` site.
 
 Routes:
 
 - `/workspace/admin` — `User.isAdmin` only. See **Creating a journal or conference** above; it does not set identifiers.
-- `/workspace/editorial/settings` — `EDITOR_IN_CHIEF` for that venue. Tiptap for `aimsAndScope`, `authorGuidelines`, `peerReviewPolicy`, `ethicsPolicy`; repeatable-row form for `EditorialBoardMember`; structured `editorName` / `editorAffiliation` / `editorOrcid` / `frequency` / `contactEmail` fields. Identifiers (`issn`, `eissn`, `isbn`) are edited here, not in `/workspace/admin`.
+- `/workspace/editorial/settings` — `EDITOR_IN_CHIEF` for that venue. **General** contains identity, contact, board, and venue cover; **Policies** contains Tiptap for `aimsAndScope`, `authorGuidelines`, `peerReviewPolicy`, and `ethicsPolicy`; **Editions** or **Issues** contains the selected venue's publishing records. Identifiers (`issn`, `eissn`, `isbn`) are edited here, not in `/workspace/admin`.
 - `/sbj/[slug]/guidelines`, `/sbc/[slug]/guidelines` — public, `RichContent` inside `prose`.
 
 `EditorialRole` grants nothing on `/workspace/admin`; that is platform-level only.
@@ -447,6 +448,43 @@ Other constraints:
 
 If the conference recurs under a stable title with a stated frequency ("Proceedings of the ScholarBase Conference on …"), the **series** can hold an ISSN while each **volume** holds an ISBN. Both are free, both together is normal and more citable. Recommended for an annual conference.
 
+### Conference editions (annual, half-yearly, or quarterly)
+
+`Venue` is the permanent conference series. Each real event is a
+`ConferenceEdition` with one stable key and one proceedings volume/ISBN:
+
+| Event pattern | Edition keys |
+|---|---|
+| Annual | `2027`, `2028` |
+| Twice yearly | `2027-h1`, `2027-h2` |
+| Four events | `2027-q1`, `2027-q2`, `2027-q3`, `2027-q4` |
+
+The public URL is `/sbc/{venue-slug}/{edition-key}`. The series page remains
+the permanent home; the edition page owns its CFP state, deadlines, event
+details, accepted papers, and proceedings. A quarterly review deadline feeding
+one annual event is not four editions — it is one edition with multiple rounds,
+which is a later model.
+
+Operational sequence:
+
+1. In Editorial → Venue settings, create the actual edition and assign its proceedings volume and ISBN.
+2. Set `CFP_OPEN` and Public when submissions should be accepted. The submission form requires an edition for conferences.
+3. Move it through review, notification, and program states; publish only after the public page is ready.
+4. Publish accepted papers. The edition’s volume and ISBN are copied to each paper for fast citations.
+5. After the event, set `COMPLETED`; keep the record public and immutable apart from corrections.
+
+There is no normal legacy-edition workflow. A compatibility edition exists only
+when an older manuscript already references it. Empty generated compatibility
+editions are removed by the cleanup migration; new conferences start with no
+edition until the editor creates one.
+
+The edition workspace also maintains the event metadata (dates, timezone,
+location, website, cover image, CFP deadline, notification date, and camera-ready deadline)
+and an optional program of keynotes, talks, papers, posters, workshops, and breaks. The
+public edition page exposes the program separately from the proceedings list.
+An edition cannot move to `COMPLETED` without a proceedings volume, and status
+changes follow the forward lifecycle rather than allowing arbitrary jumps.
+
 ---
 
 ## 11. DOI — Zenodo now, Crossref later
@@ -495,6 +533,32 @@ A fresh `PENDING` row is another editor's in-flight request. A `PENDING` row old
 | `ZENODO_API_URL` | Optional full API base override (proxy or self-hosted sandbox). |
 
 The mint action needs the service-role key to read the private PDF bucket, and `npm run storage:manuscripts` must have created the `manuscripts` bucket.
+
+### What the publisher does in Zenodo
+
+Register once as the publisher/operator of the ScholarBase Zenodo account;
+authors do not need separate Zenodo accounts for the automated path.
+
+1. Create or use a Zenodo account and verify its email.
+2. Open **Applications** and create a personal access token with exactly
+   `deposit:write` and `deposit:actions`. Keep it private and use it only over
+   HTTPS. [Zenodo API quickstart](https://developers.zenodo.org/)
+3. Put the token in the server environment as `ZENODO_TOKEN` — never in client
+   code, logs, `.env.example`, or Git.
+4. Set `ZENODO_SANDBOX=true` and use a sandbox token for one test article.
+   Confirm the PDF, authors, license, canonical ScholarBase link, and DOI.
+5. Set `ZENODO_SANDBOX=false` and replace the token with the production token.
+   The editor publishes the ScholarBase article first, opens its DOI panel, and
+   chooses **Mint Zenodo DOI**.
+6. Check the returned record once. Retries resume the same deposit id; do not
+   manually create a second Zenodo record.
+
+Zenodo assigns the DOI when the record is published, not when a draft is
+created. Corrections should use a new version or an appropriate restriction or
+note rather than silently replacing the published record. [Zenodo upload
+guidance](https://help.zenodo.org/docs/deposit/create-new-upload/) The DOI
+resolves to Zenodo; Crossref/DataCite is still required later if the DOI itself
+must resolve to ScholarBase.
 
 ### Metadata mapping
 
@@ -700,6 +764,81 @@ beats two routes with duplicated context.
 - Do not add `dnd-kit` anywhere except the editorial Kanban leaf.
 - Do not add `ai` / `@ai-sdk/google`, `pdf.js`, KaTeX, or a Markdown toolbar library — capabilities already exist or are deferred.
 - Do not auto-convert PDF→HTML.
+
+## 18.1 Staging test checklist
+
+Use this sequence after creating fresh staging venues. Keep both venues
+unpublished until their public preview is complete.
+
+### Reset and provision
+
+1. Confirm the staging database/project before deleting any test rows.
+2. Create one `JOURNAL` and one `CONFERENCE` at `/workspace/admin`.
+3. Upload a cover for each venue; verify preview, replace, and remove work.
+4. Grant yourself `EDITOR_IN_CHIEF` for both venues.
+
+### Configure the venue
+
+1. Open `/workspace/editorial/settings` and select the venue.
+2. In **General**, set the name, editor, frequency, contact, board, and cover.
+3. In **Policies**, enter rich text in all four policy fields, use “Use default”
+   once, save, reload, and verify the HTML is preserved and sanitized.
+4. Confirm the **Editions** tab appears for a conference and **Issues** appears
+   for a journal; the unrelated form must not be shown.
+
+### Conference test
+
+1. Create an edition using `2027`, `2027-h1`, or `2027-q3`.
+2. Upload an edition cover and verify it appears in the preview/public edition.
+3. Test invalid HTTPS URLs, DOI values, dates, and duplicate edition keys.
+4. Move the edition through `DRAFT → CFP_OPEN → REVIEW → NOTIFICATION → PROGRAM → COMPLETED`.
+5. Add optional program entries: keynote, invited talk, paper, poster, workshop,
+   break, and other. Verify time, room, track, speakers, and external link.
+6. Confirm completion is refused without a proceedings volume.
+7. Confirm conference submissions require the selected edition.
+
+### Journal test
+
+1. Create an issue with volume, number, title, rich description, publication
+   date, DOI, and cover upload.
+2. Save the issue, reload, replace/remove the cover, and edit the rich text.
+3. Test duplicate volume/issue numbers and invalid DOI/cover input.
+4. Move the issue through `DRAFT → OPEN → LOCKED → PUBLISHED` and verify the
+   public archive and issue page.
+5. Confirm accepted journal articles inherit the issue citation metadata.
+
+### End-to-end editorial test
+
+1. Submit a PDF directly to the conference edition.
+2. Assign two reviewers, submit reports, request revision, resubmit, and accept.
+3. Upload camera-ready, publish the proceedings paper, and verify volume/ISBN,
+   public page, citation export, and Highwire metadata.
+4. Invite the author to the journal; accept the invitation and verify a new
+   journal manuscript is created without moving the conference manuscript.
+5. Review and publish the journal article into the created issue.
+6. Verify notifications, author timeline, reviewer blinding, and unauthorized
+   access for every private PDF.
+
+### Zenodo sandbox test
+
+1. Set `ZENODO_SANDBOX=true` and provide a sandbox token with only
+   `deposit:write` and `deposit:actions`.
+2. Publish one article first; then use its DOI panel to mint a Zenodo DOI.
+3. Verify the PDF, authors, abstract, licence, issue/volume or ISBN, canonical
+   ScholarBase link, and returned DOI.
+4. Retry the same action and confirm no duplicate deposit is created.
+5. Only after the full sandbox test passes, switch to the production token and
+   `ZENODO_SANDBOX=false`.
+
+### Release gate
+
+- [ ] Venue identity, editor, board, policies, contact, and cover are complete.
+- [ ] Venue remains unpublished until the public preview is correct.
+- [ ] Every published article has a verified PDF, citation metadata, and public page.
+- [ ] Conference proceedings have final volume/ISBN metadata before completion.
+- [ ] Journal issue has final publication date, contents, and DOI decision.
+- [ ] Zenodo is tested in sandbox; production token is never committed or exposed.
+- [ ] Run `npm run lint`, `npm run typecheck`, and `npm run test:coverage` before release.
 - Do not store a public `fileUrl` for an unpublished manuscript.
 - Do not register `Manuscript` in `ENTITY_CONFIG` / `CONTENT_TABLES` / tri-split.
 - Do not hand-roll `dangerouslySetInnerHTML` — use `RichContent`.

@@ -69,6 +69,8 @@ export type ManuscriptSubmissionProps =
       venueSlug: string;
       venueName: string;
       venueType: "JOURNAL" | "CONFERENCE";
+      editionId?: string;
+      editions?: readonly { id: string; label: string; slug: string; volume: number | null }[];
       defaultAuthor: {
         name: string;
         email: string;
@@ -307,6 +309,8 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
         formData.set("invitationId", props.invitationId);
       } else {
         formData.set("venueSlug", props.venueSlug);
+        const selectedEdition = new FormData(event.currentTarget).get("editionId");
+        if (typeof selectedEdition === "string" && selectedEdition) formData.set("editionId", selectedEdition);
       }
       formData.set("title", title.trim());
       formData.set("abstract", abstractText.trim());
@@ -368,6 +372,15 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
             What reviewers and the published record will show.
           </p>
         </header>
+
+        {!isInvitation && props.venueType === "CONFERENCE" ? (
+          <Field id="submission-edition" label="Conference edition" tooltip="Every conference occurrence has its own CFP, review record, and proceedings volume.">
+            <select id="submission-edition" name="editionId" className="sb-input" defaultValue={props.editionId ?? ""} required>
+              <option value="">Choose an open edition</option>
+              {(props.editions ?? []).map((edition) => <option key={edition.id} value={edition.id}>{edition.label}{edition.volume ? ` · Volume ${edition.volume}` : ""}</option>)}
+            </select>
+          </Field>
+        ) : null}
 
         <Field
           id="manuscript-title"

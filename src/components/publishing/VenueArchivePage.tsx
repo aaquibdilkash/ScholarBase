@@ -10,12 +10,14 @@ import {
 import { formatDate } from "@/utils/date";
 import {
   getPublishedArticles,
+  getConferenceEditions,
   getVenuePage,
   groupIntoIssues,
   issueStats,
   type ArticleSummary,
   type PublicVenue,
   type VenueType,
+  type PublicConferenceEdition,
 } from "@/lib/publishing/public";
 
 /**
@@ -30,17 +32,19 @@ function IssueHeading({
   volume,
   issue,
   date,
+  href,
 }: {
   volume: number | null;
   issue: number | null;
   date: Date | null;
+  href?: string;
 }) {
   const locator = issueLocator(volume, issue);
 
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--card-border)] pb-3">
       <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-        {volume === null && issue === null ? "Online first" : locator ?? "Issue"}
+        {href ? <Link className="hover:text-blue-700 dark:hover:text-blue-300" href={href}>{volume === null && issue === null ? "Online first" : locator ?? "Issue"}</Link> : volume === null && issue === null ? "Online first" : locator ?? "Issue"}
       </h2>
       {date ? (
         <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(date)}</p>
@@ -105,6 +109,7 @@ function JournalArchive({
               volume={group.volume}
               issue={group.issue}
               date={group.latest}
+              href={group.volume !== null ? `/sbj/${venue.slug}/issues/${group.volume}/${group.issue ?? 1}` : undefined}
             />
             <div className="mt-4">
               <ArticleList venue={venue} articles={group.articles} />
@@ -119,9 +124,11 @@ function JournalArchive({
 function ConferenceArchive({
   venue,
   articles,
+  editions,
 }: {
   venue: PublicVenue;
   articles: ArticleSummary[];
+  editions: PublicConferenceEdition[];
 }) {
   const issues = groupIntoIssues(articles);
   const volumes = issues.filter((group) => group.volume !== null);
@@ -138,6 +145,19 @@ function ConferenceArchive({
 
   return (
     <div className="space-y-8">
+      {editions.length > 0 ? (
+        <section>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">Conference editions</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            {editions.map((edition) => (
+              <li key={edition.id} className="sb-card">
+                <Link className="text-sm font-semibold text-blue-700 underline-offset-2 hover:underline dark:text-blue-300" href={`${base}/${venue.slug}/${edition.slug}`}>{edition.label}</Link>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{edition.status.replace(/_/g, " ")}{edition.volume ? ` · Proceedings volume ${edition.volume}` : ""}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {volumes.length > 0 ? (
         <section>
           <h2 className="text-lg font-semibold tracking-tight text-slate-950 dark:text-slate-50">
@@ -205,7 +225,10 @@ export async function VenueArchivePage({
   const result = await getVenuePage(slug, type);
   if (!result) notFound();
 
-  const articles = await getPublishedArticles(result.venue.id, 500);
+  const [articles, editions] = await Promise.all([
+    getPublishedArticles(result.venue.id, 500),
+    result.venue.type === "CONFERENCE" ? getConferenceEditions(result.venue.id, result.preview) : Promise.resolve([]),
+  ]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
@@ -219,7 +242,7 @@ export async function VenueArchivePage({
         {result.venue.type === "JOURNAL" ? (
           <JournalArchive venue={result.venue} articles={articles} />
         ) : (
-          <ConferenceArchive venue={result.venue} articles={articles} />
+          <ConferenceArchive venue={result.venue} articles={articles} editions={editions} />
         )}
       </div>
       <VenueImprint venue={result.venue} />

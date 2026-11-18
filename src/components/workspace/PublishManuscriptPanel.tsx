@@ -26,11 +26,14 @@ export type PublishCandidate = {
   venueName: string;
   venueType: "JOURNAL" | "CONFERENCE";
   status: string;
+  editionId: string | null;
+  editionLabel: string | null;
+  editionVolume: number | null;
+  availableIssues: readonly { id: string; volume: number; number: number; title: string | null }[];
 };
 
 const EMPTY_RESULT: ManuscriptActionResult = { success: false, message: "" };
 const MAX_PAGE_LENGTH = 12;
-const MAX_ISBN_LENGTH = 17;
 
 function Field({
   label,
@@ -61,13 +64,23 @@ function PublishForm({ candidate }: { candidate: PublishCandidate }) {
   const [state, formAction] = useActionState(publishManuscriptAction, EMPTY_RESULT);
   const [firstPage, setFirstPage] = useState("");
   const [lastPage, setLastPage] = useState("");
-  const [isbn, setIsbn] = useState("");
 
   return (
     <form action={formAction} className="mt-3 space-y-3">
       <input type="hidden" name="manuscriptId" value={candidate.id} />
+      {candidate.editionId ? <input type="hidden" name="editionId" value={candidate.editionId} /> : null}
+
+      {candidate.venueType === "JOURNAL" && candidate.availableIssues.length > 0 ? (
+        <Field label="Journal issue" tooltip="The issue owns the publication volume and number. Publishing into an issue keeps the archive and citations consistent.">
+          <select className="sb-input" name="journalIssueId" required defaultValue="">
+            <option value="">Choose an open issue</option>
+            {candidate.availableIssues.map((issue) => <option key={issue.id} value={issue.id}>Volume {issue.volume}, Issue {issue.number}{issue.title ? ` — ${issue.title}` : ""}</option>)}
+          </select>
+        </Field>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
+        {candidate.venueType === "CONFERENCE" ? <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-500/30 dark:bg-blue-900/20 dark:text-blue-100">{candidate.editionLabel ?? "No edition assigned"}{candidate.editionVolume ? ` · proceedings volume ${candidate.editionVolume}` : " · assign a volume in edition settings"}</p> : null}
         <Field
           label="Volume"
           tooltip="The volume this article belongs to. Required: an article that cannot be located in an issue cannot be cited."
@@ -78,7 +91,9 @@ function PublishForm({ candidate }: { candidate: PublishCandidate }) {
             min={1}
             max={9999}
             name="volume"
-            required
+            required={candidate.venueType !== "CONFERENCE" || Boolean(candidate.editionId)}
+            value={candidate.editionId && candidate.editionVolume ? candidate.editionVolume : undefined}
+            readOnly={Boolean(candidate.editionId)}
             type="number"
           />
         </Field>
@@ -138,22 +153,7 @@ function PublishForm({ candidate }: { candidate: PublishCandidate }) {
         </Field>
       </div>
 
-      {candidate.venueType === "CONFERENCE" ? (
-        <Field
-          label="Volume ISBN (optional)"
-          tooltip="ISBN-13 of the collected proceedings volume this paper appears in, printed on its copyright page."
-          hint={`${isbn.length}/${MAX_ISBN_LENGTH} characters · validated server-side`}
-        >
-          <input
-            className="sb-input"
-            maxLength={MAX_ISBN_LENGTH}
-            name="isbn"
-            onChange={(event) => setIsbn(event.target.value)}
-            placeholder="978-3-16-148410-0"
-            value={isbn}
-          />
-        </Field>
-      ) : null}
+      {candidate.venueType === "CONFERENCE" && candidate.editionId ? <p className="text-xs text-slate-500 dark:text-slate-400">The edition owns the ISBN; this paper receives it automatically when published.</p> : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <SubmitBtn className="sb-button-primary" loadingText="Publishing…">

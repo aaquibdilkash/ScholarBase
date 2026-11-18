@@ -16,6 +16,7 @@ import {
 import { ActionResultMessage } from "@/components/workspace/ActionResultMessage";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { Select } from "@/components/ui/Select";
+import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
 import { useToast } from "@/components/ui/Toast";
 import {
   MAX_VENUE_NAME,
@@ -91,6 +92,7 @@ function CreateVenueCard() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [type, setType] = useState<"JOURNAL" | "CONFERENCE">("JOURNAL");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
 
   // A venue slug is a permanent public URL (`/sbj/<slug>`), so it is derived
@@ -104,6 +106,7 @@ function CreateVenueCard() {
     setName("");
     setSlug("");
     setType("JOURNAL");
+    setCoverImageUrl("");
     setSlugTouched(false);
   }, [state]);
 
@@ -143,6 +146,8 @@ function CreateVenueCard() {
           />
           <Counter value={name.length} max={MAX_VENUE_NAME} />
         </div>
+
+        <div><label className="sb-label inline-flex items-center gap-1.5">Venue cover image <InfoTooltip message="Optional cover image for the public journal or conference landing page." /></label><ContentImageUploadField kind="venue-cover" value={coverImageUrl} onChange={setCoverImageUrl} buttonLabel="Upload venue cover" /><input type="hidden" name="coverImageUrl" value={coverImageUrl} /></div>
 
         <div>
           <label htmlFor="venue-type" className="sb-label inline-flex items-center gap-1.5">

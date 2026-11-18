@@ -18,6 +18,7 @@ import {
   groupIssueArticles,
   type IssueGroupOf,
 } from "@/lib/publishing/issues";
+import { editionTermLabel } from "@/lib/publishing/editions";
 
 /**
  * Public, read-only projections for a venue and its published papers.
@@ -38,6 +39,7 @@ const VENUE_SELECT = {
   slug: true,
   name: true,
   type: true,
+  coverImageUrl: true,
   publisherName: true,
   issn: true,
   eissn: true,
@@ -71,6 +73,7 @@ export type PublicVenue = {
   slug: string;
   name: string;
   type: VenueType;
+  coverImageUrl: string | null;
   publisherName: string;
   issn: string | null;
   eissn: string | null;
@@ -122,6 +125,92 @@ export type ArticleSummary = {
   fileName: string | null;
   sizeBytes: number | null;
 };
+
+export type PublicConferenceEdition = {
+  id: string;
+  slug: string;
+  year: number;
+  term: string | null;
+  label: string;
+  coverImageUrl: string | null;
+  status: string;
+  isPublished: boolean;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  location: string | null;
+  timezone: string | null;
+  websiteUrl: string | null;
+  submissionDeadline: Date | null;
+  cameraReadyAt: Date | null;
+  volume: number | null;
+  isbn: string | null;
+  proceedingsDoi: string | null;
+  programItems: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string | null;
+    speakers: string | null;
+    track: string | null;
+    room: string | null;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    externalUrl: string | null;
+  }>;
+};
+
+export type PublicJournalIssue = {
+  id: string;
+  volume: number;
+  number: number;
+  title: string | null;
+  description: string | null;
+  status: string;
+  isPublished: boolean;
+  publicationDate: Date | null;
+  coverImageUrl: string | null;
+  doi: string | null;
+  editorialHtml: string | null;
+};
+
+const EDITION_SELECT = {
+  id: true,
+  slug: true,
+  year: true,
+  term: true,
+  label: true,
+  coverImageUrl: true,
+  status: true,
+  isPublished: true,
+  startsAt: true,
+  endsAt: true,
+  location: true,
+  timezone: true,
+  websiteUrl: true,
+  submissionDeadline: true,
+  cameraReadyAt: true,
+  volume: true,
+  isbn: true,
+  proceedingsDoi: true,
+  programItems: {
+    orderBy: [{ startsAt: "asc" }, { sortOrder: "asc" }],
+    select: { id: true, type: true, title: true, description: true, speakers: true, track: true, room: true, startsAt: true, endsAt: true, externalUrl: true },
+  },
+} satisfies Prisma.ConferenceEditionSelect;
+
+const JOURNAL_ISSUE_SELECT = {
+  id: true,
+  volume: true,
+  number: true,
+  title: true,
+  description: true,
+  status: true,
+  isPublished: true,
+  publicationDate: true,
+  coverImageUrl: true,
+  doi: true,
+  editorialHtml: true,
+} satisfies Prisma.JournalIssueSelect;
 
 const ARTICLE_SELECT = {
   id: true,
@@ -239,6 +328,68 @@ export async function getPublishedArticles(
 
   return rows.map(toArticleSummary);
 }
+
+export async function getConferenceEditions(
+  venueId: string,
+  includeUnpublished = false,
+): Promise<PublicConferenceEdition[]> {
+  return prisma.conferenceEdition.findMany({
+    where: { venueId, ...(includeUnpublished ? {} : { isPublished: true }) },
+    orderBy: [{ year: "desc" }, { term: "desc" }],
+    select: EDITION_SELECT,
+  });
+}
+
+export const getConferenceEditionPage = cache(async function getConferenceEditionPage(
+  slug: string,
+  editionSlug: string,
+): Promise<{ result: VenuePageResult; edition: PublicConferenceEdition; articles: ArticleSummary[] } | null> {
+  const result = await getVenuePage(slug, "CONFERENCE");
+  if (!result) return null;
+
+  const edition = await prisma.conferenceEdition.findFirst({
+    where: {
+      slug: editionSlug,
+      venueId: result.venue.id,
+      ...(result.preview ? {} : { isPublished: true }),
+    },
+    select: EDITION_SELECT,
+  });
+  if (!edition) return null;
+
+  const rows = await prisma.manuscript.findMany({
+    where: { editionId: edition.id, status: "PUBLISHED" },
+    orderBy: [{ firstPage: "asc" }, { publishedAt: "asc" }],
+    take: 500,
+    select: ARTICLE_SELECT,
+  });
+  return { result, edition, articles: rows.map(toArticleSummary) };
+});
+
+export function conferenceEditionLabel(edition: Pick<PublicConferenceEdition, "label" | "year" | "term">): string {
+  return edition.label || `${edition.year} ${editionTermLabel(edition.term)}`;
+}
+
+export const getJournalIssuePage = cache(async function getJournalIssuePage(
+  slug: string,
+  volume: number,
+  number: number,
+): Promise<{ result: VenuePageResult; issue: PublicJournalIssue; articles: ArticleSummary[] } | null> {
+  const result = await getVenuePage(slug, "JOURNAL");
+  if (!result) return null;
+  const issue = await prisma.journalIssue.findFirst({
+    where: { venueId: result.venue.id, volume, number, ...(result.preview ? {} : { isPublished: true }) },
+    select: JOURNAL_ISSUE_SELECT,
+  });
+  if (!issue) return null;
+  const rows = await prisma.manuscript.findMany({
+    where: { journalIssueId: issue.id, status: "PUBLISHED" },
+    orderBy: [{ firstPage: "asc" }, { publishedAt: "asc" }],
+    take: 500,
+    select: ARTICLE_SELECT,
+  });
+  return { result, issue, articles: rows.map(toArticleSummary) };
+});
 
 /** One published paper, scoped to the venue in the URL. */
 export const getPublishedArticle = cache(async function getPublishedArticle(

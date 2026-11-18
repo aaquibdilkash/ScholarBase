@@ -75,6 +75,8 @@ export type ManuscriptSubmitResult =
   | { success: true; message: string; data: { id: string } }
   | { success: false; message: string };
 
+export type CameraReadyResult = { success: boolean; message: string };
+
 const TRANSFER_INVITE_WINDOW = "10 m";
 const TRANSFER_INVITE_LIMIT = 20;
 const TRANSFER_DECLINE_LIMIT = 20;
@@ -284,6 +286,38 @@ export async function createManuscriptUploadUrlAction(): Promise<ManuscriptUploa
   }
 
   return { success: true, message: "Upload ready.", data: ticket };
+}
+
+export async function submitCameraReadyAction(
+  _previous: CameraReadyResult,
+  formData: FormData,
+): Promise<CameraReadyResult> {
+  const auth = await getActiveUser("Log in to upload the camera-ready paper.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const manuscriptId = readFormValue(formData, "manuscriptId");
+  const manuscript = await prisma.manuscript.findUnique({
+    where: { id: manuscriptId },
+    select: { id: true, authorId: true, status: true, round: true, venue: { select: { type: true } }, edition: { select: { cameraReadyAt: true } } },
+  });
+  if (!manuscript || manuscript.authorId !== auth.user.id) return { success: false, message: "That submission is not available." };
+  if (manuscript.venue.type !== "CONFERENCE" || manuscript.status !== ("ACCEPTED_PROCEEDINGS" as typeof manuscript.status)) return { success: false, message: "Camera-ready files are only accepted for conference papers after acceptance." };
+  if (manuscript.edition?.cameraReadyAt && manuscript.edition.cameraReadyAt.getTime() < Date.now()) return { success: false, message: "The camera-ready deadline has passed. Contact the conference editors." };
+  const filePath = readFormValue(formData, "filePath");
+  const fileName = safeManuscriptFileName(readFormValue(formData, "fileName"));
+  const declaredBytes = Number(readFormValue(formData, "fileSize"));
+  const sha256 = readFormValue(formData, "sha256");
+  const check = await verifyManuscriptObject({ userId: auth.user.id, path: filePath, declaredBytes, expectedSha256: sha256 });
+  if (!check.ok) {
+    await deleteManuscriptObject(filePath);
+    return { success: false, message: check.message };
+  }
+  await prisma.$transaction(async (tx) => {
+    await tx.manuscriptFile.create({ data: { manuscriptId: manuscript.id, round: manuscript.round, kind: "CAMERA_READY", filePath, fileName, mimeType: MANUSCRIPT_PDF_MIME, sizeBytes: check.sizeBytes, sha256: check.sha256 } });
+    await tx.manuscriptEvent.create({ data: { manuscriptId: manuscript.id, type: "REVISION_UPLOADED", actorId: auth.user.id, note: "Camera-ready PDF uploaded for editorial production." } });
+  });
+  revalidatePath(`/workspace/submissions/${manuscript.id}`);
+  revalidatePath("/workspace/editorial");
+  return { success: true, message: "Camera-ready PDF uploaded for editorial review." };
 }
 
 function safeManuscriptFileName(name: string): string {
@@ -590,6 +624,17 @@ export async function createDirectSubmissionAction(
     );
   }
 
+  const editionId = readFormValue(formData, "editionId");
+  let edition: { id: string; label: string } | null = null;
+  if (venue.type === "CONFERENCE") {
+    if (!editionId) return submitFail("Choose the conference edition receiving this paper.");
+    edition = await prisma.conferenceEdition.findFirst({
+      where: { id: editionId, venueId: venue.id, isPublished: true, status: { in: ["CFP_OPEN", "REVIEW"] } },
+      select: { id: true, label: true },
+    });
+    if (!edition) return submitFail("That conference edition is not accepting submissions.");
+  }
+
   const input = readSubmissionInput(formData);
   const textProblem = validateSubmissionInput(input);
   if (textProblem) return submitFail(textProblem);
@@ -613,6 +658,7 @@ export async function createDirectSubmissionAction(
       status: "SUBMITTED",
       round: 0,
       venueId: venue.id,
+      editionId: edition?.id ?? null,
       authorId: auth.user.id,
       ...authorsForStore(draftCorresponding.author, draftCoAuthors.authors),
       files: {
@@ -858,6 +904,10 @@ export async function publishManuscriptAction(
       authorId: true,
       venueId: true,
       venue: { select: { name: true, slug: true, type: true } },
+      editionId: true,
+      edition: { select: { id: true, slug: true, label: true, volume: true, isbn: true, isPublished: true, status: true } },
+      journalIssueId: true,
+      journalIssue: { select: { id: true, volume: true, number: true, isPublished: true, status: true } },
     },
   });
   if (!manuscript) return fail("That manuscript no longer exists.");
@@ -882,12 +932,37 @@ export async function publishManuscriptAction(
     return fail("Only the Editor-in-Chief can publish a manuscript.");
   }
 
-  const volumeRaw = readFormValue(formData, "volume").trim();
-  const issueRaw = readFormValue(formData, "issue").trim();
+  const editionId = readFormValue(formData, "editionId").trim();
+  const selectedEdition = manuscript.venue.type === "CONFERENCE" && manuscript.editionId
+    ? manuscript.edition && manuscript.edition.id === editionId ? manuscript.edition : null
+    : null;
+  if (manuscript.venue.type === "CONFERENCE" && manuscript.editionId && (!selectedEdition || !selectedEdition.isPublished || !["CFP_OPEN", "REVIEW", "NOTIFICATION", "PROGRAM", "COMPLETED"].includes(selectedEdition.status))) {
+    return fail("Select a published conference edition before publishing this paper.");
+  }
+
+  const journalIssueId = readFormValue(formData, "journalIssueId").trim();
+  const selectedIssue = manuscript.venue.type === "JOURNAL" && journalIssueId
+    ? await prisma.journalIssue.findFirst({
+        where: { id: journalIssueId, venueId: manuscript.venueId },
+        select: { id: true, volume: true, number: true, isPublished: true, status: true },
+      })
+    : null;
+  if (manuscript.venue.type === "JOURNAL" && journalIssueId && (!selectedIssue || (!selectedIssue.isPublished && selectedIssue.status !== "OPEN"))) {
+    return fail("Choose an open or published journal issue before publishing this article.");
+  }
+
+  const volumeRaw = selectedEdition
+    ? String(selectedEdition.volume ?? "")
+    : selectedIssue
+      ? String(selectedIssue.volume)
+    : readFormValue(formData, "volume").trim();
+  const issueRaw = selectedIssue ? String(selectedIssue.number) : readFormValue(formData, "issue").trim();
   const firstPage = readFormValue(formData, "firstPage").trim();
   const lastPage = readFormValue(formData, "lastPage").trim();
   const publishedAtRaw = readFormValue(formData, "publishedAt").trim();
-  const isbnRaw = readFormValue(formData, "isbn").trim();
+  const isbnRaw = selectedEdition
+    ? selectedEdition?.isbn ?? ""
+      : readFormValue(formData, "isbn").trim();
 
   const volume = Number(volumeRaw);
   if (!Number.isInteger(volume) || volume < 1) {
@@ -941,6 +1016,8 @@ export async function publishManuscriptAction(
           lastPage: lastPage || null,
           publishedAt,
           isbn,
+          ...(selectedIssue ? { journalIssueId: selectedIssue.id } : {}),
+          ...(selectedEdition ? { editionId: selectedEdition.id } : {}),
         },
       });
       if (updated.count === 0) throw new PublishConflict();
@@ -984,6 +1061,7 @@ export async function publishManuscriptAction(
   revalidatePath(`/${prefix}/${manuscript.venue.slug}/article/${manuscript.id}`);
   if (manuscript.venue.type === "CONFERENCE") {
     revalidatePath(`/${prefix}/${manuscript.venue.slug}/proceedings/${volume}`);
+    if (selectedEdition) revalidatePath(`/${prefix}/${manuscript.venue.slug}/${selectedEdition.slug}`);
   }
   revalidatePath("/workspace/editorial");
   revalidatePath("/workspace/editorial/board");

@@ -142,8 +142,10 @@ export default async function EditorialPage() {
               id: true,
               title: true,
               status: true,
+              venueId: true,
               author: { select: { name: true } },
               venue: { select: { name: true, type: true } },
+              edition: { select: { id: true, slug: true, label: true, volume: true } },
             },
           })
         : Promise.resolve([]),
@@ -192,6 +194,20 @@ export default async function EditorialPage() {
           })
         : Promise.resolve([]),
     ]);
+
+  const journalIssues = publisherVenueIds.length
+    ? await prisma.journalIssue.findMany({
+        where: { venueId: { in: publisherVenueIds }, status: { in: ["OPEN", "PUBLISHED"] } },
+        orderBy: [{ volume: "desc" }, { number: "desc" }],
+        select: { id: true, venueId: true, volume: true, number: true, title: true },
+      })
+    : [];
+  const issuesByVenue = new Map<string, typeof journalIssues>();
+  for (const issue of journalIssues) {
+    const items = issuesByVenue.get(issue.venueId) ?? [];
+    items.push(issue);
+    issuesByVenue.set(issue.venueId, items);
+  }
 
   const manuscriptIds = transferManuscripts.map((manuscript) => manuscript.id);
   const clones = manuscriptIds.length
@@ -244,6 +260,10 @@ export default async function EditorialPage() {
     venueName: manuscript.venue.name,
     venueType: manuscript.venue.type,
     status: manuscript.status,
+    editionId: manuscript.edition?.id ?? null,
+    editionLabel: manuscript.edition?.label ?? null,
+    editionVolume: manuscript.edition?.volume ?? null,
+    availableIssues: issuesByVenue.get(manuscript.venueId) ?? [],
   }));
 
   if (roles.length === 0 && reviewQueue.length === 0) {

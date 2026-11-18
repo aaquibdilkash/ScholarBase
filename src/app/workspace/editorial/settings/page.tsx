@@ -22,6 +22,7 @@ export default async function EditorialSettingsPage({
       id: true,
       name: true,
       type: true,
+      coverImageUrl: true,
       editorName: true,
       editorAffiliation: true,
       frequency: true,
@@ -34,6 +35,8 @@ export default async function EditorialSettingsPage({
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: { name: true, roleTitle: true, affiliation: true, orcid: true },
       },
+      editions: { orderBy: [{ year: "desc" }, { slug: "desc" }], select: { id: true, slug: true, label: true, year: true, term: true, status: true, volume: true, isbn: true, isPublished: true, coverImageUrl: true, startsAt: true, endsAt: true, location: true, timezone: true, websiteUrl: true, proceedingsDoi: true, cfpOpenAt: true, submissionDeadline: true, notificationAt: true, cameraReadyAt: true, programItems: { orderBy: [{ startsAt: "asc" }, { sortOrder: "asc" }], select: { id: true, title: true, type: true, startsAt: true, room: true, speakers: true } } } },
+      journalIssues: { orderBy: [{ volume: "desc" }, { number: "desc" }], select: { id: true, volume: true, number: true, title: true, description: true, publicationDate: true, coverImageUrl: true, doi: true, status: true, isPublished: true } },
     },
   });
 
@@ -41,6 +44,7 @@ export default async function EditorialSettingsPage({
     id: venue.id,
     name: venue.name,
     type: venue.type,
+    coverImageUrl: venue.coverImageUrl,
     editorName: venue.editorName ?? "",
     editorAffiliation: venue.editorAffiliation ?? "",
     frequency: venue.frequency ?? "",
@@ -55,6 +59,8 @@ export default async function EditorialSettingsPage({
       affiliation: member.affiliation ?? "",
       orcid: member.orcid ?? "",
     })),
+    editions: venue.editions,
+    journalIssues: venue.journalIssues,
   }));
 
   const params = await searchParams;
@@ -72,7 +78,9 @@ export default async function EditorialSettingsPage({
           No venue is assigned to you as editor-in-chief yet. A platform administrator can grant that role from Publishing administration.
         </p>
       ) : (
-        <VenueSettingsPanel venues={values} initialVenueId={params?.venue} />
+        <>
+          <VenueSettingsPanel venues={values} initialVenueId={params?.venue} />
+        </>
       )}
     </main>
   );

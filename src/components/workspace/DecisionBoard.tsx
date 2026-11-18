@@ -70,14 +70,14 @@ function BoardCardView({
       >
         {card.title}
       </Link>
-      <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         {card.authorName ?? "Author not listed"} · {roundLabel(card.round)}
       </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <ManuscriptStatusBadge status={card.status} />
         {card.reviewTotal > 0 ? (
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             {card.reviewCompleted}/{card.reviewTotal} reports
           </span>
         ) : null}
@@ -88,7 +88,7 @@ function BoardCardView({
         ) : null}
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
         Updated {formatDate(card.updatedAt)}
       </p>
 
@@ -104,7 +104,7 @@ function BoardCardView({
           ))}
           {card.status === "ACCEPTED_JOURNAL" || card.status === "ACCEPTED_PROCEDINGS" ? (
             <Link
-              className="text-[11px] font-semibold text-blue-700 underline-offset-2 hover:underline dark:text-blue-300"
+              className="text-xs font-semibold text-blue-700 underline-offset-2 hover:underline dark:text-blue-300"
               href={
                 canPublish
                   ? "/workspace/editorial#publication"
@@ -149,7 +149,7 @@ export function DecisionBoard({
               </p>
             </div>
 
-            <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-2">
+            <div className="mt-3 grid gap-3 md:flex md:snap-x md:overflow-x-auto md:pb-2">
               {BOARD_COLUMNS.map((column) => {
                 const cards = venue.cards.filter((card) =>
                   column.statuses.includes(card.status),
@@ -157,24 +157,24 @@ export function DecisionBoard({
 
                 return (
                   <div
-                    className="flex min-w-[15rem] flex-1 snap-start flex-col rounded-2xl border border-[var(--card-border)] bg-slate-500/5 p-2.5"
+                    className="flex min-w-0 flex-col rounded-2xl border border-[var(--card-border)] bg-slate-500/5 p-3 md:min-w-[15rem] md:flex-1 md:snap-start"
                     key={column.key}
                   >
                     <div className="flex items-baseline justify-between gap-2 px-1">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
                         {column.label}
                       </h3>
                       <span className="rounded-full border border-[var(--card-border)] px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                         {cards.length}
                       </span>
                     </div>
-                    <p className="px-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="px-1 text-xs text-slate-500 dark:text-slate-400">
                       {column.hint}
                     </p>
 
                     <div className="mt-2 space-y-2">
                       {cards.length === 0 ? (
-                        <p className="rounded-xl border border-dashed border-[var(--card-border)] p-3 text-[11px] text-slate-500 dark:text-slate-400">
+                        <p className="rounded-xl border border-dashed border-[var(--card-border)] p-3 text-xs text-slate-500 dark:text-slate-400">
                           Nothing here.
                         </p>
                       ) : (

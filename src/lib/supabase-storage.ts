@@ -34,6 +34,9 @@ export type ContentImageKind =
   | "position-inline"
   | "admission-cover"
   | "admission-inline"
+  | "journal-cover"
+  | "venue-cover"
+  | "conference-cover"
   | "avatar"
   | "social"
   | "contribution";

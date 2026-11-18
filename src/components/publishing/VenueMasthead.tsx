@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { formatIssn } from "@/lib/publishing/identifiers";
 import type { PublicVenue } from "@/lib/publishing/public";
@@ -89,6 +90,7 @@ export function VenueMasthead({
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50 sm:text-4xl">
           {venue.name}
         </h1>
+        {venue.coverImageUrl ? <Image src={venue.coverImageUrl} alt="" width={960} height={240} unoptimized className="mt-5 h-40 w-full rounded-2xl object-cover sm:h-52" /> : null}
         <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">
           {identity.join(" · ")}
         </p>

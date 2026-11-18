@@ -16,6 +16,7 @@ import {
 } from "@/lib/publishing/labels";
 import { ManuscriptStatusBadge } from "@/components/workspace/ManuscriptStatusBadge";
 import { WithdrawSubmissionButton } from "@/components/workspace/WithdrawSubmissionButton";
+import { CameraReadyUploadPanel } from "@/components/workspace/CameraReadyUploadPanel";
 
 export const metadata: Metadata = buildNoindexMetadata(
   "Submission - Workspace - ScholarBase",
@@ -64,6 +65,7 @@ export default async function SubmissionDetailPage({
       venue: {
         select: { slug: true, name: true, type: true, isPublished: true },
       },
+      edition: { select: { cameraReadyAt: true } },
       author: { select: { name: true, orcidUrl: true } },
       originalManuscript: {
         select: {
@@ -297,6 +299,8 @@ export default async function SubmissionDetailPage({
               ))}
             </ul>
           </section>
+
+          {manuscript.status === ("ACCEPTED_PROCEEDINGS" as typeof manuscript.status) ? <CameraReadyUploadPanel manuscriptId={manuscript.id} /> : null}
 
           <section aria-labelledby="timeline-heading" className="sb-card">
             <h2

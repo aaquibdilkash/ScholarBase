@@ -51,12 +51,12 @@ function defaultAuthorFor(
 export default async function NewSubmissionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ invitation?: string; venue?: string }>;
+  searchParams: Promise<{ invitation?: string; venue?: string; edition?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { invitation: invitationId, venue: venueSlug } = await searchParams;
+  const { invitation: invitationId, venue: venueSlug, edition: editionId } = await searchParams;
 
   if (invitationId) {
     const invitation = await findOpenInvitationForAuthor({
@@ -101,6 +101,7 @@ export default async function NewSubmissionPage({
         type: true,
         isPublished: true,
         isDemo: true,
+        editions: { where: { isPublished: true, status: { in: ["CFP_OPEN", "REVIEW"] } }, orderBy: [{ year: "desc" }, { slug: "desc" }], select: { id: true, label: true, slug: true, volume: true } },
       },
     });
 
@@ -148,6 +149,8 @@ export default async function NewSubmissionPage({
           venueSlug={venue.slug}
           venueName={venue.name}
           venueType={venue.type}
+          editionId={editionId}
+          editions={venue.editions}
           defaultAuthor={defaultAuthorFor(user)}
           initialCorrespondingAuthor={parseCorrespondingAuthor(null)}
         />

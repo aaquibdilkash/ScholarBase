@@ -29,6 +29,12 @@ import {
   MAX_VENUE_FREQUENCY,
   MAX_VENUE_RICH_TEXT,
 } from "@/lib/publishing/constants";
+import {
+  isValidEditionSlug,
+  normalizeEditionSlug,
+} from "@/lib/publishing/editions";
+import { isValidIsbn13, normalizeIsbn } from "@/lib/publishing/identifiers";
+import { promoteContentImages } from "@/lib/content-images";
 
 /**
  * Venue provisioning for platform owners.
@@ -47,6 +53,248 @@ export type VenueActionResult = {
   message: string;
 };
 
+export async function createConferenceEditionAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+  const venueId = readFormValue(formData, "venueId");
+  const [admin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({ where: { userId: auth.user.id, venueId, roleTitle: "EDITOR_IN_CHIEF" }, select: { id: true } }),
+  ]);
+  if (!admin && !role) return fail("Only the venue Editor-in-Chief can create an edition.");
+
+  const venue = await prisma.venue.findUnique({ where: { id: venueId }, select: { id: true, type: true, slug: true, name: true } });
+  if (!venue || venue.type !== "CONFERENCE") return fail("Choose a conference venue.");
+  const year = Number(readFormValue(formData, "year"));
+  const termRaw = readFormValue(formData, "term").trim().toLowerCase();
+  const term = termRaw || null;
+  const slug = normalizeEditionSlug(readFormValue(formData, "slug"));
+  const label = readFormValue(formData, "label").trim();
+  if (!Number.isInteger(year) || year < 2000 || year > 2200) return fail("Enter a valid edition year.");
+  if (term !== null && !["h1", "h2", "q1", "q2", "q3", "q4"].includes(term)) return fail("Term must be H1, H2, Q1, Q2, Q3, or Q4.");
+  if (!isValidEditionSlug(slug)) return fail("Use an edition key such as 2027, 2027-h1, or 2027-q3.");
+  if (!label || label.length > 120) return fail("Add an edition label up to 120 characters.");
+  const volumeRaw = readFormValue(formData, "volume").trim();
+  const volume = volumeRaw ? Number(volumeRaw) : null;
+  if (volume !== null && (!Number.isInteger(volume) || volume < 1)) return fail("Volume must be a positive whole number.");
+  const isbnRaw = readFormValue(formData, "isbn").trim();
+  if (isbnRaw && !isValidIsbn13(isbnRaw)) return fail("That ISBN-13 is not valid.");
+  const websiteUrl = readOptionalUrl(formData, "websiteUrl");
+  if (readFormValue(formData, "websiteUrl").trim() && !websiteUrl) return fail("The edition website must be a valid HTTPS URL.");
+  const proceedingsDoi = readFormValue(formData, "proceedingsDoi").trim() || null;
+  if (proceedingsDoi && !/^10\.\d{4,9}\/\S+$/i.test(proceedingsDoi)) return fail("Enter a valid proceedings DOI.");
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The edition cover must be a valid HTTPS URL.");
+  const timezone = readOptionalTimezone(formData, "timezone");
+  if (readFormValue(formData, "timezone").trim() && !timezone) return fail("Enter a valid IANA timezone, such as Asia/Kolkata.");
+
+  try {
+    await prisma.conferenceEdition.create({
+      data: {
+        venueId: venue.id,
+        year,
+        term,
+        slug,
+        label,
+        volume,
+        isbn: isbnRaw ? normalizeIsbn(isbnRaw) : null,
+        startsAt: readOptionalIsoDate(formData, "startsAt"),
+        endsAt: readOptionalIsoDate(formData, "endsAt"),
+        location: readFormValue(formData, "location").trim() || null,
+        timezone,
+        websiteUrl,
+        cfpOpenAt: readOptionalIsoDate(formData, "cfpOpenAt"),
+        submissionDeadline: readOptionalIsoDate(formData, "submissionDeadline"),
+        notificationAt: readOptionalIsoDate(formData, "notificationAt"),
+        cameraReadyAt: readOptionalIsoDate(formData, "cameraReadyAt"),
+        proceedingsDoi,
+        coverImageUrl,
+        status: "DRAFT",
+      },
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
+      return fail("An edition with that key already exists for this conference.");
+    }
+    throw error;
+  }
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath(`/sbc/${venue.slug}`);
+  return { success: true, message: `${label} was created.` };
+}
+
+export async function updateConferenceEditionAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+  const editionId = readFormValue(formData, "editionId");
+  const status = readFormValue(formData, "status");
+  const allowed = ["DRAFT", "CFP_OPEN", "REVIEW", "NOTIFICATION", "PROGRAM", "COMPLETED", "ARCHIVED"] as const;
+  if (!allowed.includes(status as (typeof allowed)[number])) return fail("Choose a valid edition status.");
+  if (status === "DRAFT" && readFormValue(formData, "isPublished") === "true") return fail("A draft edition cannot be public. Move it to CFP open or later first.");
+  const edition = await prisma.conferenceEdition.findUnique({ where: { id: editionId }, select: { id: true, venueId: true, status: true, volume: true, coverImageUrl: true, venue: { select: { slug: true } } } });
+  if (!edition) return fail("That edition no longer exists.");
+  const nextStatus = status as (typeof allowed)[number];
+  const nextStatuses: Record<string, readonly string[]> = {
+    DRAFT: ["CFP_OPEN", "ARCHIVED"],
+    CFP_OPEN: ["REVIEW", "ARCHIVED"],
+    REVIEW: ["NOTIFICATION", "ARCHIVED"],
+    NOTIFICATION: ["PROGRAM", "ARCHIVED"],
+    PROGRAM: ["COMPLETED", "ARCHIVED"],
+    COMPLETED: ["ARCHIVED"],
+    ARCHIVED: [],
+  };
+  if (nextStatus !== edition.status && !nextStatuses[edition.status]?.includes(nextStatus)) return fail(`An edition cannot move from ${edition.status.replace(/_/g, " ")} to ${nextStatus.replace(/_/g, " ")}.`);
+  if (nextStatus === "COMPLETED" && !edition.volume) return fail("Assign the proceedings volume before completing the edition.");
+  const [admin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({ where: { userId: auth.user.id, venueId: edition.venueId, roleTitle: "EDITOR_IN_CHIEF" }, select: { id: true } }),
+  ]);
+  if (!admin && !role) return fail("Only the venue Editor-in-Chief can update an edition.");
+  const isPublished = readFormValue(formData, "isPublished") === "true";
+  const websiteUrl = readOptionalUrl(formData, "websiteUrl");
+  if (readFormValue(formData, "websiteUrl").trim() && !websiteUrl) return fail("The edition website must be a valid HTTPS URL.");
+  const proceedingsDoi = readFormValue(formData, "proceedingsDoi").trim() || null;
+  if (proceedingsDoi && !/^10\.\d{4,9}\/\S+$/i.test(proceedingsDoi)) return fail("Enter a valid proceedings DOI.");
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The edition cover must be a valid HTTPS URL.");
+  const timezone = readOptionalTimezone(formData, "timezone");
+  if (readFormValue(formData, "timezone").trim() && !timezone) return fail("Enter a valid IANA timezone, such as Asia/Kolkata.");
+  const startsAt = readOptionalIsoDate(formData, "startsAt");
+  const endsAt = readOptionalIsoDate(formData, "endsAt");
+  if (startsAt && endsAt && endsAt < startsAt) return fail("The end date cannot be before the start date.");
+  const promoted = await promoteContentImages({ coverKind: "conference-cover", imageUrl: coverImageUrl, html: "", userId: auth.user.id });
+  if (!promoted.ok) return fail(promoted.error);
+  await prisma.conferenceEdition.update({ where: { id: edition.id }, data: {
+    status: nextStatus, isPublished, startsAt, endsAt,
+    location: readFormValue(formData, "location").trim() || null,
+    timezone, websiteUrl,
+    cfpOpenAt: readOptionalIsoDate(formData, "cfpOpenAt"),
+    submissionDeadline: readOptionalIsoDate(formData, "submissionDeadline"),
+    notificationAt: readOptionalIsoDate(formData, "notificationAt"),
+    cameraReadyAt: readOptionalIsoDate(formData, "cameraReadyAt"), proceedingsDoi, coverImageUrl: promoted.coverUrl,
+  } });
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath(`/sbc/${edition.venue.slug}`);
+  return { success: true, message: "Edition status saved." };
+}
+
+export async function createConferenceProgramItemAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+  const editionId = readFormValue(formData, "editionId");
+  const edition = await prisma.conferenceEdition.findUnique({ where: { id: editionId }, select: { id: true, venueId: true, slug: true, venue: { select: { slug: true } } } });
+  if (!edition) return fail("That conference edition no longer exists.");
+  const [admin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({ where: { userId: auth.user.id, venueId: edition.venueId, roleTitle: { in: ["EDITOR_IN_CHIEF", "TRACK_CHAIR"] } }, select: { id: true } }),
+  ]);
+  if (!admin && !role) return fail("Only the conference editorial team can manage the program.");
+  const type = readFormValue(formData, "type");
+  const allowed = ["KEYNOTE", "INVITED_TALK", "PAPER", "POSTER", "WORKSHOP", "BREAK", "OTHER"] as const;
+  if (!allowed.includes(type as (typeof allowed)[number])) return fail("Choose a valid program item type.");
+  const title = readFormValue(formData, "title").trim();
+  if (!title || title.length > 200) return fail("Add a program title up to 200 characters.");
+  const externalUrl = readOptionalUrl(formData, "externalUrl");
+  if (readFormValue(formData, "externalUrl").trim() && !externalUrl) return fail("The program link must be a valid HTTPS URL.");
+  const startsAt = readOptionalIsoDate(formData, "startsAt");
+  const endsAt = readOptionalIsoDate(formData, "endsAt");
+  if (startsAt && endsAt && endsAt < startsAt) return fail("The program item cannot end before it starts.");
+  await prisma.conferenceProgramItem.create({ data: {
+    editionId, type: type as (typeof allowed)[number], title,
+    description: readFormValue(formData, "description").trim() || null,
+    speakers: readFormValue(formData, "speakers").trim() || null,
+    track: readFormValue(formData, "track").trim() || null,
+    room: readFormValue(formData, "room").trim() || null,
+    startsAt, endsAt, externalUrl,
+    sortOrder: Number(readFormValue(formData, "sortOrder")) || 0,
+  } });
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath(`/sbc/${edition.venue.slug}/${edition.slug}`);
+  return { success: true, message: "Program item added." };
+}
+
+export async function createJournalIssueAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+  const venueId = readFormValue(formData, "venueId");
+  const venue = await prisma.venue.findUnique({ where: { id: venueId }, select: { id: true, slug: true, type: true } });
+  if (!venue || venue.type !== "JOURNAL") return fail("Choose a journal venue.");
+  const [admin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({ where: { userId: auth.user.id, venueId, roleTitle: "EDITOR_IN_CHIEF" }, select: { id: true } }),
+  ]);
+  if (!admin && !role) return fail("Only the journal Editor-in-Chief can create an issue.");
+  const volume = Number(readFormValue(formData, "volume"));
+  const number = Number(readFormValue(formData, "number"));
+  const title = readFormValue(formData, "title").trim();
+  const description = sanitizeRichHtml(readFormValue(formData, "description"));
+  const publicationDate = readOptionalIsoDate(formData, "publicationDate");
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
+  const doi = readFormValue(formData, "doi").trim() || null;
+  if (!Number.isInteger(volume) || volume < 1 || !Number.isInteger(number) || number < 1) return fail("Volume and issue number must be positive whole numbers.");
+  if (title.length > 160) return fail("Issue title must be 160 characters or fewer.");
+  try { assertRichTextWithinLimit(description, 4000, "Issue description"); } catch (error) { return fail(error instanceof Error ? error.message : "Issue description is too long."); }
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The cover image must be a valid HTTPS URL.");
+  if (doi && !/^10\.\d{4,9}\/\S+$/i.test(doi)) return fail("Enter a valid issue DOI.");
+  try {
+    await prisma.journalIssue.create({ data: { venueId, volume, number, title: title || null, description: description || null, publicationDate, coverImageUrl, doi, status: "DRAFT" } });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") return fail("That journal issue already exists.");
+    throw error;
+  }
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath(`/sbj/${venue.slug}/archive`);
+  return { success: true, message: `Volume ${volume}, issue ${number} was created.` };
+}
+
+export async function updateJournalIssueAction(
+  _previous: VenueActionResult,
+  formData: FormData,
+): Promise<VenueActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return fail(auth.message);
+  const issueId = readFormValue(formData, "issueId");
+  const status = readFormValue(formData, "status");
+  const allowed = ["DRAFT", "OPEN", "LOCKED", "PUBLISHED", "ARCHIVED"] as const;
+  if (!allowed.includes(status as (typeof allowed)[number])) return fail("Choose a valid issue status.");
+  if (status === "DRAFT" && readFormValue(formData, "isPublished") === "true") return fail("A draft issue cannot be public. Open or publish it first.");
+  const issue = await prisma.journalIssue.findUnique({ where: { id: issueId }, select: { id: true, venueId: true, venue: { select: { slug: true } } } });
+  if (!issue) return fail("That issue no longer exists.");
+  const [admin, role] = await Promise.all([
+    isUserAdmin(auth.user.id),
+    prisma.editorialRole.findFirst({ where: { userId: auth.user.id, venueId: issue.venueId, roleTitle: "EDITOR_IN_CHIEF" }, select: { id: true } }),
+  ]);
+  if (!admin && !role) return fail("Only the journal Editor-in-Chief can update an issue.");
+  const isPublished = readFormValue(formData, "isPublished") === "true";
+  const title = readFormValue(formData, "title").trim();
+  const description = sanitizeRichHtml(readFormValue(formData, "description"));
+  const publicationDate = readOptionalIsoDate(formData, "publicationDate");
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
+  const doi = readFormValue(formData, "doi").trim() || null;
+  try { assertRichTextWithinLimit(description, 4000, "Issue description"); } catch (error) { return fail(error instanceof Error ? error.message : "Issue description is too long."); }
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The cover image must be a valid HTTPS URL.");
+  if (doi && !/^10\.\d{4,9}\/\S+$/i.test(doi)) return fail("Enter a valid issue DOI.");
+  const promoted = await promoteContentImages({ coverKind: "journal-cover", imageUrl: coverImageUrl, html: description, userId: auth.user.id });
+  if (!promoted.ok) return fail(promoted.error);
+  await prisma.journalIssue.update({ where: { id: issue.id }, data: { status: status as (typeof allowed)[number], isPublished, title: title || null, description: description || null, publicationDate, coverImageUrl: promoted.coverUrl, doi } });
+  revalidatePath("/workspace/editorial/settings");
+  revalidatePath(`/sbj/${issue.venue.slug}`);
+  revalidatePath(`/sbj/${issue.venue.slug}/archive`);
+  return { success: true, message: "Issue status saved." };
+}
+
 function readBounded(formData: FormData, key: string, max: number, label: string): string | null {
   return readOptionalShortText(formData, key, max, label);
 }
@@ -57,6 +305,35 @@ const ROLE_TITLES: readonly EditorialRoleTitle[] = [
   "TRACK_CHAIR",
   "ASSOC_EDITOR",
 ];
+
+function readOptionalIsoDate(formData: FormData, key: string): Date | null {
+  const value = readFormValue(formData, key).trim();
+  if (!value) return null;
+  const date = new Date(value.includes("T") ? `${value}:00Z` : `${value}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function readOptionalUrl(formData: FormData, key: string): string | null {
+  const value = readFormValue(formData, key).trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function readOptionalTimezone(formData: FormData, key: string): string | null {
+  const value = readFormValue(formData, key).trim();
+  if (!value) return null;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value }).format();
+    return value;
+  } catch {
+    return null;
+  }
+}
 
 function fail(message: string): VenueActionResult {
   return { success: false, message };
@@ -79,6 +356,7 @@ export async function createVenueAction(
   const name = readFormValue(formData, "name");
   const slug = normalizeVenueSlug(readFormValue(formData, "slug"));
   const type = readFormValue(formData, "type");
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
 
   if (name.length < 3 || name.length > MAX_VENUE_NAME) {
     return fail(`Name must be between 3 and ${MAX_VENUE_NAME} characters.`);
@@ -91,6 +369,7 @@ export async function createVenueAction(
   if (!VENUE_TYPES.includes(type as (typeof VENUE_TYPES)[number])) {
     return fail("Choose a venue type.");
   }
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The venue cover must be a valid HTTPS URL.");
 
   const existing = await prisma.venue.findUnique({
     where: { slug },
@@ -103,6 +382,7 @@ export async function createVenueAction(
       name,
       slug,
       type: type as (typeof VENUE_TYPES)[number],
+      coverImageUrl,
       // Never published on creation: indexing is a separate, deliberate action
       // that has to pass the readiness checks below.
       isPublished: false,
@@ -148,6 +428,7 @@ export async function setVenuePublishedAction(
       isPublished: true,
       editorName: true,
       aimsAndScope: true,
+      coverImageUrl: true,
     },
   });
   if (!venue) return fail("That venue no longer exists.");
@@ -173,11 +454,19 @@ export async function setVenuePublishedAction(
     }
   }
 
+  let coverImageUrl = venue.coverImageUrl;
+  if (published && coverImageUrl) {
+    const promoted = await promoteContentImages({ coverKind: "venue-cover", imageUrl: coverImageUrl, html: "", userId: admin.id });
+    if (!promoted.ok) return fail(promoted.error);
+    coverImageUrl = promoted.coverUrl;
+  }
+
   await prisma.venue.update({
     where: { id: venue.id },
     data: {
       isPublished: published,
       launchedAt: published ? new Date() : null,
+      coverImageUrl,
     },
   });
 
@@ -423,6 +712,8 @@ export async function updateVenueSettingsAction(
   if (contactEmail && !validateEmailFormat(normalizeEmail(contactEmail))) {
     return fail("Enter a valid venue contact email.");
   }
+  const coverImageUrl = readOptionalUrl(formData, "coverImageUrl");
+  if (readFormValue(formData, "coverImageUrl").trim() && !coverImageUrl) return fail("The venue cover must be a valid HTTPS URL.");
 
   const richTextFields = [
     ["aimsAndScope", "Aims and scope"],
@@ -478,6 +769,9 @@ export async function updateVenueSettingsAction(
     return fail(error instanceof Error ? error.message : "Invalid editorial board.");
   }
 
+  const promoted = await promoteContentImages({ coverKind: "venue-cover", imageUrl: coverImageUrl, html: "", userId: user.id });
+  if (!promoted.ok) return fail(promoted.error);
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.venue.update({
@@ -489,6 +783,7 @@ export async function updateVenueSettingsAction(
           frequency,
           contactEmail: contactEmail ? normalizeEmail(contactEmail) : null,
           ...richText,
+          coverImageUrl: promoted.coverUrl,
         },
       });
       await tx.editorialBoardMember.deleteMany({ where: { venueId } });
