@@ -45,6 +45,7 @@ export type AdmissionFormValues = {
   location: string;
   level: string;
   deadline: string;
+  isRolling: boolean;
   description: string;
   notificationLink: string;
   applyLink: string;
@@ -68,6 +69,7 @@ export default function AdmissionForm({
     location: initialValues?.location ?? "",
     level: initialValues?.level ?? "PHD",
     deadline: initialValues?.deadline ?? "",
+    isRolling: initialValues?.isRolling ?? false,
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
     applyLink: initialValues?.applyLink ?? "",
@@ -214,12 +216,29 @@ export default function AdmissionForm({
           type="date"
           name="deadline"
           className="sb-input"
-          required
+          required={!draftFields.isRolling}
           min={today}
           value={draftFields.deadline}
           onChange={(e) => updateDraftField("deadline", e.target.value)}
+          disabled={submitting || draftFields.isRolling}
         />
       </div>
+
+      <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+        <input
+          type="checkbox"
+          name="isRolling"
+          className="h-4 w-4 rounded border-slate-300"
+          checked={draftFields.isRolling}
+          onChange={(e) => {
+            updateDraftField("isRolling", e.target.checked);
+            if (e.target.checked) updateDraftField("deadline", "");
+          }}
+          disabled={submitting}
+        />
+        Rolling applications (no fixed closing date)
+        <InfoTooltip message="Use this when applications are reviewed continuously and the institution has not published a fixed closing date." />
+      </label>
 
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">

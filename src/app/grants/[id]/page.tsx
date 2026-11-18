@@ -26,6 +26,7 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
+import { formatCompensation } from "@/lib/compensation";
 
 export async function generateMetadata({
   params,
@@ -36,8 +37,13 @@ export async function generateMetadata({
   try {
     const grant = await getResearchGrantById(id);
     if (!grant) throw new Error("not found");
-    const description = grant.amount
-      ? `${grant.title} funding opportunity: ${grant.amount}.`
+    const amountLabel = grant.amount ?? formatCompensation(
+      grant.amountValue ?? null,
+      grant.amountCurrency ?? null,
+      grant.amountPeriod ?? null,
+    );
+    const description = amountLabel
+      ? `${grant.title} funding opportunity: ${amountLabel}.`
       : `Research grant opportunity: ${grant.title}.`;
 
     return buildMetadata({
@@ -198,12 +204,16 @@ export default async function ResearchGrantDetailPage({
       <h1 className="mb-2 min-w-0 max-w-full break-words text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl [overflow-wrap:anywhere]">
         {grant.title}
       </h1>
-      {grant.amount && (
+      {(grant.amount || grant.amountValue != null) && (
         <p className="mb-4 min-w-0 max-w-full break-words text-sm text-slate-600 dark:text-slate-300 sm:text-base [overflow-wrap:anywhere]">
           <span className="font-semibold text-slate-800 dark:text-slate-100">
             Amount:
           </span>{" "}
-          {grant.amount}
+          {grant.amount ?? formatCompensation(
+            grant.amountValue ?? null,
+            grant.amountCurrency ?? null,
+            grant.amountPeriod ?? null,
+          )}
         </p>
       )}
       <RichContent content={grant.description} />

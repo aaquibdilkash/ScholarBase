@@ -40,15 +40,18 @@ export function AdmissionCard({
   const shareTitle = `${admission.university} - ${[departmentLabel, `${levelLabel} Admission`]
     .filter(Boolean)
     .join(" ")}`;
+  const deadlineText = admission.isRolling
+    ? "Applications are rolling"
+    : admission.deadline
+      ? `Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}`
+      : "No fixed deadline published";
   const shareText = `Apply for ${levelLabel} admission at ${admission.university}${
     departmentLabel ? ` (${departmentLabel})` : ""
-  }. Deadline: ${new Date(
-    admission.deadline,
-  ).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}.`;
+  }. ${deadlineText}.`;
 
   return (
     <ListPageCardShell
@@ -184,10 +187,11 @@ export function AdmissionCard({
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Clock className="h-4 w-4 shrink-0 text-slate-400" />
                 <span>
-                  Deadline:{" "}
-                  <span className="font-medium">
-                    {formatDate(admission.deadline)}
-                  </span>
+                  {admission.isRolling
+                    ? "Rolling applications"
+                    : admission.deadline
+                      ? <>Deadline: <span className="font-medium">{formatDate(admission.deadline)}</span></>
+                      : "No fixed deadline published"}
                 </span>
               </div>
             </div>

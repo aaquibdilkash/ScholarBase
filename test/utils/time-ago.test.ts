@@ -20,6 +20,16 @@ describe("getTimeLeft", () => {
     expect(getTimeLeft(new Date(Date.now() + 31 * DAY + HOUR))).toBeNull();
   });
 
+  it("keeps a date-only deadline open through the selected calendar day", () => {
+    const todayAtUtcMidnight = new Date();
+    todayAtUtcMidnight.setUTCHours(0, 0, 0, 0);
+
+    expect(getTimeLeft(todayAtUtcMidnight)).not.toEqual({
+      label: "Closed",
+      tone: "danger",
+    });
+  });
+
   it("maps a comfortable deadline to the info tone", () => {
     const result = getTimeLeft(new Date(Date.now() + 15 * DAY + HOUR));
     expect(result).toEqual({ label: "15 days left", tone: "info" });

@@ -15,6 +15,7 @@ import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
+import { formatCompensation } from "@/lib/compensation";
 
 export function ResearchGrantCard({
   grant,
@@ -29,10 +30,15 @@ export function ResearchGrantCard({
   const isFollowing = (grant.author?.followers?.length ?? 0) > 0;
   const userVote =
     (grant.votes || [])[0]?.voteType ?? null;
+  const amountLabel = grant.amount ?? formatCompensation(
+    grant.amountValue ?? null,
+    grant.amountCurrency ?? null,
+    grant.amountPeriod ?? null,
+  );
   // Share payload: mirror grants/[id]/page.tsx generateMetadata().
   const shareTitle = grant.title;
-  const shareText = grant.amount
-    ? `${grant.title} funding opportunity: ${grant.amount}.`
+  const shareText = amountLabel
+    ? `${grant.title} funding opportunity: ${amountLabel}.`
     : `Research grant opportunity: ${grant.title}.`;
 
   return (
@@ -138,12 +144,12 @@ export function ResearchGrantCard({
         <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {grant.title}
         </h2>
-        {grant.amount && (
+        {amountLabel && (
           <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               Amount:
             </span>{" "}
-            {grant.amount}
+            {amountLabel}
           </p>
         )}
         <RichContent

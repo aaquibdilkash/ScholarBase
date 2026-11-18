@@ -23,6 +23,29 @@ import {
   MAX_RESEARCH_GRANT_DESCRIPTION,
 } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import {
+  DEFAULT_COMPENSATION_PERIOD,
+  DEFAULT_COURSE_CURRENCY,
+  formatCompensation,
+  isCompensationPeriod,
+  isCourseCurrency,
+  parseOptionalDecimal,
+} from "@/lib/compensation";
+
+function readGrantAmount(formData: FormData) {
+  const amountValue = parseOptionalDecimal(readFormValue(formData, "amountValue"), "Grant amount");
+  const amountCurrency = amountValue == null ? null : readFormValue(formData, "amountCurrency") || DEFAULT_COURSE_CURRENCY;
+  const amountPeriod = amountValue == null ? null : readFormValue(formData, "amountPeriod") || DEFAULT_COMPENSATION_PERIOD;
+  if (amountCurrency && !isCourseCurrency(amountCurrency)) throw new Error("Invalid grant amount currency.");
+  if (amountPeriod && !isCompensationPeriod(amountPeriod)) throw new Error("Invalid grant amount basis.");
+  return {
+    amountValue,
+    amountCurrency,
+    amountPeriod,
+    amount: (formatCompensation(amountValue, amountCurrency, amountPeriod)
+      ?? readFormValue(formData, "amount")) || null,
+  };
+}
 
 export async function createResearchGrant(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a research grant.");
@@ -32,7 +55,7 @@ export async function createResearchGrant(formData: FormData) {
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
-  const amount = readFormValue(formData, "amount");
+  const amountFields = readGrantAmount(formData);
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
@@ -50,7 +73,7 @@ export async function createResearchGrant(formData: FormData) {
     const newGrant = await tx.researchGrant.create({
       data: {
         title,
-        amount: amount || null,
+        ...amountFields,
         description,
         applyLink: safeApplyLink,
         infoLink: safeInfoLink,
@@ -97,7 +120,7 @@ export async function createResearchGrant(formData: FormData) {
     targetType: "ResearchGrant",
     targetId: grant.id,
     title: `${user.email?.split("@")[0] || "Someone"} shared a research grant`,
-    body: amount ? `${title} - ${amount}` : title,
+    body: amountFields.amount ? `${title} - ${amountFields.amount}` : title,
   });
 
   // Purge the cached research grant pages: publish must be visible at once, not after the TTL.
@@ -113,7 +136,7 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
   const title = readFormValue(formData, "title");
-  const amount = readFormValue(formData, "amount");
+  const amountFields = readGrantAmount(formData);
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
@@ -143,7 +166,7 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
     where: { id: grantId },
     data: {
       title,
-      amount: amount || null,
+      ...amountFields,
       description,
       applyLink: safeApplyLink,
       infoLink: safeInfoLink,
@@ -241,6 +264,9 @@ export const getResearchGrantById = cache(
         id: true,
         title: true,
         amount: true,
+      amountValue: true,
+      amountCurrency: true,
+      amountPeriod: true,
         description: true,
         applyLink: true,
         infoLink: true,

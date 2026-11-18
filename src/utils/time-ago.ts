@@ -54,6 +54,27 @@ export function getTimeLeft(deadline: Date | string | number | null | undefined)
     deadlineDate = deadline;
   }
 
+  // Date inputs represent calendar dates, not instants. Prisma currently
+  // stores those values at UTC midnight; compare them as the end of that
+  // calendar day in the viewer's timezone so a deadline selected for today
+  // does not close at 05:30 local time in India (or the equivalent offset).
+  if (
+    deadlineDate.getUTCHours() === 0 &&
+    deadlineDate.getUTCMinutes() === 0 &&
+    deadlineDate.getUTCSeconds() === 0 &&
+    deadlineDate.getUTCMilliseconds() === 0
+  ) {
+    deadlineDate = new Date(
+      deadlineDate.getUTCFullYear(),
+      deadlineDate.getUTCMonth(),
+      deadlineDate.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+  }
+
   const now = new Date();
   const diff = deadlineDate.getTime() - now.getTime();
 

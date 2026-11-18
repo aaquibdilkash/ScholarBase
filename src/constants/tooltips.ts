@@ -90,7 +90,7 @@ export const EVENT_APPLY_LINK_TIP = "URL to the submission portal / registration
 // -----------------------------------------------------------------------------
 // ACADEMIC POSITIONS MODULE
 // -----------------------------------------------------------------------------
-export const POSITION_TYPE_TIP = "Choose the kind of appointment: postdoctoral, research staff, faculty, PhD researcher, or other.";
+export const POSITION_TYPE_TIP = "Choose the kind of appointment: postdoctoral, research fellow, research staff, faculty, PhD researcher, or other.";
 export const EMPLOYMENT_TYPE_TIP = "The nature of the appointment: permanent, contractual, adhoc, visiting, guest faculty, or other.";
 export const POSITION_TITLE_TIP = "The official position title or designation.";
 export const POSITION_INSTITUTION_TIP = "The name of the institution or organization hiring.";

@@ -295,6 +295,7 @@ enum PositionType {
   POSTDOC
   RESEARCH_ASSISTANT
   RESEARCH_ASSOCIATE
+  RESEARCH_FELLOW
   FACULTY
   PHD_RESEARCHER
   OTHER
@@ -1674,6 +1675,9 @@ model ResearchGrant {
   id              String    @id @default(cuid())
   title           String
   amount          String?
+  amountValue     Float?
+  amountCurrency  String?
+  amountPeriod    String?
   description     String
   applyLink       String?
   infoLink        String?
@@ -2578,7 +2582,9 @@ model Admission {
   /// Prisma cannot model a pg_trgm operator-class index.
   location         String?
   level            AdmissionLevel @default(PHD)
-  deadline         DateTime
+  /// Null for rolling admissions, where the institution does not publish a fixed closing date.
+  deadline         DateTime?
+  isRolling        Boolean  @default(false)
   description      String
   imageUrl         String?
   notificationLink String?
@@ -2681,6 +2687,10 @@ model AcademicPosition {
   employmentType   EmploymentType @default(OTHER)
   salaryOrStipend  String?
   contractDuration String?
+  salaryAmount     Float?
+  salaryCurrency   String?
+  durationValue    Float?
+  durationUnit     String?
   startDate        DateTime?
   location         String?
   isRemote         Boolean        @default(false)

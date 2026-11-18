@@ -45,7 +45,7 @@ export async function generateMetadata({
       .join(" ")}`,
     description: `Apply for ${levelLabel} admission at ${admission.university}${
       departmentLabel ? ` (${departmentLabel})` : ""
-    }. Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    }. ${admission.isRolling ? "Applications are rolling" : admission.deadline ? `Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}` : "No fixed deadline published"}.`,
     path: `/admissions/${admission.id}`,
     type: "article",
     publishedTime: admission.createdAt,
@@ -264,14 +264,14 @@ const AdmissionDetailPage = async ({
 
       <div className="mb-3 sm:mb-4 flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
         <Clock className="h-5 w-5 shrink-0 text-slate-400" />
-        Closing Date:{" "}
         <span className="min-w-0 flex-1 break-words font-medium [overflow-wrap:anywhere]">
-          {new Date(admission.deadline).toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
+          {admission.isRolling
+            ? "Applications accepted on a rolling basis"
+            : admission.deadline
+              ? `Closing Date: ${new Date(admission.deadline).toLocaleDateString("en-US", {
+                  weekday: "long", month: "long", day: "numeric", year: "numeric",
+                })}`
+              : "No fixed closing date published"}
         </span>
       </div>
       {isValidImageUrl(admission.imageUrl) && (

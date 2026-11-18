@@ -19,6 +19,7 @@ import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import type { AcademicPositionWithAuthor } from "@/types/cards";
 import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
+import { formatDuration, formatSalary } from "@/lib/compensation";
 
 export function AcademicPositionCard({ academicPosition,
   currentUserId,
@@ -35,6 +36,14 @@ export function AcademicPositionCard({ academicPosition,
   const urgency = getTimeLeft(academicPosition.deadline);
   const positionTypeLabel = getPositionTypeLabel(academicPosition.positionType);
   const employmentTypeLabel = getEmploymentTypeLabel(academicPosition.employmentType);
+  const salaryLabel = academicPosition.salaryOrStipend ?? formatSalary(
+    academicPosition.salaryAmount ?? null,
+    academicPosition.salaryCurrency ?? null,
+  );
+  const durationLabel = academicPosition.contractDuration ?? formatDuration(
+    academicPosition.durationValue ?? null,
+    academicPosition.durationUnit ?? null,
+  );
   // Compact affiliation line: "Dept. of Physics • Quantum Optics". Renders
   // whichever parts exist; hidden when both are null (pre-migration rows).
   const deptSubject = [academicPosition.department, academicPosition.subject]
@@ -192,21 +201,21 @@ export function AcademicPositionCard({ academicPosition,
               </p>
             )}
 
-            {(academicPosition.salaryOrStipend ||
-              academicPosition.contractDuration ||
+            {(salaryLabel ||
+              durationLabel ||
               academicPosition.location ||
               academicPosition.isRemote) && (
               <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
-                {academicPosition.salaryOrStipend && (
+                {salaryLabel && (
                   <span className="inline-flex items-center gap-1.5">
                     <Banknote className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-                    {academicPosition.salaryOrStipend}
+                    {salaryLabel}
                   </span>
                 )}
-                {academicPosition.contractDuration && (
+                {durationLabel && (
                   <span className="inline-flex items-center gap-1.5">
                     <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
-                    {academicPosition.contractDuration}
+                    {durationLabel}
                   </span>
                 )}
                 {(academicPosition.location || academicPosition.isRemote) && (

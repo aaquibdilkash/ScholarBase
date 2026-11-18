@@ -31,6 +31,37 @@ import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
+import {
+  DEFAULT_COURSE_CURRENCY,
+  formatDuration,
+  isPositionDurationUnit,
+  isCourseCurrency,
+  parseOptionalDecimal,
+} from "@/lib/compensation";
+
+function readCompensationFields(formData: FormData) {
+  const salaryAmount = parseOptionalDecimal(readFormValue(formData, "salaryAmount"), "Salary / stipend");
+  const salaryCurrency = salaryAmount == null ? null : readFormValue(formData, "salaryCurrency") || DEFAULT_COURSE_CURRENCY;
+  if (salaryCurrency && !isCourseCurrency(salaryCurrency)) throw new Error("Invalid salary / stipend currency.");
+
+  const durationValue = parseOptionalDecimal(readFormValue(formData, "durationValue"), "Contract duration");
+  const durationUnit = durationValue == null ? null : readFormValue(formData, "durationUnit");
+  if (durationValue != null && (!durationUnit || !isPositionDurationUnit(durationUnit))) {
+    throw new Error("Choose a valid contract duration unit.");
+  }
+
+  return {
+    salaryAmount,
+    salaryCurrency,
+    durationValue,
+    durationUnit,
+    salaryOrStipend: salaryAmount == null
+      ? readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary")
+      : `${salaryCurrency} ${salaryAmount.toLocaleString("en-US")}`,
+    contractDuration: formatDuration(durationValue, durationUnit)
+      ?? readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration"),
+  };
+}
 
 /**
  * Optional ISO date field: empty/missing maps to `null`, anything unparsable
@@ -80,6 +111,10 @@ export const getAcademicPositionById = cache(async (id: string, userId?: string)
       employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
+      salaryAmount: true,
+      salaryCurrency: true,
+      durationValue: true,
+      durationUnit: true,
       startDate: true,
       location: true,
       isRemote: true,
@@ -160,8 +195,7 @@ export async function createAcademicPosition(formData: FormData) {
   const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
   const positionType = parsePositionType(readFormValue(formData, "positionType"));
   const employmentType = parseEmploymentType(readFormValue(formData, "employmentType"));
-  const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
-  const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
+  const compensation = readCompensationFields(formData);
   const startDate = readOptionalDate(formData, "startDate");
   const location = readOptionalShortText(formData, "location", MAX_POSITION_LOCATION, "Location");
   const isRemote = readFormValue(formData, "isRemote") === "on";
@@ -206,8 +240,7 @@ export async function createAcademicPosition(formData: FormData) {
         subject,
         positionType,
         employmentType,
-        salaryOrStipend,
-        contractDuration,
+        ...compensation,
         startDate,
         location,
         isRemote,
@@ -228,6 +261,10 @@ export async function createAcademicPosition(formData: FormData) {
         employmentType: true,
         salaryOrStipend: true,
         contractDuration: true,
+        salaryAmount: true,
+        salaryCurrency: true,
+        durationValue: true,
+        durationUnit: true,
         startDate: true,
         location: true,
         isRemote: true,
@@ -305,8 +342,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
   const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
   const positionType = parsePositionType(readFormValue(formData, "positionType"));
   const employmentType = parseEmploymentType(readFormValue(formData, "employmentType"));
-  const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
-  const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
+  const compensation = readCompensationFields(formData);
   const startDate = readOptionalDate(formData, "startDate");
   const location = readOptionalShortText(formData, "location", MAX_POSITION_LOCATION, "Location");
   const isRemote = readFormValue(formData, "isRemote") === "on";
@@ -374,8 +410,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       subject,
       positionType,
       employmentType,
-      salaryOrStipend,
-      contractDuration,
+      ...compensation,
       startDate,
       location,
       isRemote,
@@ -396,6 +431,10 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
+      salaryAmount: true,
+      salaryCurrency: true,
+      durationValue: true,
+      durationUnit: true,
       startDate: true,
       location: true,
       isRemote: true,

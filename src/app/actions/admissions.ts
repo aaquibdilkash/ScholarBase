@@ -28,6 +28,19 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 
+function readAdmissionDeadline(formData: FormData, isRolling: boolean): Date | null {
+  if (isRolling) return null;
+  const raw = readFormValue(formData, "deadline");
+  if (!raw) {
+    throw new Error("Last Date to Apply is required unless applications are rolling.");
+  }
+  const deadline = new Date(raw);
+  if (Number.isNaN(deadline.getTime())) {
+    throw new Error("Invalid last date to apply.");
+  }
+  return deadline;
+}
+
 /**
  * Loads one page of admission rows for the
  * *current* viewer.
@@ -59,6 +72,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       location: true,
       level: true,
       deadline: true,
+      isRolling: true,
       description: true,
       imageUrl: true,
       notificationLink: true,
@@ -143,7 +157,8 @@ export async function createAdmission(formData: FormData) {
     "Location",
   );
   const level = parseAdmissionLevel(readFormValue(formData, "level"));
-  const deadline = new Date(readFormValue(formData, "deadline"));
+  const isRolling = formData.get("isRolling") === "on";
+  const deadline = readAdmissionDeadline(formData, isRolling);
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
@@ -183,6 +198,7 @@ export async function createAdmission(formData: FormData) {
         location,
         level,
         deadline,
+        isRolling,
         description: publishedHtml,
         imageUrl: coverUrl,
         notificationLink: safeNotificationLink,
@@ -218,7 +234,7 @@ export async function createAdmission(formData: FormData) {
     targetType: "Admission",
     targetId: admission.id,
     title: `${user.email?.split("@")[0] || "Someone"} posted a new ${getAdmissionLevelLabel(level)} admission`,
-    body: `${department ? `${department} at ` : ""}${university} - Deadline: ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+    body: `${department ? `${department} at ` : ""}${university} - ${isRolling ? "Rolling applications" : `Deadline: ${deadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}`,
   });
 
   // Purge the cached admission pages: publish must be visible at once, not after the TTL.
@@ -250,7 +266,8 @@ export async function updateAdmission(
     "Location",
   );
   const level = parseAdmissionLevel(readFormValue(formData, "level"));
-  const deadline = new Date(readFormValue(formData, "deadline"));
+  const isRolling = formData.get("isRolling") === "on";
+  const deadline = readAdmissionDeadline(formData, isRolling);
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
@@ -312,6 +329,7 @@ export async function updateAdmission(
       location,
       level,
       deadline,
+      isRolling,
       description: publishedHtml,
       imageUrl: coverUrl,
       notificationLink: safeNotificationLink,

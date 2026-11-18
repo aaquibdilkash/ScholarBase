@@ -92,7 +92,7 @@ export type AcademicPositionWithAuthor = Partial<AcademicPosition> & {
 export type AdmissionWithAuthor = Partial<Admission> & {
     id: string;
     createdAt: Date;
-    deadline: Date;
+    deadline: Date | null;
     university: string;
     department: string | null;
     location?: string | null;

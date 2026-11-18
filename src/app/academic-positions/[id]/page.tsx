@@ -27,6 +27,7 @@ import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
+import { formatDuration, formatSalary } from "@/lib/compensation";
 
 export async function generateMetadata({
   params,
@@ -82,6 +83,9 @@ const AcademicPositionDetailPage = async ({
       />
     );
   }
+
+  const salaryLabel = academicPosition.salaryOrStipend ?? formatSalary(academicPosition.salaryAmount ?? null, academicPosition.salaryCurrency ?? null);
+  const durationLabel = academicPosition.contractDuration ?? formatDuration(academicPosition.durationValue ?? null, academicPosition.durationUnit ?? null);
 
   const userVote =
     (academicPosition.votes?.[0]?.voteType as
@@ -296,18 +300,18 @@ const AcademicPositionDetailPage = async ({
         </div>
       )}
 
-      {(academicPosition.salaryOrStipend || academicPosition.contractDuration || academicPosition.startDate) && (
+      {(salaryLabel || durationLabel || academicPosition.startDate) && (
         <div className="mb-3 sm:mb-4 flex flex-wrap gap-x-5 gap-y-1 text-xs sm:text-sm text-slate-600">
-          {academicPosition.salaryOrStipend && (
+          {salaryLabel && (
             <span className="inline-flex items-center gap-1.5">
               <Banknote className="h-4 w-4 shrink-0 text-slate-400" />
-              {academicPosition.salaryOrStipend}
+              {salaryLabel}
             </span>
           )}
-          {academicPosition.contractDuration && (
+          {durationLabel && (
             <span className="inline-flex items-center gap-1.5">
               <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" />
-              {academicPosition.contractDuration}
+              {durationLabel}
             </span>
           )}
           {academicPosition.startDate && (

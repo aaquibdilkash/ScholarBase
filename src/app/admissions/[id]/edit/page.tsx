@@ -31,6 +31,7 @@ export default async function EditAdmissionPage({
       location: true,
       level: true,
       deadline: true,
+      isRolling: true,
       description: true,
       imageUrl: true,
       notificationLink: true,
@@ -63,7 +64,10 @@ export default async function EditAdmissionPage({
           department: admission.department ?? "",
           location: admission.location ?? "",
           level: admission.level,
-          deadline: new Date(admission.deadline).toISOString().slice(0, 10),
+          deadline: admission.deadline
+            ? new Date(admission.deadline).toISOString().slice(0, 10)
+            : "",
+          isRolling: admission.isRolling,
           description: admission.description,
           notificationLink: admission.notificationLink ?? "",
           imageUrl: admission.imageUrl ?? "",

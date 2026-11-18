@@ -117,6 +117,40 @@ describe("admission optional fields", () => {
     expect(row.location).toBeNull();
   });
 
+  it("accepts university and department names up to 128 characters", async () => {
+    const result = await createAdmission(
+      formOf(
+        baseFields({
+          university: "U".repeat(128),
+          department: "D".repeat(128),
+        }),
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    const [row] = fakeDb.rows("admission");
+    expect(row.university).toHaveLength(128);
+    expect(row.department).toHaveLength(128);
+  });
+
+  it("allows rolling admissions without a fixed deadline", async () => {
+    const result = await createAdmission(
+      formOf(baseFields({ deadline: "", isRolling: "on" })),
+    );
+
+    expect(result.success).toBe(true);
+    const [row] = fakeDb.rows("admission");
+    expect(row.deadline).toBeNull();
+    expect(row.isRolling).toBe(true);
+  });
+
+  it("still requires a deadline for non-rolling admissions", async () => {
+    await expect(
+      createAdmission(formOf(baseFields({ deadline: "" }))),
+    ).rejects.toThrow(/required unless applications are rolling/);
+    expect(fakeDb.rows("admission")).toHaveLength(0);
+  });
+
   it("trims the optional values that were supplied", async () => {
     await createAdmission(
       formOf(
