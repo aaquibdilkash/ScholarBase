@@ -34,8 +34,6 @@ export default async function EditAcademicPositionPage({
       employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
-      salaryAmount: true,
-      salaryCurrency: true,
       durationValue: true,
       durationUnit: true,
       startDate: true,
@@ -78,8 +76,6 @@ export default async function EditAcademicPositionPage({
           employmentType: academicPosition.employmentType,
           salaryOrStipend: academicPosition.salaryOrStipend ?? "",
           contractDuration: academicPosition.contractDuration ?? "",
-          salaryAmount: academicPosition.salaryAmount?.toString() ?? "",
-          salaryCurrency: academicPosition.salaryCurrency ?? "INR",
           durationValue: academicPosition.durationValue?.toString() ?? "",
           durationUnit: academicPosition.durationUnit ?? "",
           startDate: academicPosition.startDate

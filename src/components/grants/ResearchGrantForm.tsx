@@ -1,7 +1,5 @@
 "use client";
 
-import { Select } from "@/components/ui/Select";
-
 import { useRouter } from "next/navigation";
 import { createResearchGrant, updateResearchGrant } from "@/app/actions/grants";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,25 +22,16 @@ import {
 
 import {
   MAX_RESEARCH_GRANT_TITLE,
+  MAX_RESEARCH_GRANT_AMOUNT,
   MAX_RESEARCH_GRANT_DESCRIPTION,
   MAX_RESEARCH_GRANT_APPLY_LINK,
   MAX_RESEARCH_GRANT_INFO_LINK,
-  MAX_COMPENSATION_VALUE_LENGTH,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
-import {
-  COMPENSATION_PERIODS,
-  COURSE_CURRENCIES,
-  DEFAULT_COMPENSATION_PERIOD,
-  DEFAULT_COURSE_CURRENCY,
-} from "@/lib/compensation";
 
 export type ResearchGrantFormValues = {
   title: string;
   amount: string;
-  amountValue: string;
-  amountCurrency: string;
-  amountPeriod: string;
   description: string;
   applyLink: string;
   infoLink: string;
@@ -61,9 +50,6 @@ export default function ResearchGrantForm({
   const initial = {
     title: initialValues?.title ?? "",
     amount: initialValues?.amount ?? "",
-    amountValue: initialValues?.amountValue ?? "",
-    amountCurrency: initialValues?.amountCurrency ?? DEFAULT_COURSE_CURRENCY,
-    amountPeriod: initialValues?.amountPeriod ?? DEFAULT_COMPENSATION_PERIOD,
     description: initialValues?.description ?? "",
     applyLink: initialValues?.applyLink ?? "",
     infoLink: initialValues?.infoLink ?? "",
@@ -151,41 +137,17 @@ export default function ResearchGrantForm({
             Amount
             <InfoTooltip message={GRANT_AMOUNT_TIP} />
           </label>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <input
-              name="amountValue"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              placeholder="e.g., 25000"
-              className="sb-input min-w-0"
-              value={draftFields.amountValue}
-              onChange={(e) => updateDraftField("amountValue", e.target.value.slice(0, MAX_COMPENSATION_VALUE_LENGTH))}
-            />
-            <Select
-              name="amountCurrency"
-              value={draftFields.amountCurrency}
-              containerClassName="w-full"
-              aria-label="Grant amount currency"
-              onChange={(e) => updateDraftField("amountCurrency", e.target.value)}
-            >
-              {COURSE_CURRENCIES.map(({ code }) => <option key={code} value={code}>{code}</option>)}
-            </Select>
-            <Select
-              name="amountPeriod"
-              value={draftFields.amountPeriod}
-              containerClassName="w-full"
-              aria-label="Grant amount basis"
-              onChange={(e) => updateDraftField("amountPeriod", e.target.value)}
-            >
-              {COMPENSATION_PERIODS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-            </Select>
-          </div>
+          <input
+            name="amount"
+            placeholder="e.g., ₹362,000/month + airfare + ₹200,000 settling-in allowance"
+            className="sb-input"
+            maxLength={MAX_RESEARCH_GRANT_AMOUNT}
+            value={draftFields.amount}
+            onChange={(e) => updateDraftField("amount", e.target.value)}
+          />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.amountValue.length}/{MAX_COMPENSATION_VALUE_LENGTH} characters
+            {draftFields.amount.length}/{MAX_RESEARCH_GRANT_AMOUNT} characters
           </div>
-          <input type="hidden" name="amount" value={draftFields.amount} />
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">

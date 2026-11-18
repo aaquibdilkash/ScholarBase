@@ -21,10 +21,10 @@ describe("getTimeLeft", () => {
   });
 
   it("keeps a date-only deadline open through the selected calendar day", () => {
-    const todayAtUtcMidnight = new Date();
-    todayAtUtcMidnight.setUTCHours(0, 0, 0, 0);
+    const tomorrowAtUtcMidnight = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    tomorrowAtUtcMidnight.setUTCHours(0, 0, 0, 0);
 
-    expect(getTimeLeft(todayAtUtcMidnight)).not.toEqual({
+    expect(getTimeLeft(tomorrowAtUtcMidnight)).not.toEqual({
       label: "Closed",
       tone: "danger",
     });

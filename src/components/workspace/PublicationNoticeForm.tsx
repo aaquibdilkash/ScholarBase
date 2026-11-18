@@ -7,6 +7,7 @@ import { Editor } from "@/components/ui/Editor";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ActionResultMessage } from "@/components/workspace/ActionResultMessage";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { TextField } from "@/components/ui/TextField";
 import { PUBLICATION_NOTICE_TYPES } from "@/lib/publishing/integrity";
 
 const EMPTY: PublicationIntegrityResult = { success: false, message: "" };
@@ -30,10 +31,7 @@ export function PublicationNoticeForm({ manuscriptId }: { manuscriptId: string }
           {PUBLICATION_NOTICE_TYPES.map((value) => <option key={value} value={value}>{TYPE_LABELS[value]}</option>)}
         </select>
       </label>
-      <label className="block">
-        <span className="sb-label">Notice title</span>
-        <input name="title" required maxLength={160} className="sb-input" placeholder="Correction to the published record" />
-      </label>
+      <TextField id="publication-notice-title" name="title" label="Notice title" tip="A concise public title describing the correction, retraction, or expression of concern." maxLength={160} className="sb-input" placeholder="Correction to the published record" required />
       <div>
         <label className="sb-label">Reason and editorial explanation <InfoTooltip message="Explain what changed, why the notice is necessary, and what readers should rely on. Do not include confidential reviewer information." /></label>
         <Editor value={body} onChange={setBody} maxLength={12000} />

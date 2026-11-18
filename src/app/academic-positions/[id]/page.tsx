@@ -27,7 +27,7 @@ import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
-import { formatDuration, formatSalary } from "@/lib/compensation";
+import { formatDuration } from "@/lib/compensation";
 
 export async function generateMetadata({
   params,
@@ -84,7 +84,7 @@ const AcademicPositionDetailPage = async ({
     );
   }
 
-  const salaryLabel = academicPosition.salaryOrStipend ?? formatSalary(academicPosition.salaryAmount ?? null, academicPosition.salaryCurrency ?? null);
+  const salaryLabel = academicPosition.salaryOrStipend;
   const durationLabel = academicPosition.contractDuration ?? formatDuration(academicPosition.durationValue ?? null, academicPosition.durationUnit ?? null);
 
   const userVote =

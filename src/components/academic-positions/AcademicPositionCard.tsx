@@ -19,7 +19,6 @@ import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import type { AcademicPositionWithAuthor } from "@/types/cards";
 import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
-import { formatDuration, formatSalary } from "@/lib/compensation";
 
 export function AcademicPositionCard({ academicPosition,
   currentUserId,
@@ -36,14 +35,8 @@ export function AcademicPositionCard({ academicPosition,
   const urgency = getTimeLeft(academicPosition.deadline);
   const positionTypeLabel = getPositionTypeLabel(academicPosition.positionType);
   const employmentTypeLabel = getEmploymentTypeLabel(academicPosition.employmentType);
-  const salaryLabel = academicPosition.salaryOrStipend ?? formatSalary(
-    academicPosition.salaryAmount ?? null,
-    academicPosition.salaryCurrency ?? null,
-  );
-  const durationLabel = academicPosition.contractDuration ?? formatDuration(
-    academicPosition.durationValue ?? null,
-    academicPosition.durationUnit ?? null,
-  );
+  const salaryLabel = academicPosition.salaryOrStipend;
+  const durationLabel = academicPosition.contractDuration;
   // Compact affiliation line: "Dept. of Physics • Quantum Optics". Renders
   // whichever parts exist; hidden when both are null (pre-migration rows).
   const deptSubject = [academicPosition.department, academicPosition.subject]

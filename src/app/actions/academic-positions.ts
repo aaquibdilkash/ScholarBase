@@ -32,18 +32,12 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
 import {
-  DEFAULT_COURSE_CURRENCY,
   formatDuration,
   isPositionDurationUnit,
-  isCourseCurrency,
   parseOptionalDecimal,
 } from "@/lib/compensation";
 
 function readCompensationFields(formData: FormData) {
-  const salaryAmount = parseOptionalDecimal(readFormValue(formData, "salaryAmount"), "Salary / stipend");
-  const salaryCurrency = salaryAmount == null ? null : readFormValue(formData, "salaryCurrency") || DEFAULT_COURSE_CURRENCY;
-  if (salaryCurrency && !isCourseCurrency(salaryCurrency)) throw new Error("Invalid salary / stipend currency.");
-
   const durationValue = parseOptionalDecimal(readFormValue(formData, "durationValue"), "Contract duration");
   const durationUnit = durationValue == null ? null : readFormValue(formData, "durationUnit");
   if (durationValue != null && (!durationUnit || !isPositionDurationUnit(durationUnit))) {
@@ -51,13 +45,9 @@ function readCompensationFields(formData: FormData) {
   }
 
   return {
-    salaryAmount,
-    salaryCurrency,
     durationValue,
     durationUnit,
-    salaryOrStipend: salaryAmount == null
-      ? readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary")
-      : `${salaryCurrency} ${salaryAmount.toLocaleString("en-US")}`,
+    salaryOrStipend: readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary"),
     contractDuration: formatDuration(durationValue, durationUnit)
       ?? readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration"),
   };
@@ -111,8 +101,6 @@ export const getAcademicPositionById = cache(async (id: string, userId?: string)
       employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
-      salaryAmount: true,
-      salaryCurrency: true,
       durationValue: true,
       durationUnit: true,
       startDate: true,
@@ -261,8 +249,6 @@ export async function createAcademicPosition(formData: FormData) {
         employmentType: true,
         salaryOrStipend: true,
         contractDuration: true,
-        salaryAmount: true,
-        salaryCurrency: true,
         durationValue: true,
         durationUnit: true,
         startDate: true,
@@ -431,8 +417,6 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
-      salaryAmount: true,
-      salaryCurrency: true,
       durationValue: true,
       durationUnit: true,
       startDate: true,

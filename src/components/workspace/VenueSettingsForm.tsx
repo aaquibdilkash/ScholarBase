@@ -9,6 +9,7 @@ import {
   type VenueActionResult,
 } from "@/app/actions/publishing";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { TextField } from "@/components/ui/TextField";
 import { Select } from "@/components/ui/Select";
 import { Editor } from "@/components/ui/Editor";
 import { useToast } from "@/components/ui/Toast";
@@ -108,25 +109,6 @@ function SubmitButton({ label = "Save venue settings" }: { label?: string }) {
   );
 }
 
-function Counter({ value, max }: { value: number; max: number }) {
-  return <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{value}/{max} characters</p>;
-}
-
-function TextField({
-  id, name, label, value, onChange, maxLength, type = "text", tip, required = false,
-}: {
-  id: string; name: string; label: string; value: string; onChange: (value: string) => void;
-  maxLength: number; type?: string; tip: string; required?: boolean;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="sb-label inline-flex items-center gap-1.5">{label}<InfoTooltip message={tip} /></label>
-      <input id={id} name={name} type={type} value={value} required={required} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} className="sb-input" />
-      <Counter value={value.length} max={maxLength} />
-    </div>
-  );
-}
-
 function FieldHeader({
   label,
   tip,
@@ -211,11 +193,11 @@ export function VenueSettingsForm({ venue, section = "general" }: { venue: Venue
       {section === "general" && <section className="sb-card space-y-4">
         <div><h2 className="sb-heading text-lg">{venue.name}</h2><p className="mt-1 text-base text-slate-600 dark:text-slate-300">{venue.type === "JOURNAL" ? "Journal" : "Conference"} profile and publishing metadata.</p></div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <TextField id={`${venue.id}-name`} name="name" label="Venue name" value={draft.name} onChange={(value) => updateDraftField("name", value)} maxLength={MAX_VENUE_NAME} required tip="The public name of the journal or conference. Changing it does not change the permanent URL." />
-          <TextField id={`${venue.id}-editor`} name="editorName" label="Editor-in-chief" value={draft.editorName} onChange={(value) => updateDraftField("editorName", value)} maxLength={MAX_VENUE_EDITOR_NAME} required tip="The named editor shown in public metadata and required before publishing." />
-          <TextField id={`${venue.id}-affiliation`} name="editorAffiliation" label="Editor affiliation" value={draft.editorAffiliation} onChange={(value) => updateDraftField("editorAffiliation", value)} maxLength={MAX_VENUE_EDITOR_AFFILIATION} tip="The editor's institution or department." />
-          <TextField id={`${venue.id}-frequency`} name="frequency" label="Publication frequency" value={draft.frequency} onChange={(value) => updateDraftField("frequency", value)} maxLength={MAX_VENUE_FREQUENCY} tip="For example, quarterly, biannual, or annual." />
-          <TextField id={`${venue.id}-contact`} name="contactEmail" label="Contact email" value={draft.contactEmail} onChange={(value) => updateDraftField("contactEmail", value)} maxLength={MAX_VENUE_CONTACT_EMAIL} type="email" tip="Public editorial contact address." />
+          <TextField id={`${venue.id}-name`} name="name" label="Venue name" value={draft.name} onValueChange={(value) => updateDraftField("name", value)} maxLength={MAX_VENUE_NAME} required tip="The public name of the journal or conference. Changing it does not change the permanent URL." />
+          <TextField id={`${venue.id}-editor`} name="editorName" label="Editor-in-chief" value={draft.editorName} onValueChange={(value) => updateDraftField("editorName", value)} maxLength={MAX_VENUE_EDITOR_NAME} required tip="The named editor shown in public metadata and required before publishing." />
+          <TextField id={`${venue.id}-affiliation`} name="editorAffiliation" label="Editor affiliation" value={draft.editorAffiliation} onValueChange={(value) => updateDraftField("editorAffiliation", value)} maxLength={MAX_VENUE_EDITOR_AFFILIATION} tip="The editor's institution or department." />
+          <TextField id={`${venue.id}-frequency`} name="frequency" label="Publication frequency" value={draft.frequency} onValueChange={(value) => updateDraftField("frequency", value)} maxLength={MAX_VENUE_FREQUENCY} tip="For example, quarterly, biannual, or annual." />
+          <TextField id={`${venue.id}-contact`} name="contactEmail" label="Contact email" value={draft.contactEmail} onValueChange={(value) => updateDraftField("contactEmail", value)} maxLength={MAX_VENUE_CONTACT_EMAIL} type="email" tip="Public editorial contact address." />
         </div>
         <div><label className="sb-label inline-flex items-center gap-1.5">Venue cover image <InfoTooltip message="Optional cover image used on the public journal or conference landing page." /></label><ContentImageUploadField kind="venue-cover" value={draft.coverImageUrl} onChange={(value) => updateDraftField("coverImageUrl", value)} buttonLabel="Upload venue cover" /><input type="hidden" name="coverImageUrl" value={draft.coverImageUrl} /></div>
       </section>}
@@ -251,10 +233,10 @@ export function VenueSettingsForm({ venue, section = "general" }: { venue: Venue
           {board.map((row, index) => (
             <div key={index} className="rounded-lg border border-[var(--card-border)] p-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <TextField id={`${venue.id}-board-name-${index}`} name="boardName" label="Name" value={row.name} onChange={(value) => updateBoard(index, "name", value)} maxLength={MAX_VENUE_BOARD_NAME} required tip="The board member's public name." />
-                <TextField id={`${venue.id}-board-role-${index}`} name="boardRoleTitle" label="Role" value={row.roleTitle} onChange={(value) => updateBoard(index, "roleTitle", value)} maxLength={MAX_VENUE_BOARD_ROLE} required tip="For example, Associate Editor or Advisory Board Member." />
-                <TextField id={`${venue.id}-board-affiliation-${index}`} name="boardAffiliation" label="Affiliation" value={row.affiliation} onChange={(value) => updateBoard(index, "affiliation", value)} maxLength={MAX_VENUE_BOARD_AFFILIATION} tip="Institution or department, if available." />
-                <TextField id={`${venue.id}-board-orcid-${index}`} name="boardOrcid" label="ORCID" value={row.orcid} onChange={(value) => updateBoard(index, "orcid", value)} maxLength={MAX_VENUE_BOARD_ORCID} tip="Optional ORCID identifier." />
+                <TextField id={`${venue.id}-board-name-${index}`} name="boardName" label="Name" value={row.name} onValueChange={(value) => updateBoard(index, "name", value)} maxLength={MAX_VENUE_BOARD_NAME} required tip="The board member's public name." />
+                <TextField id={`${venue.id}-board-role-${index}`} name="boardRoleTitle" label="Role" value={row.roleTitle} onValueChange={(value) => updateBoard(index, "roleTitle", value)} maxLength={MAX_VENUE_BOARD_ROLE} required tip="For example, Associate Editor or Advisory Board Member." />
+                <TextField id={`${venue.id}-board-affiliation-${index}`} name="boardAffiliation" label="Affiliation" value={row.affiliation} onValueChange={(value) => updateBoard(index, "affiliation", value)} maxLength={MAX_VENUE_BOARD_AFFILIATION} tip="Institution or department, if available." />
+                <TextField id={`${venue.id}-board-orcid-${index}`} name="boardOrcid" label="ORCID" value={row.orcid} onValueChange={(value) => updateBoard(index, "orcid", value)} maxLength={MAX_VENUE_BOARD_ORCID} tip="Optional ORCID identifier." />
               </div>
               <button type="button" className="mt-3 inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-300" onClick={() => { updateDraftField("board", board.filter((_, rowIndex) => rowIndex !== index)); toast({ title: "Board member removed from draft", description: "Save venue settings to apply this change." }); }}><Trash2 className="h-3.5 w-3.5" />Remove member</button>
             </div>

@@ -17,13 +17,14 @@ import {
   MAX_POSITION_INSTITUTION,
   MAX_POSITION_DEPARTMENT,
   MAX_POSITION_SUBJECT,
+  MAX_POSITION_SALARY,
   MAX_POSITION_LOCATION,
   MAX_POSITION_NOTIFICATION_LINK,
   MAX_POSITION_APPLY_LINK,
   MAX_POSITION_DESCRIPTION,
   MAX_COMPENSATION_VALUE_LENGTH,
 } from "@/lib/constants";
-import { COURSE_CURRENCIES, DEFAULT_COURSE_CURRENCY, POSITION_DURATION_UNITS } from "@/lib/compensation";
+import { POSITION_DURATION_UNITS } from "@/lib/compensation";
 import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/academic-positions";
 import { getRichTextLength } from "@/lib/html";
 import { actionErrorMessage } from "@/lib/utils";
@@ -57,8 +58,6 @@ export type AcademicPositionFormValues = {
   employmentType: string;
   salaryOrStipend: string;
   contractDuration: string;
-  salaryAmount: string;
-  salaryCurrency: string;
   durationValue: string;
   durationUnit: string;
   startDate: string;
@@ -89,8 +88,6 @@ export default function AcademicPositionForm({
     employmentType: initialValues?.employmentType ?? "OTHER",
     salaryOrStipend: initialValues?.salaryOrStipend ?? "",
     contractDuration: initialValues?.contractDuration ?? "",
-    salaryAmount: initialValues?.salaryAmount ?? "",
-    salaryCurrency: initialValues?.salaryCurrency ?? DEFAULT_COURSE_CURRENCY,
     durationValue: initialValues?.durationValue ?? "",
     durationUnit: initialValues?.durationUnit ?? "",
     startDate: initialValues?.startDate ?? "",
@@ -317,34 +314,18 @@ return (
             Salary / Stipend (Optional)
             <InfoTooltip message={POSITION_SALARY_TIP} />
           </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              name="salaryAmount"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              placeholder="e.g., 45000"
-              className="sb-input min-w-0"
-              value={draftFields.salaryAmount}
-              onChange={(e) => updateDraftField("salaryAmount", e.target.value.slice(0, MAX_COMPENSATION_VALUE_LENGTH))}
-              disabled={isPending}
-            />
-            <Select
-              name="salaryCurrency"
-              value={draftFields.salaryCurrency}
-              containerClassName="w-full"
-              aria-label="Salary or stipend currency"
-              onChange={(e) => updateDraftField("salaryCurrency", e.target.value)}
-              disabled={isPending}
-            >
-              {COURSE_CURRENCIES.map(({ code }) => <option key={code} value={code}>{code}</option>)}
-            </Select>
-          </div>
+          <input
+            name="salaryOrStipend"
+            placeholder="e.g., ₹362,000/month + airfare + settling-in allowance"
+            className="sb-input"
+            maxLength={MAX_POSITION_SALARY}
+            value={draftFields.salaryOrStipend}
+            onChange={(e) => updateDraftField("salaryOrStipend", e.target.value)}
+            disabled={isPending}
+          />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.salaryAmount.length}/{MAX_COMPENSATION_VALUE_LENGTH} characters
+            {draftFields.salaryOrStipend.length}/{MAX_POSITION_SALARY} characters
           </div>
-          <input type="hidden" name="salaryOrStipend" value={draftFields.salaryOrStipend} />
         </div>
 
         <div>

@@ -15,7 +15,6 @@ import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
-import { formatCompensation } from "@/lib/compensation";
 
 export function ResearchGrantCard({
   grant,
@@ -30,11 +29,7 @@ export function ResearchGrantCard({
   const isFollowing = (grant.author?.followers?.length ?? 0) > 0;
   const userVote =
     (grant.votes || [])[0]?.voteType ?? null;
-  const amountLabel = grant.amount ?? formatCompensation(
-    grant.amountValue ?? null,
-    grant.amountCurrency ?? null,
-    grant.amountPeriod ?? null,
-  );
+  const amountLabel = grant.amount;
   // Share payload: mirror grants/[id]/page.tsx generateMetadata().
   const shareTitle = grant.title;
   const shareText = amountLabel
