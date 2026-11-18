@@ -15,6 +15,7 @@ export type CitationAuthor = {
   affiliation?: string | null;
   orcid?: string | null;
   creditRoles?: readonly string[];
+  rorId?: string | null;
 };
 
 export type CitationArticle = {
@@ -73,9 +74,10 @@ export function parseCoAuthors(value: unknown): CitationAuthor[] {
       name,
       affiliation: cleanString(entry.affiliation),
       orcid: cleanString(entry.orcid),
-      creditRoles: Array.isArray(entry.creditRoles)
-        ? entry.creditRoles.filter((role): role is string => typeof role === "string")
-        : undefined,
+      ...(Array.isArray(entry.creditRoles)
+        ? { creditRoles: entry.creditRoles.filter((role): role is string => typeof role === "string") }
+        : {}),
+      ...(cleanString(entry.rorId) ? { rorId: cleanString(entry.rorId) } : {}),
     });
   }
   return authors;
@@ -145,6 +147,7 @@ export function buildAuthorList(
       ...(stored.affiliation ? { affiliation: stored.affiliation } : {}),
       ...(stored.orcid ? { orcid: stored.orcid } : {}),
       ...(stored.creditRoles ? { creditRoles: stored.creditRoles } : {}),
+      ...(stored.rorId ? { rorId: stored.rorId } : {}),
     });
   } else if (primary.name?.trim()) {
     add({ name: primary.name.trim(), orcid: primary.orcidUrl ?? null });

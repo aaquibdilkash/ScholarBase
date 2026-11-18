@@ -12,6 +12,7 @@ import {
   type ManuscriptSubmitResult,
 } from "@/app/actions/manuscripts";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { RorOrganizationPicker } from "@/components/workspace/RorOrganizationPicker";
 import {
   MAX_CO_AUTHORS,
   MAX_CO_AUTHOR_AFFILIATION,
@@ -61,6 +62,7 @@ export type ManuscriptSubmissionProps =
         orcid?: string | null;
         email?: string | null;
         creditRoles?: readonly string[];
+        rorId?: string | null;
       }[];
       defaultAuthor: {
         name: string;
@@ -100,6 +102,7 @@ type CoAuthorRow = {
   affiliation: string;
   orcid: string;
   email: string;
+  rorId: string;
   creditRoles: string[];
 };
 
@@ -112,7 +115,7 @@ type SubmissionDeclarations = {
 };
 
 function emptyCoAuthor(): CoAuthorRow {
-  return { key: crypto.randomUUID(), name: "", affiliation: "", orcid: "", email: "", creditRoles: [] };
+  return { key: crypto.randomUUID(), name: "", affiliation: "", orcid: "", email: "", rorId: "", creditRoles: [] };
 }
 
 /**
@@ -129,6 +132,7 @@ function initialCoAuthorRows(props: ManuscriptSubmissionProps): CoAuthorRow[] {
     affiliation: author.affiliation ?? "",
     orcid: author.orcid ?? "",
     email: author.email ?? "",
+    rorId: author.rorId ?? "",
     creditRoles: [...(author.creditRoles ?? [])],
   }));
 }
@@ -158,6 +162,7 @@ function serializeCoAuthors(rows: readonly CoAuthorRow[]): string {
       ...(row.affiliation.trim() ? { affiliation: row.affiliation.trim() } : {}),
       ...(row.orcid.trim() ? { orcid: row.orcid.trim() } : {}),
       ...(row.email.trim() ? { email: row.email.trim() } : {}),
+      ...(row.rorId ? { rorId: row.rorId } : {}),
       ...(row.creditRoles.length ? { creditRoles: row.creditRoles } : {}),
     })),
   );
@@ -266,6 +271,10 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
   );
   const [jelCodes, setJelCodes] = useState("");
   const [correspondingRoles, setCorrespondingRoles] = useState<string[]>([]);
+  const [correspondingAffiliation, setCorrespondingAffiliation] = useState(
+    props.initialCorrespondingAuthor?.affiliation ?? "",
+  );
+  const [correspondingRorId, setCorrespondingRorId] = useState("");
   const [coAuthors, setCoAuthors] = useState<CoAuthorRow[]>(() =>
     initialCoAuthorRows(props),
   );
@@ -395,6 +404,8 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
         JSON.stringify({
           name: props.defaultAuthor.name,
           email: props.defaultAuthor.email,
+          ...(correspondingAffiliation ? { affiliation: correspondingAffiliation } : {}),
+          ...(correspondingRorId ? { rorId: correspondingRorId } : {}),
           ...(props.defaultAuthor.orcid ? { orcid: props.defaultAuthor.orcid } : {}),
           ...(correspondingRoles.length ? { creditRoles: correspondingRoles } : {}),
         }),
@@ -590,6 +601,19 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Corresponding author · {props.defaultAuthor.name}
           </p>
+          <div className="mt-3">
+            <RorOrganizationPicker
+              idPrefix="corresponding-author-affiliation"
+              value={correspondingAffiliation}
+              rorId={correspondingRorId}
+              onChange={({ name, rorId }) => {
+                setCorrespondingAffiliation(name);
+                setCorrespondingRorId(rorId);
+              }}
+              disabled={busy}
+            />
+            <Counter value={correspondingAffiliation.length} max={MAX_CO_AUTHOR_AFFILIATION} />
+          </div>
           <CreditRolePicker
             idPrefix="corresponding-author-role"
             roles={correspondingRoles}
@@ -652,27 +676,14 @@ export function ManuscriptSubmissionForm(props: ManuscriptSubmissionProps) {
                   </div>
 
                   <div>
-                    <label
-                      htmlFor={`coauthor-affiliation-${row.key}`}
-                      className="sb-label inline-flex items-center gap-1.5"
-                    >
-                      Affiliation
-                      <InfoTooltip message="Institution, department, or city shown under the author's name. Leave blank when there is no institutional affiliation." />
-                    </label>
-                    <input
-                      id={`coauthor-affiliation-${row.key}`}
-                      className="sb-input"
+                    <RorOrganizationPicker
+                      idPrefix={`coauthor-affiliation-${row.key}`}
                       value={row.affiliation}
-                      maxLength={MAX_CO_AUTHOR_AFFILIATION}
-                      onChange={(event) =>
-                        updateCoAuthor(row.key, { affiliation: event.target.value })
-                      }
-                      placeholder="IISc Bengaluru"
+                      rorId={row.rorId}
+                      onChange={({ name, rorId }) => updateCoAuthor(row.key, { affiliation: name, rorId })}
+                      disabled={busy}
                     />
-                    <Counter
-                      value={row.affiliation.length}
-                      max={MAX_CO_AUTHOR_AFFILIATION}
-                    />
+                    <Counter value={row.affiliation.length} max={MAX_CO_AUTHOR_AFFILIATION} />
                   </div>
 
                   <div>

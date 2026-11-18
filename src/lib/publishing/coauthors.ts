@@ -18,6 +18,7 @@ export type CoAuthorDraft = {
   orcid?: string;
   email?: string;
   creditRoles?: string[];
+  rorId?: string;
 };
 
 /** The 14 CRediT taxonomy roles (https://credit.niso.org/). */
@@ -124,6 +125,16 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function parseRorId(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const rorId = value.trim().toLowerCase();
+  return /^https:\/\/ror\.org\/[0-9a-z]{9}$/.test(rorId) ? rorId : undefined;
+}
+
+function hasInvalidRorId(value: unknown): boolean {
+  return typeof value === "string" && Boolean(value.trim()) && !parseRorId(value);
+}
+
 /**
  * Parses the hidden `coAuthors` field.
  *
@@ -163,8 +174,12 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
       return { ok: false, message: "Choose contributor roles from the CRediT taxonomy." };
     }
     const creditRoles = parseCreditRoles(record.creditRoles);
+    if (hasInvalidRorId(record.rorId)) {
+      return { ok: false, message: "Choose a valid ROR institution identifier." };
+    }
+    const rorId = parseRorId(record.rorId);
 
-    if (!name && !affiliation && !orcid && !email) continue;
+    if (!name && !affiliation && !orcid && !email && !record.rorId && !record.creditRoles) continue;
     if (!name) {
       return { ok: false, message: "Every co-author needs a name." };
     }
@@ -200,6 +215,7 @@ export function parseCoAuthorDraft(raw: string): CoAuthorParseResult {
       ...(orcid ? { orcid } : {}),
       ...(email ? { email } : {}),
       ...(creditRoles ? { creditRoles } : {}),
+      ...(rorId ? { rorId } : {}),
     });
   }
 
@@ -251,6 +267,10 @@ export function parseCorrespondingAuthorDraft(
     return { ok: false, message: "Choose contributor roles from the CRediT taxonomy." };
   }
   const creditRoles = parseCreditRoles(record.creditRoles);
+  if (hasInvalidRorId(record.rorId)) {
+    return { ok: false, message: "Choose a valid ROR institution identifier." };
+  }
+  const rorId = parseRorId(record.rorId);
 
   if (!name) {
     if (!affiliation && !orcid && !email) return { ok: true, author: null };
@@ -292,6 +312,7 @@ export function parseCorrespondingAuthorDraft(
       ...(orcid ? { orcid } : {}),
       ...(email ? { email } : {}),
       ...(creditRoles ? { creditRoles } : {}),
+      ...(rorId ? { rorId } : {}),
     },
   };
 }

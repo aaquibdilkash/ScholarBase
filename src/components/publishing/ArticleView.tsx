@@ -78,7 +78,15 @@ export function ArticleView({
       author: article.authors.map((author) => ({
         "@type": "Person",
         name: author.name,
-        ...(author.affiliation ? { affiliation: author.affiliation } : {}),
+        ...(author.affiliation
+          ? {
+              affiliation: {
+                "@type": "Organization",
+                name: author.affiliation,
+                ...(author.rorId ? { identifier: author.rorId } : {}),
+              },
+            }
+          : {}),
         ...(author.creditRoles?.length ? { knowsAbout: author.creditRoles } : {}),
       })),
       publisher: { "@type": "Organization", name: venue.publisherName },

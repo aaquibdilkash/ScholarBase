@@ -175,6 +175,32 @@ describe("parseCoAuthorDraft", () => {
     });
   });
 
+  it("keeps a selected ROR identifier with the affiliation", () => {
+    const result = parseCoAuthorDraft(JSON.stringify([
+      { name: "Asha Rao", affiliation: "Example University", rorId: "https://ror.org/03vek6s52" },
+    ]));
+
+    expect(result).toEqual({
+      ok: true,
+      authors: [{
+        name: "Asha Rao",
+        affiliation: "Example University",
+        rorId: "https://ror.org/03vek6s52",
+      }],
+    });
+  });
+
+  it("rejects malformed ROR identifiers", () => {
+    const result = parseCoAuthorDraft(JSON.stringify([
+      { name: "Asha Rao", affiliation: "Example University", rorId: "https://example.org/ror" },
+    ]));
+
+    expect(result).toEqual({
+      ok: false,
+      message: "Choose a valid ROR institution identifier.",
+    });
+  });
+
   it("rejects malformed JSON and non-array payloads", () => {
     expect(parseCoAuthorDraft("{").ok).toBe(false);
     expect(parseCoAuthorDraft(JSON.stringify({ name: "Asha Rao" })).ok).toBe(
