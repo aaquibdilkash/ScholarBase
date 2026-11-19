@@ -1,7 +1,7 @@
 /**
  * Scholar-profile content and bookmark sections, one statement per tab.
  *
- * Why raw SQL: the production pool is `max: 1` (see `lib/db.ts`), so the 18
+ * Why raw SQL: the production pool is `max: 1` (see `lib/db.ts`), so the 15
  * (content) and 34 (bookmarks) Prisma round trips these tabs used to cost ran
  * strictly one after another — `Promise.all` bought nothing. A single
  * `UNION ALL` over the section tables collapses each tab to one trip, and the
@@ -33,7 +33,10 @@
 import { Prisma, VoteType } from "@prisma/client";
 
 import prisma from "@/lib/db";
-import type { ProfileSection } from "@/lib/module-registry";
+import {
+  PROFILE_CONTENT_EXCLUDED_SECTIONS,
+  type ProfileSection,
+} from "@/lib/module-registry";
 import { dateKeysForModel } from "@/lib/tri-split/dates";
 import {
   MODERATION_STATE_KEYS,
@@ -69,13 +72,22 @@ export type Section = keyof typeof SECTION_MODULE;
 const SECTIONS = Object.keys(SECTION_MODULE) as Section[];
 
 /**
+ * The sections the Content tab reads. Everything else in {@link SECTIONS} is
+ * Bookmarks-only: recommendations and reviews are parent-scoped, so they are
+ * not part of the author's own feed (see `PROFILE_CONTENT_EXCLUDED_SECTIONS`).
+ */
+const CONTENT_SECTIONS = SECTIONS.filter(
+  (section) => !PROFILE_CONTENT_EXCLUDED_SECTIONS.has(section),
+);
+
+/**
  * Soft-delete is the only universal content filter. These are the modules that
  * additionally hide anonymous rows, plus the one gated on approval — mirroring
- * `getProfileParentWhere` in `app/actions/profile.ts`.
+ * `getProfileParentWhere` in `app/actions/profile.ts`. Recommendations and
+ * reviews need no entry: the Content tab does not query them, and the Bookmarks
+ * tab intentionally shows a scholar their own anonymous bookmarks.
  */
 const CONTENT_FILTER: Partial<Record<Section, string>> = {
-  recommendations: `AND t."isAnonymous" = false`,
-  journalReviews: `AND t."isAnonymous" = false`,
   supervisors: `AND t."isAnonymous" = false`,
   journals: `AND t."isAnonymous" = false`,
   contributionPosts: `AND t."status" = 'APPROVED'`,
@@ -180,7 +192,7 @@ const uncapitalize = (name: string) =>
   name.charAt(0).toLowerCase() + name.slice(1);
 
 /**
- * Content-tab statement: the first `take` rows of every section table.
+ * Content-tab statement: the first `take` rows of every Content section table.
  *
  * No window function, so each branch is a bounded index scan that stops at
  * `LIMIT` — a scholar with thousands of articles costs the same as one with a
@@ -198,7 +210,7 @@ export function buildContentSectionsSql(
 ): Prisma.Sql {
   const limit = limitLiteral(take);
 
-  const branches = SECTIONS.map((section) => {
+  const branches = CONTENT_SECTIONS.map((section) => {
     const config = ENTITY_CONFIG[SECTION_MODULE[section]];
     const table = pascal(config.model);
     const filter = CONTENT_FILTER[section];
@@ -776,4 +788,8 @@ export function collectSectionAuthorIds(
   return [...ids];
 }
 
-export { SECTIONS as PROFILE_SECTION_KEYS, SECTION_MODULE };
+export {
+  CONTENT_SECTIONS as PROFILE_CONTENT_SECTION_KEYS,
+  SECTIONS as PROFILE_SECTION_KEYS,
+  SECTION_MODULE,
+};

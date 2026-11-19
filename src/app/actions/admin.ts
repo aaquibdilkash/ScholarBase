@@ -681,7 +681,7 @@ export async function getAdminAppeals(
       else if (linkCt === "supervisor")
         detailHref = `/supervisor/${linkId}`;
       else if (linkCt === "recommendation")
-        detailHref = `/supervisor/${linkEntity?.supervisorId ?? ""}#recommendations`;
+        detailHref = `/supervisor/${linkEntity?.supervisorId ?? ""}`;
       else if (linkCt === "survey") detailHref = `/surveys/${linkId}`;
       else if (linkCt === "SCHOLAR_PROFILE")
         detailHref = `/scholars/${linkId}`;
@@ -835,7 +835,7 @@ export async function getAdminContent(
   sortBy?: "createdAt" | "reportCount",
   page = 1,
   pageSize: number = ADMIN_PAGE_SIZE,
-  view: "posts" | "comments" = "posts",
+  view: "posts" | "comments" | "recommendations" | "journalReviews" = "posts",
   statusFilter: "all" | "active" | "frozen" | "deleted" = "all",
 ): Promise<AdminPage<AdminContentItem>> {
   const user = await requireCurrentUser("Log in to access admin.");
@@ -1001,7 +1001,7 @@ export async function getAdminContent(
       recommendations: {
         model: prisma.recommendation,
         detailHref: (item) =>
-          `/supervisor/${"supervisorId" in item ? item.supervisorId : ""}#recommendations`,
+          `/supervisor/${"supervisorId" in item ? item.supervisorId : ""}`,
       },
       surveys: {
         model: prisma.researchSurvey,
@@ -1012,11 +1012,18 @@ export async function getAdminContent(
       journalReviews: {
         model: prisma.journalReview,
         detailHref: (item) =>
-          `/journals/${"journalId" in item ? item.journalId : ""}#reviews`,
+          `/journals/${"journalId" in item ? item.journalId : ""}`,
       },
     };
 
-    const config = contentMap[contentType];
+    // When view is "recommendations" or "journalReviews", use view to
+    // determine the model rather than contentType (which is the section name).
+    const effectiveView =
+      view === "recommendations" || view === "journalReviews"
+        ? view
+        : contentType;
+
+    const config = contentMap[effectiveView];
     if (!config) {
       return { items: [], total: 0, page, pageSize, totalPages: 1 };
     }
@@ -1028,8 +1035,8 @@ export async function getAdminContent(
       config.model.findMany({
         include: {
           author: true,
-          ...(contentType === "recommendations" ? { supervisor: true } : {}),
-          ...(contentType === "journalReviews" ? { journal: true } : {}),
+          ...(effectiveView === "recommendations" ? { supervisor: true } : {}),
+          ...(effectiveView === "journalReviews" ? { journal: true } : {}),
         },
         where,
         orderBy,

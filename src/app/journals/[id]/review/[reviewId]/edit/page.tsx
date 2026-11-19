@@ -48,7 +48,7 @@ export default async function EditJournalReviewPage({
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.journalReview.title}
       description={EDIT_PAGE_TEXT.journalReview.description}
-      backHref={`/journals/${id}#reviews`}
+      backHref={`/journals/${id}`}
       backLabel="Cancel and Back to Reviews"
       maxWidth="sm"
     >

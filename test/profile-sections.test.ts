@@ -15,6 +15,7 @@ import { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
+  PROFILE_CONTENT_SECTION_KEYS,
   PROFILE_SECTION_KEYS,
   SECTION_MODULE,
   applySectionsOverlay,
@@ -243,13 +244,19 @@ describe("the live overlay statement", () => {
 });
 
 describe("generated statements cover every section exactly once", () => {
-  it.each([
-    ["content", buildContentSectionsSql],
-    ["bookmarks", buildBookmarkSectionsSql],
-  ] as const)("%s: emits one branch per section", (_label, build) => {
-    const { sql, values } = build("p", 1);
-    // Each branch binds its section key once, so counting the bound section
-    // keys counts the branches.
+  it("content: emits one branch per section", () => {
+    const { sql, values } = buildContentSectionsSql("p", 1);
+    // Content tab now has 15 sections (excludes recommendations & journalReviews)
+    for (const section of PROFILE_CONTENT_SECTION_KEYS) {
+      const branches = values.filter((v) => v === section).length;
+      expect(branches, section).toBe(1);
+    }
+    expect(sql).toContain("UNION ALL");
+  });
+
+  it("bookmarks: emits one branch per section", () => {
+    const { sql, values } = buildBookmarkSectionsSql("p", 1);
+    // Bookmarks tab has all 17 sections
     for (const section of PROFILE_SECTION_KEYS) {
       const branches = values.filter((v) => v === section).length;
       expect(branches, section).toBe(1);
@@ -278,8 +285,10 @@ describe("generated statements cover every section exactly once", () => {
 describe("section visibility rules are preserved", () => {
   it("hides anonymous recommendations, reviews, supervisors and journals from the content tab", () => {
     const { sql } = buildContentSectionsSql("p", 1);
+    // Content tab now excludes recommendations and journalReviews, so only
+    // supervisors and journals have the isAnonymous filter.
     expect(sql).toContain(`AND t."isAnonymous" = false`);
-    expect(sql.match(/isAnonymous/g)?.length).toBe(4);
+    expect(sql.match(/isAnonymous/g)?.length).toBe(2);
   });
 
   it("still shows a scholar their own bookmarked anonymous rows", () => {

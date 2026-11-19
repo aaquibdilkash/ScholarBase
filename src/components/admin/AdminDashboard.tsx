@@ -101,6 +101,8 @@ export function AdminDashboard({
   const isInstitutionDomainsTab = activeTab === "institutionDomains";
   const isInviteTab = activeTab === "invites";
   const isShieldTab = activeTab === "shield";
+  const isSupervisorsTab = activeTab === "supervisors";
+  const isJournalsTab = activeTab === "journals";
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionState(activeTab, patch);
@@ -444,10 +446,16 @@ export function AdminDashboard({
                   activeTab !== "users"
                     ? view === "comments"
                       ? "Comments"
-                      : "Posts"
+                      : view === "recommendations"
+                        ? "Recommendations"
+                        : view === "journalReviews"
+                          ? "Journal Reviews"
+                          : "Posts"
                     : undefined
                 }
                 showPostsComments={activeTab !== "users"}
+                showRecommendations={isSupervisorsTab}
+                showJournalReviews={isJournalsTab}
                 view={view}
                 onViewSelect={handleViewSelect}
                 showAppealFilters={activeTab === "appeals"}

@@ -36,7 +36,7 @@ describe("target links", () => {
           targetId: "journal-1/review-1",
         }),
       ),
-    ).toBe("/journals/journal-1#reviews");
+    ).toBe("/journals/journal-1");
   });
 
   it("routes a recommendation to the supervisor's recommendation section", () => {
@@ -47,7 +47,7 @@ describe("target links", () => {
           targetId: "supervisor-1/rec-1",
         }),
       ),
-    ).toBe("/supervisor/supervisor-1#recommendations");
+    ).toBe("/supervisor/supervisor-1");
   });
 
   it("returns null for a nested target with no parent id, rather than a dead link", () => {
@@ -65,7 +65,7 @@ describe("target links", () => {
         getNotificationLink(
           notification({ targetType, targetId: "journal-1/review-1" }),
         ),
-      ).toBe("/journals/journal-1#reviews");
+      ).toBe("/journals/journal-1");
     }
   });
 
@@ -75,7 +75,7 @@ describe("target links", () => {
         getNotificationLink(
           notification({ type, targetType: "journalReview", targetId: "j1/r1" }),
         ),
-      ).toBe("/journals/j1#reviews");
+      ).toBe("/journals/j1#comments");
     }
   });
 

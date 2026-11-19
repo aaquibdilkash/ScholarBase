@@ -49,7 +49,7 @@ export default async function EditRecommendationPage({
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.recommendation.title}
       description={EDIT_PAGE_TEXT.recommendation.description}
-      backHref={`/supervisor/${id}#recommendations`}
+      backHref={`/supervisor/${id}`}
       backLabel="Cancel and Back to Recommendations"
       maxWidth="sm"
     >

@@ -84,7 +84,7 @@ export function JournalReviewCard({
   return (
     <ListPageCardShell
       // Reviews have no page of their own; they live inline on the journal page.
-      detailPageHref={`/journals/${review.journalId}#reviews`}
+      detailPageHref={`/journals/${review.journalId}`}
       // Share payload: mirror the journal's review section.
       shareTitle={`Review of ${review.journal?.title || "Journal"}`
       }
@@ -178,7 +178,7 @@ export function JournalReviewCard({
         </p>
       ) : null}
       <Link
-        href={`/journals/${review.journalId}#reviews`}
+        href={`/journals/${review.journalId}`}
         prefetch={false}
         className="block group"
       >

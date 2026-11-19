@@ -11,10 +11,14 @@ export type AdminStatusFilter =
 interface AdminToolbarProps {
   /** e.g. "Feed Management" or "Users Management". */
   title: string;
-  /** Rest of the heading — shows "· Posts" / "· Comments" for content tabs. */
+  /** Rest of the heading — shows "· Posts" / "· Comments" / "· Recommendations" / "· Journal Reviews" for content tabs. */
   subtitle?: string;
-  /** Show the Posts/Comments segmented switch (hidden for Users & Appeals). */
+  /** Show the Posts/Comments/Recommendations/Journal Reviews segmented switch (hidden for Users & Appeals). */
   showPostsComments: boolean;
+  /** Show the Recommendations segmented switch (hidden for Users & Appeals). */
+  showRecommendations: boolean;
+  /** Show the Journal Reviews segmented switch (hidden for Users & Appeals). */
+  showJournalReviews: boolean;
   view: ContentView;
   onViewSelect: (v: ContentView) => void;
   /** Show the two Appeals selects (Admin Status / Entity Status). */
@@ -43,6 +47,8 @@ export function AdminToolbar({
   title,
   subtitle,
   showPostsComments,
+  showRecommendations,
+  showJournalReviews,
   view,
   onViewSelect,
   showAppealFilters,
@@ -83,6 +89,38 @@ export function AdminToolbar({
                 {v}
               </button>
             ))}
+          </div>
+        )}
+        {showRecommendations && (
+          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-700 dark:bg-slate-800">
+            <button
+              key="recommendations"
+              type="button"
+              onClick={() => onViewSelect("recommendations")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                view === "recommendations"
+                  ? "bg-white text-blue-700 shadow-sm dark:bg-slate-900 dark:text-blue-300"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+              }`}
+            >
+              Recommendations
+            </button>
+          </div>
+        )}
+        {showJournalReviews && (
+          <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-700 dark:bg-slate-800">
+            <button
+              key="journalReviews"
+              type="button"
+              onClick={() => onViewSelect("journalReviews")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                view === "journalReviews"
+                  ? "bg-white text-blue-700 shadow-sm dark:bg-slate-900 dark:text-blue-300"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+              }`}
+            >
+              Journal Reviews
+            </button>
           </div>
         )}
 

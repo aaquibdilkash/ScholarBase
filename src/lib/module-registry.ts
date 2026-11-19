@@ -26,6 +26,17 @@ export const PROFILE_SECTION_CONFIG = {
 
 export type ProfileSection = keyof typeof PROFILE_SECTION_CONFIG;
 
+/**
+ * Sections the scholar profile's Content tab does not list.
+ *
+ * Recommendations and journal reviews are parent-scoped: they belong to the
+ * supervisor or journal they were written about, so the author's own profile
+ * feed no longer repeats them. The Bookmarks tab still shows a scholar the rows
+ * they saved, which is why the keys stay in the registry above.
+ */
+export const PROFILE_CONTENT_EXCLUDED_SECTIONS: ReadonlySet<ProfileSection> =
+  new Set<ProfileSection>(["recommendations", "journalReviews"]);
+
 /** Allowlisted parent tables used by maintenance jobs. */
 export const CONTENT_TABLES = [
   "Article",

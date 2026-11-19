@@ -37,7 +37,7 @@ export const DEFAULT_SECTION_STATE: SectionUiState = {
 // persisted "createdAt" defaults are dropped and the new default applies.
 const STORAGE_KEY = "sb_admin_sections_v2";
 
-const VIEWS: readonly string[] = ["posts", "comments"];
+const VIEWS: readonly string[] = ["posts", "comments", "recommendations", "journalReviews"];
 const SORTS: readonly string[] = ["createdAt", "reportCount"];
 const STATUS_FILTERS: readonly string[] = ["all", "active", "frozen", "deleted"];
 

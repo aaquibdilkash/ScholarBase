@@ -1,7 +1,7 @@
 import { RESULTS_BASE_PATH } from "@/lib/results/routes";
 
-/** Posts vs Comments sub-view toggle used across the admin content tables. */
-export type ContentView = "posts" | "comments";
+/** Posts vs Comments vs Recommendations vs Journal Reviews sub-view toggle used across the admin content tables. */
+export type ContentView = "posts" | "comments" | "recommendations" | "journalReviews";
 
 export interface AdminSection {
   id: string;
@@ -19,7 +19,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "blog", title: "Blog", href: "/blog" },
   { id: "publications", title: "Publications", href: "/publications" },
   { id: "journals", title: "Journals", href: "/journals" },
-  { id: "journalReviews", title: "Journal Reviews", href: "/journals" },
   { id: "researchTools", title: "Research Tools", href: "/research-tools" },
   { id: "researchGrants", title: "Research Grants", href: "/grants" },
   { id: "courses", title: "Learning Zone", href: "/learn" },
@@ -30,7 +29,6 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "results", title: "Exams & Results", href: RESULTS_BASE_PATH },
   { id: "contributions", title: "Contributions", href: "/contributions" },
   { id: "supervisors", title: "Supervisors", href: "/supervisor" },
-  { id: "recommendations", title: "Recommendations", href: "/supervisor" },
   { id: "surveys", title: "Surveys", href: "/surveys" },
   { id: "shield", title: "Scholar Shield", href: "/shield" },
   { id: "users", title: "Users", href: "#" },

@@ -175,7 +175,7 @@ describe("related content lookup", () => {
     const recommendations = await getRelatedContent("RECOMMENDATION", "r1");
 
     expect(recommendations[0]).toMatchObject({
-      href: "/supervisor/s1#recommendations",
+      href: "/supervisor/s1",
       title: "Great mentorship.",
       subtitle: "Dr. Hopper",
     });
@@ -193,7 +193,7 @@ describe("related content lookup", () => {
     const reviews = await getRelatedContent("JOURNAL_REVIEW", "j3");
 
     expect(reviews[0]).toMatchObject({
-      href: "/journals/j1#reviews",
+      href: "/journals/j1",
       title: "Rigorous but slow.",
       subtitle: "Journal of Graphs",
     });

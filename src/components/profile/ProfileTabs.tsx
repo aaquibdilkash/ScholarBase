@@ -35,8 +35,6 @@ import { JournalCard } from "@/components/journals/JournalCard";
 import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
 import { ResearchGrantCard } from "@/components/grants/ResearchGrantCard";
 import { CourseCard } from "@/components/courses/CourseCard";
-import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
-import { JournalReviewCard } from "@/components/journals/JournalReviewCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
 import { RESULTS_BASE_PATH, resultHref } from "@/lib/results/routes";
@@ -57,8 +55,6 @@ import {
   HelpPostType,
   JournalType,
   ResearchToolType,
-  RecommendationType,
-  JournalReviewType,
   SupervisorType,
   ResultType,
   ContributionType,
@@ -71,6 +67,7 @@ import {
 
 import { Carousel } from "@/components/ui/Carousel";
 import { isComingSoon } from "@/lib/feature-flags";
+import { PROFILE_CONTENT_EXCLUDED_SECTIONS } from "@/lib/module-registry";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -195,33 +192,7 @@ const SECTIONS: SectionWithCount[] = [
         <ResearchToolCard key={r.id} tool={r} currentUserId={currentUserId} />
       )),
   },
-  {
-    key: "recommendations",
-    title: "Recommendations Given",
-    emptyMessage: "No recommendations given yet.",
-    renderItems: (items: RecommendationType[], currentUserId) =>
-      items.map((r) => (
-        <RecommendationCard
-          key={r.id}
-          recommendation={r}
-          supervisor={r.supervisor}
-          currentUserId={currentUserId}
-        />
-      )),
-  },
-  {
-    key: "journalReviews",
-    title: "Journal Reviews Given",
-    emptyMessage: "No journal reviews given yet.",
-    renderItems: (items: JournalReviewType[], currentUserId) =>
-      items.map((r) => (
-        <JournalReviewCard
-          key={r.id}
-          review={r}
-          currentUserId={currentUserId}
-        />
-      )),
-  },
+
   {
     key: "supervisors",
     title: "Supervisor Suggest",
@@ -330,6 +301,7 @@ function ProfileSectionList({
   onLoadMore,
   emptyLabel,
   currentUserId,
+  hiddenKeys,
 }: {
   sections: SectionData | null;
   counts: Record<string, number> | undefined;
@@ -338,6 +310,8 @@ function ProfileSectionList({
   onLoadMore: (sectionKey: SectionKey) => void;
   emptyLabel?: string;
   currentUserId?: string;
+  /** Sections this tab does not render at all (e.g. parent-scoped content). */
+  hiddenKeys?: ReadonlySet<SectionKey>;
 }) {
   if (!sections) {
     return (
@@ -350,7 +324,9 @@ function ProfileSectionList({
   return (
     <div className="space-y-10">
       {SECTIONS.filter(
-        (section) => !(isComingSoon && section.key === "contributionPosts"),
+        (section) =>
+          !(isComingSoon && section.key === "contributionPosts") &&
+          !hiddenKeys?.has(section.key),
       ).map((section) => {
         const items = sections[section.key] ?? [];
         const count = counts?.[section.key] ?? items.length;
@@ -722,6 +698,7 @@ export default function ProfileTabs({
             loadingMore={loadingMore}
             onLoadMore={loadMore}
             currentUserId={currentUserId}
+            hiddenKeys={PROFILE_CONTENT_EXCLUDED_SECTIONS}
           />
         ))}
 
@@ -796,7 +773,7 @@ const ACTIVITY_META: Record<
     label: "journal review",
     href: (id) => {
       const [journalId] = id.split("/");
-      return journalId ? `/journals/${journalId}#reviews` : undefined;
+      return journalId ? `/journals/${journalId}` : undefined;
     },
   },
   RESEARCH_TOOL: {
@@ -815,7 +792,7 @@ const ACTIVITY_META: Record<
     href: (id) => {
       const [supervisorId] = id.split("/");
       return supervisorId
-        ? `/supervisor/${supervisorId}#recommendations`
+        ? `/supervisor/${supervisorId}`
         : undefined;
     },
   },

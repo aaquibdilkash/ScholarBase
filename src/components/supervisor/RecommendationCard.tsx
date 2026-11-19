@@ -115,7 +115,7 @@ export function RecommendationCard({
       frozenHasActiveAppeal={recommendation.hasActiveAppeal ?? false}
       // Recommendations have no page of their own; they live inline on the
       // supervisor page, so every link/share target that section.
-      detailPageHref={`/supervisor/${supervisor.id}#recommendations`}
+      detailPageHref={`/supervisor/${supervisor.id}`}
       // Share payload: mirror the recommendation section on the supervisor page.
       shareTitle={`Recommendation for ${supervisor.name || "Supervisor"}`}
       shareText={`A ${
@@ -166,7 +166,7 @@ export function RecommendationCard({
       }
     >
       <Link
-        href={`/supervisor/${supervisor.id}#recommendations`}
+        href={`/supervisor/${supervisor.id}`}
         prefetch={false}
         className="block group"
       >

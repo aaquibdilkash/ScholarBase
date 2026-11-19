@@ -47,12 +47,12 @@ const TARGETS = {
   academicPosition: { link: (t: string) => `/academic-positions/${t}`, label: "Academic Positions", noun: "academic position" },
   admission: { link: (t: string) => `/admissions/${t}`, label: "Admissions", noun: "admission" },
   recommendation: {
-    link: nested((p) => `/supervisor/${p}#recommendations`),
+    link: nested((p) => `/supervisor/${p}`),
     label: "Supervisor recommendation",
     noun: "recommendation",
   },
   journalReview: {
-    link: nested((p) => `/journals/${p}#reviews`),
+    link: nested((p) => `/journals/${p}`),
     label: "Journal review",
     noun: "journal review",
   },

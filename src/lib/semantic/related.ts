@@ -545,7 +545,7 @@ async function hydrateItems(
         setItem(
           items,
           row.id,
-          `/supervisor/${row.supervisorId}#recommendations`,
+          `/supervisor/${row.supervisorId}`,
           excerpt(row.feedback) || "Recommendation",
           {
             subtitle: row.supervisor.name,
@@ -573,7 +573,7 @@ async function hydrateItems(
         setItem(
           items,
           row.id,
-          `/journals/${row.journalId}#reviews`,
+          `/journals/${row.journalId}`,
           excerpt(row.feedback) || "Journal review",
           {
             subtitle: row.journal.title,

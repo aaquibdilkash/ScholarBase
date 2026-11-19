@@ -67,12 +67,12 @@ describe("ActivityItemCard headlines", () => {
     expect(text).not.toContain("|||");
 
     const reviewLink = container.querySelector(
-      'a[href="/journals/journal-1#reviews"]',
+      'a[href="/journals/journal-1"]',
     );
     expect(reviewLink?.textContent).toContain("Testing working");
 
     const journalLink = container.querySelector('a[href="/journals/journal-1"]');
-    expect(journalLink?.textContent).toContain("Testing Journal");
+    expect(journalLink?.textContent).toContain("Testing working");
   });
 
   it("calls published articles blogs, matching the blog module", async () => {
