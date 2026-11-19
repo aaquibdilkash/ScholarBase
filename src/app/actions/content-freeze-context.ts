@@ -60,7 +60,7 @@ export async function getMyContentFreezeContext(
     RESEARCH_GRANT_COMMENT: "researchGrantComment",
     COURSE_COMMENT: "courseComment",
     JOURNAL_COMMENT: "journalComment",
-    RESULT_COMMENT: "resultComment",
+    RESULT_COMMENT: "examsAndResultsComment",
     SURVEY_COMMENT: "surveyComment",
     CALL_FOR_PAPER_COMMENT: "callForPaperComment",
     ADMISSION_COMMENT: "admissionComment",

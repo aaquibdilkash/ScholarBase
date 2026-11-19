@@ -693,16 +693,16 @@ model JournalBookmark {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model ResultBookmark {
-  id        String   @id @default(cuid())
-  resultId  String
-  userId    String
-  createdAt DateTime @default(now())
+model ExamsAndResultsBookmark {
+  id                String   @id @default(cuid())
+  examsAndResultsId String
+  userId            String
+  createdAt         DateTime @default(now())
 
-  result ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examsAndResults ExamsAndResults @relation(fields: [examsAndResultsId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([resultId, userId])
+  @@unique([examsAndResultsId, userId])
   @@index([userId, createdAt(sort: Desc)])
 }
 
@@ -1323,7 +1323,7 @@ model User {
   researchGrantBookmarks    ResearchGrantBookmark[]
   courseBookmarks           CourseBookmark[]
   journalBookmarks          JournalBookmark[]
-  resultBookmarks           ResultBookmark[]
+  examsAndResultsBookmarks  ExamsAndResultsBookmark[]
   surveyBookmarks           SurveyBookmark[]
   callForPaperBookmarks     CallForPaperBookmark[]
   admissionBookmarks        AdmissionBookmark[]
@@ -1394,10 +1394,10 @@ model User {
   journalReviewComments     JournalReviewComment[]
   journalReviewCommentVotes JournalReviewCommentVote[]
 
-  results            ExamsAndResults[]
-  resultVotes        ResultVote[]
-  resultComments     ResultComment[]
-  resultCommentVotes ResultCommentVote[]
+  examsAndResults             ExamsAndResults[]
+  examsAndResultsVotes        ExamsAndResultsVote[]
+  examsAndResultsComments     ExamsAndResultsComment[]
+  examsAndResultsCommentVotes ExamsAndResultsCommentVote[]
 
   // Digest email frequency control (Notification Digest system)
   //
@@ -1424,10 +1424,10 @@ model User {
   publicationAuthors      PublicationAuthor[]
 
   // First-party publishing (docs/publishing-runbook.md)
-  authoredManuscripts Manuscript[]      @relation("AuthoredPapers")
-  reviewAssignments   ReviewTask[]      @relation("ReviewAssignments")
+  authoredManuscripts Manuscript[]        @relation("AuthoredPapers")
+  reviewAssignments   ReviewTask[]        @relation("ReviewAssignments")
   editorialRoles      EditorialRole[]
-  manuscriptEvents    ManuscriptEvent[] @relation("ManuscriptEventActor")
+  manuscriptEvents    ManuscriptEvent[]   @relation("ManuscriptEventActor")
   publicationNotices  PublicationNotice[]
   manuscriptRecusals  ManuscriptRecusal[] @relation("ManuscriptRecusals")
 
@@ -2115,7 +2115,7 @@ model JournalReviewCommentVote {
 }
 
 model ExamsAndResults {
-  id               String    @id @default(cuid())
+  id               String     @id @default(cuid())
   title            String
   description      String
   /// An exam notification or a result/outcome post.
@@ -2128,12 +2128,12 @@ model ExamsAndResults {
   session          String? // e.g. "June 2024", "December 2024"
   notificationLink String?
   checkOrApplyLink String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
   editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean   @default(false)
-  hasActiveAppeal  Boolean   @default(false)
+  isFrozen         Boolean    @default(false)
+  hasActiveAppeal  Boolean    @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2151,35 +2151,36 @@ model ExamsAndResults {
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes     ResultVote[]
-  bookmarks ResultBookmark[]
-  comments  ResultComment[]
+  votes     ExamsAndResultsVote[]
+  bookmarks ExamsAndResultsBookmark[]
+  comments  ExamsAndResultsComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
-model ResultVote {
-  id        String   @id @default(cuid())
-  resultId  String
-  userId    String
-  voteType  VoteType
-  createdAt DateTime @default(now())
-  result    ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model ExamsAndResultsVote {
+  id                String   @id @default(cuid())
+  examsAndResultsId String
+  userId            String
+  voteType          VoteType
+  createdAt         DateTime @default(now())
 
-  @@unique([resultId, userId])
+  examsAndResults ExamsAndResults @relation(fields: [examsAndResultsId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([examsAndResultsId, userId])
 }
 
-model ResultComment {
-  id        String    @id @default(cuid())
-  content   String
-  resultId  String
-  parentId  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime?
+model ExamsAndResultsComment {
+  id                String    @id @default(cuid())
+  content           String
+  examsAndResultsId String
+  parentId          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  editedAt          DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId        String
@@ -2192,26 +2193,27 @@ model ResultComment {
   isFrozen        Boolean        @default(false)
   hasActiveAppeal Boolean        @default(false)
 
-  result ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  author User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  examsAndResults ExamsAndResults @relation(fields: [examsAndResultsId], references: [id], onDelete: Cascade)
+  author          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies ResultComment[] @relation("ResultReplies")
+  parent  ExamsAndResultsComment?  @relation("ExamsAndResultsReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ExamsAndResultsComment[] @relation("ExamsAndResultsReplies")
 
-  votes    ResultCommentVote[]
+  votes    ExamsAndResultsCommentVote[]
   mentions Json?
 
-  @@index([resultId, createdAt(sort: Desc)])
+  @@index([examsAndResultsId, createdAt(sort: Desc)])
 }
 
-model ResultCommentVote {
-  id        String        @id @default(cuid())
+model ExamsAndResultsCommentVote {
+  id        String   @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
-  createdAt DateTime      @default(now())
-  comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  comment ExamsAndResultsComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
 }
@@ -2593,7 +2595,7 @@ model Admission {
   level            AdmissionLevel @default(PHD)
   /// Null for rolling admissions, where the institution does not publish a fixed closing date.
   deadline         DateTime?
-  isRolling        Boolean  @default(false)
+  isRolling        Boolean        @default(false)
   description      String
   imageUrl         String?
   notificationLink String?
@@ -3083,35 +3085,35 @@ model Venue {
 /// `term` is null for annual/biennial editions and is H1/H2 or Q1-Q4 for
 /// multiple occurrences in one year.
 model ConferenceEdition {
-  id        String   @id @default(cuid())
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  year      Int
-  term      String?
-  slug      String
-  label     String
+  id            String                  @id @default(cuid())
+  venueId       String
+  venue         Venue                   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  year          Int
+  term          String?
+  slug          String
+  label         String
   coverImageUrl String?
-  status    ConferenceEditionStatus @default(DRAFT)
-  isPublished Boolean @default(false)
+  status        ConferenceEditionStatus @default(DRAFT)
+  isPublished   Boolean                 @default(false)
 
-  startsAt DateTime?
-  endsAt   DateTime?
-  location String?
-  timezone String?
-  websiteUrl String?
-  cfpOpenAt DateTime?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  location           String?
+  timezone           String?
+  websiteUrl         String?
+  cfpOpenAt          DateTime?
   submissionDeadline DateTime?
-  notificationAt DateTime?
-  cameraReadyAt DateTime?
+  notificationAt     DateTime?
+  cameraReadyAt      DateTime?
 
-  volume Int?
-  isbn String?
+  volume         Int?
+  isbn           String?
   proceedingsDoi String?
 
-  manuscripts Manuscript[]
+  manuscripts  Manuscript[]
   programItems ConferenceProgramItem[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
 
   @@unique([venueId, slug])
   @@unique([venueId, year, term])
@@ -3123,23 +3125,23 @@ model ConferenceEdition {
 /// issue-level metadata and publication state. Manuscript volume/issue remain
 /// denormalized citation snapshots for zero-join article reads.
 model JournalIssue {
-  id        String   @id @default(cuid())
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  volume    Int
-  number    Int
-  title     String?
-  description String? @db.Text
-  status    JournalIssueStatus @default(DRAFT)
-  isPublished Boolean @default(false)
+  id              String             @id @default(cuid())
+  venueId         String
+  venue           Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  volume          Int
+  number          Int
+  title           String?
+  description     String?            @db.Text
+  status          JournalIssueStatus @default(DRAFT)
+  isPublished     Boolean            @default(false)
   publicationDate DateTime?
-  coverImageUrl String?
-  doi       String? @unique
-  editorialHtml String? @db.Text
+  coverImageUrl   String?
+  doi             String?            @unique
+  editorialHtml   String?            @db.Text
 
   manuscripts Manuscript[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@unique([venueId, volume, number])
   @@index([venueId, isPublished, publicationDate(sort: Desc)])
@@ -3147,23 +3149,23 @@ model JournalIssue {
 }
 
 model ConferenceProgramItem {
-  id        String   @id @default(cuid())
-  editionId String
-  edition   ConferenceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  id           String                    @id @default(cuid())
+  editionId    String
+  edition      ConferenceEdition         @relation(fields: [editionId], references: [id], onDelete: Cascade)
   manuscriptId String?
-  manuscript Manuscript? @relation(fields: [manuscriptId], references: [id], onDelete: SetNull)
-  type      ConferenceProgramItemType @default(OTHER)
-  title     String
-  description String? @db.Text
-  speakers  String?
-  track     String?
-  room      String?
-  startsAt  DateTime?
-  endsAt    DateTime?
-  externalUrl String?
-  sortOrder Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  manuscript   Manuscript?               @relation(fields: [manuscriptId], references: [id], onDelete: SetNull)
+  type         ConferenceProgramItemType @default(OTHER)
+  title        String
+  description  String?                   @db.Text
+  speakers     String?
+  track        String?
+  room         String?
+  startsAt     DateTime?
+  endsAt       DateTime?
+  externalUrl  String?
+  sortOrder    Int                       @default(0)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
 
   @@index([editionId, startsAt, sortOrder])
   @@index([manuscriptId])
@@ -3172,21 +3174,21 @@ model ConferenceProgramItem {
 /// A submitted paper. Workflow entity, not social content: no vote/bookmark
 /// counters, no tri-split registration, no public list until PUBLISHED.
 model Manuscript {
-  id       String           @id @default(cuid())
-  title    String
-  abstract String?          @db.Text
-  keywords String?
+  id                        String           @id @default(cuid())
+  title                     String
+  abstract                  String?          @db.Text
+  keywords                  String?
   /// Comma-separated, normalized JEL classification codes, for example `M12, O33`.
   /// Nullable because JEL is discipline-specific and not required for every venue.
-  jelCodes String?
-  fundingStatement String? @db.Text
-  dataAvailabilityStatement String? @db.Text
-  ethicsStatement String? @db.Text
-  competingInterests String? @db.Text
-  aiUseStatement String? @db.Text
-  status   ManuscriptStatus @default(SUBMITTED)
+  jelCodes                  String?
+  fundingStatement          String?          @db.Text
+  dataAvailabilityStatement String?          @db.Text
+  ethicsStatement           String?          @db.Text
+  competingInterests        String?          @db.Text
+  aiUseStatement            String?          @db.Text
+  status                    ManuscriptStatus @default(SUBMITTED)
   /// Revision round. Bumped on resubmission; pairs with ManuscriptFile.round.
-  round    Int              @default(0)
+  round                     Int              @default(0)
 
   venueId String
   venue   Venue  @relation(fields: [venueId], references: [id])
@@ -3197,7 +3199,7 @@ model Manuscript {
   edition   ConferenceEdition? @relation(fields: [editionId], references: [id], onDelete: SetNull)
 
   journalIssueId String?
-  journalIssue JournalIssue? @relation(fields: [journalIssueId], references: [id], onDelete: SetNull)
+  journalIssue   JournalIssue? @relation(fields: [journalIssueId], references: [id], onDelete: SetNull)
 
   authorId String
   author   User   @relation("AuthoredPapers", fields: [authorId], references: [id])
@@ -3214,8 +3216,8 @@ model Manuscript {
   /// paper. The conference row is never mutated, so its decision record
   /// survives.
   originalManuscriptId String?
-  originalManuscript   Manuscript?  @relation("ManuscriptTransfer", fields: [originalManuscriptId], references: [id], onDelete: SetNull)
-  transferredTo        Manuscript[] @relation("ManuscriptTransfer")
+  originalManuscript   Manuscript?             @relation("ManuscriptTransfer", fields: [originalManuscriptId], references: [id], onDelete: SetNull)
+  transferredTo        Manuscript[]            @relation("ManuscriptTransfer")
   programItems         ConferenceProgramItem[]
 
   doi             String?   @unique
@@ -3236,10 +3238,10 @@ model Manuscript {
 
   publishedAt DateTime?
 
-  files   ManuscriptFile[]
-  reviews ReviewTask[]
-  events  ManuscriptEvent[]
-  editorialRecusals ManuscriptRecusal[]
+  files              ManuscriptFile[]
+  reviews            ReviewTask[]
+  events             ManuscriptEvent[]
+  editorialRecusals  ManuscriptRecusal[]
   publicationNotices PublicationNotice[]
 
   createdAt DateTime @default(now())
@@ -3326,12 +3328,12 @@ model ReviewTask {
   /// never rendered as HTML.
   inlineComments Json?
 
-  isCompleted Boolean   @default(false)
-  assignedAt  DateTime  @default(now())
-  dueAt       DateTime?
-  completedAt DateTime?
+  isCompleted        Boolean   @default(false)
+  assignedAt         DateTime  @default(now())
+  dueAt              DateTime?
+  completedAt        DateTime?
   conflictDeclaredAt DateTime?
-  conflictReason String? @db.Text
+  conflictReason     String?   @db.Text
 
   @@unique([manuscriptId, reviewerId, round])
   @@index([reviewerId, completedAt, assignedAt(sort: Desc)])

@@ -25,7 +25,7 @@ import {
   ResearchGrantComment,
   CourseComment,
   JournalComment,
-  ResultComment,
+  ExamsAndResultsComment,
   SurveyComment,
   CallForPaperComment,
   AdmissionComment,
@@ -64,7 +64,7 @@ export type CommentItem =
   | ResearchGrantComment
   | CourseComment
   | JournalComment
-  | ResultComment
+  | ExamsAndResultsComment
   | SurveyComment
   | CallForPaperComment
   | AdmissionComment

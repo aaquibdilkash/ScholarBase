@@ -34,7 +34,7 @@ DECLARE
     'ArticleComment', 'SocialComment', 'HelpPostComment', 'ContributionComment',
     'AcademicPositionComment', 'AdmissionComment', 'CallForPaperComment', 'SupervisorComment',
     'RecommendationComment', 'ResearchToolComment', 'ResearchGrantComment', 'CourseComment',
-    'JournalComment', 'JournalReviewComment', 'ResultComment', 'PublicationComment', 'SurveyComment'
+    'JournalComment', 'JournalReviewComment', 'ExamsAndResultsComment', 'PublicationComment', 'SurveyComment'
   ];
 BEGIN
   -- =========================================================================

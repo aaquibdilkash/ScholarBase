@@ -52,7 +52,7 @@ const COMMENT_DELEGATES: Record<string, string> = {
   researchGrantComment: "researchGrantComment",
   courseComment: "courseComment",
   journalComment: "journalComment",
-  resultComment: "resultComment",
+  resultComment: "examsAndResultsComment",
   surveyComment: "surveyComment",
   callForPaperComment: "callForPaperComment",
   admissionComment: "admissionComment",

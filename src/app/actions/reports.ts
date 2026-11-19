@@ -201,8 +201,8 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
   RESULT_COMMENT: {
-    delegate: prisma.resultComment as unknown as ModuleConfig["delegate"],
-    model: "resultComment",
+    delegate: prisma.examsAndResultsComment as unknown as ModuleConfig["delegate"],
+    model: "examsAndResultsComment",
     reportCountField: "reportCount",
   },
   SURVEY_COMMENT: {
