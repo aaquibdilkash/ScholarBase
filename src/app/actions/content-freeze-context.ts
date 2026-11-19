@@ -44,7 +44,7 @@ export async function getMyContentFreezeContext(
     RESEARCH_TOOL: "researchTool",
     RESEARCH_GRANT: "researchGrant",
     COURSE: "course",
-    RESULT: "result",
+    RESULT: "examsAndResults",
     CONTRIBUTION: "contribution",
     HELP_POST: "helpPost",
     CALL_FOR_PAPER: "callForPaper",

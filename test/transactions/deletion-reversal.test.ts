@@ -151,8 +151,8 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
       seedExtra: { title: "Nature Fake" },
     },
     {
-      name: "Result",
-      model: "result",
+      name: "ExamsAndResults",
+      model: "examsAndResults",
       counter: "resultCount",
       deleter: (id: string) => deleteResult(id),
       seedExtra: { title: "Benchmark Result" },

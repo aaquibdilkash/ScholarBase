@@ -83,8 +83,9 @@ export function JournalReviewCard({
 
   return (
     <ListPageCardShell
+      // Reviews have no page of their own; they live inline on the journal page.
       detailPageHref={`/journals/${review.journalId}#reviews`}
-      // Share payload: mirror the review detail page generateMetadata().
+      // Share payload: mirror the journal's review section.
       shareTitle={`Review of ${review.journal?.title || "Journal"}`
       }
       shareText={
@@ -148,8 +149,6 @@ export function JournalReviewCard({
           isOwnContent={isOwner}
         />
       }
-      footerCommentsHref={`/journals/${review.journalId}#reviews`}
-      footerCommentsCount={review.totalComments}
       footerReportMenu={
         <ReportMenu
           entityId={review.id}
@@ -164,7 +163,7 @@ export function JournalReviewCard({
       managementControls={
         isOwner ? (
           <OwnerActionsDropdown
-            editHref={`/journals/${review.journalId}/review/edit`}
+            editHref={`/journals/${review.journalId}/review/${review.id}/edit`}
             onDelete={handleDeleteFromDropdown}
             isOwner={true}
             editLabel="Edit Review"

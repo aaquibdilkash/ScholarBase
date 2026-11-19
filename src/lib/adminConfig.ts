@@ -1,3 +1,5 @@
+import { RESULTS_BASE_PATH } from "@/lib/results/routes";
+
 /** Posts vs Comments sub-view toggle used across the admin content tables. */
 export type ContentView = "posts" | "comments";
 
@@ -25,7 +27,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "events", title: "Call for Papers", href: "/call-for-papers" },
   { id: "academicPositions", title: "Academic Positions", href: "/academic-positions" },
   { id: "help", title: "Help", href: "/help" },
-  { id: "results", title: "Results", href: "/results" },
+  { id: "results", title: "Exams & Results", href: RESULTS_BASE_PATH },
   { id: "contributions", title: "Contributions", href: "/contributions" },
   { id: "supervisors", title: "Supervisors", href: "/supervisor" },
   { id: "recommendations", title: "Recommendations", href: "/supervisor" },

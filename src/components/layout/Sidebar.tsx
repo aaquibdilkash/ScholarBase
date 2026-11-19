@@ -38,6 +38,7 @@ import { supabase } from "@/utils/supabase/client";
 import { privateChannelSync, userTopic, withRealtimeAuth } from "@/lib/realtime";
 import { useNavigationDrawer } from "@/components/layout/NavigationDrawerProvider";
 import { isComingSoon } from "@/lib/feature-flags";
+import { RESULTS_BASE_PATH } from "@/lib/results/routes";
 
 type SidebarUser = {
   id: string;
@@ -327,7 +328,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Admissions", href: "/admissions", icon: <GraduationCap className="h-6 w-6 shrink-0" /> },
       { name: "Academic Positions", href: "/academic-positions", icon: <Briefcase className="h-6 w-6 shrink-0" /> },
       { name: "Call for Papers", href: "/call-for-papers", icon: <Calendar className="h-6 w-6 shrink-0" /> },
-      { name: "Results", href: "/results", icon: <BarChart2 className="h-6 w-6 shrink-0" /> },
+      { name: "Exams & Results", href: RESULTS_BASE_PATH, icon: <BarChart2 className="h-6 w-6 shrink-0" /> },
       { name: "Research Grants", href: "/grants", icon: <HandCoins className="h-6 w-6 shrink-0" /> },
       { name: "Research Blog", href: "/blog", icon: <FileText className="h-6 w-6 shrink-0" /> },
       { name: "Research Tools", href: "/research-tools", icon: <Search className="h-6 w-6 shrink-0" /> },

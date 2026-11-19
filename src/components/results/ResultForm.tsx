@@ -18,12 +18,19 @@ import {
   MAX_RESULT_SESSION,
   MAX_RESULT_DESCRIPTION,
   MAX_RESULT_NOTIFICATION_LINK,
-  MAX_RESULT_RESULT_LINK,
+  MAX_RESULT_CHECK_OR_APPLY_LINK,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import type { ResultWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
+  RESULT_KIND_OPTIONS,
+  RESULT_OUTCOME_OPTIONS,
+  isExamNotification,
+} from "@/lib/results/entry-types";
+import { resultHref } from "@/lib/results/routes";
+import {
+  RESULT_KIND_TIP,
   RESULT_TITLE_TIP,
   RESULT_TYPE_TIP,
   RESULT_CATEGORY_TIP,
@@ -31,27 +38,20 @@ import {
   RESULT_SESSION_TIP,
   RESULT_DESCRIPTION_TIP,
   RESULT_NOTIFICATION_LINK_TIP,
-  RESULT_RESULT_LINK_TIP,
+  RESULT_CHECK_OR_APPLY_LINK_TIP,
 } from "@/constants/tooltips";
 
 export type ResultFormValues = {
   title: string;
+  kind: string;
   type: string;
   category: string;
   conductingBody: string;
   session: string;
   description: string;
   notificationLink: string;
-  resultLink: string;
+  checkOrApplyLink: string;
 };
-
-const RESULT_TYPES = [
-  { value: "EXAM", label: "Exam Result" },
-  { value: "ADMISSION", label: "Admission Result" },
-  { value: "VACANCY", label: "Vacancy Result" },
-  { value: "EVENT", label: "Event Result" },
-  { value: "OTHER", label: "Other Result" },
-];
 
 export default function ResultForm({
   mode,
@@ -65,13 +65,14 @@ export default function ResultForm({
   const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
+    kind: initialValues?.kind ?? "RESULT_NOTIFICATION",
     type: initialValues?.type ?? "EXAM",
     category: initialValues?.category ?? "",
     conductingBody: initialValues?.conductingBody ?? "",
     session: initialValues?.session ?? "",
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
-    resultLink: initialValues?.resultLink ?? "",
+    checkOrApplyLink: initialValues?.checkOrApplyLink ?? "",
   };
 
   const draftKey = mode === "edit" ? null : "draft_result_create";
@@ -80,6 +81,7 @@ export default function ResultForm({
     initial
   );
   const queryClient = useQueryClient();
+  const examNotification = isExamNotification(draftFields.kind);
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -87,12 +89,12 @@ export default function ResultForm({
       resetOnSuccess: mode !== "edit",
       successMessage:
         mode === "create"
-          ? "Result published successfully!"
-          : "Result updated successfully!",
+          ? "Exam / result published successfully!"
+          : "Exam / result updated successfully!",
       errorMessage:
         mode === "create"
-          ? "Failed to publish result."
-          : "Failed to update result.",
+          ? "Failed to publish exam / result."
+          : "Failed to update exam / result.",
       onSuccess: (response) => {
         if (response.success && response.data) {
           const data = response.data as ResultWithAuthor;
@@ -102,7 +104,7 @@ export default function ResultForm({
             data,
             mode,
           );
-          router.push(`/results/${data.id}`);
+          router.push(resultHref(data.id));
         }
       },
     },
@@ -155,23 +157,47 @@ export default function ResultForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
-            Result Type
-            <InfoTooltip message={RESULT_TYPE_TIP} />
+            Post Type
+            <InfoTooltip message={RESULT_KIND_TIP} />
           </label>
           <Select
-            name="type"
+            name="kind"
             className="sb-select"
             required
-            value={draftFields.type}
-            onChange={(e) => updateDraftField("type", e.target.value)}
+            value={draftFields.kind}
+            onChange={(e) => updateDraftField("kind", e.target.value)}
           >
-            {RESULT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
+            {RESULT_KIND_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>
         </div>
+        {!examNotification && (
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Result Type
+              <InfoTooltip message={RESULT_TYPE_TIP} />
+            </label>
+            <Select
+              name="type"
+              className="sb-select"
+              required
+              value={draftFields.type}
+              onChange={(e) => updateDraftField("type", e.target.value)}
+            >
+              {RESULT_OUTCOME_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Category (Optional)
@@ -189,9 +215,6 @@ export default function ResultForm({
             {draftFields.category.length}/{MAX_RESULT_CATEGORY} characters
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Conducting Body (Optional)
@@ -209,22 +232,23 @@ export default function ResultForm({
             {draftFields.conductingBody.length}/{MAX_RESULT_CONDUCTING_BODY} characters
           </div>
         </div>
-        <div>
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Session (Optional)
-            <InfoTooltip message={RESULT_SESSION_TIP} />
-          </label>
-          <input
-            name="session"
-            placeholder="e.g., June 2024, December 2024"
-            className="sb-input"
-            maxLength={MAX_RESULT_SESSION}
-            value={draftFields.session}
-            onChange={(e) => updateDraftField("session", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.session.length}/{MAX_RESULT_SESSION} characters
-          </div>
+      </div>
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Session (Optional)
+          <InfoTooltip message={RESULT_SESSION_TIP} />
+        </label>
+        <input
+          name="session"
+          placeholder="e.g., June 2024, December 2024"
+          className="sb-input"
+          maxLength={MAX_RESULT_SESSION}
+          value={draftFields.session}
+          onChange={(e) => updateDraftField("session", e.target.value)}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.session.length}/{MAX_RESULT_SESSION} characters
         </div>
       </div>
 
@@ -267,21 +291,29 @@ export default function ResultForm({
 
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">
-          Result / Outcome URL (Optional)
-          <InfoTooltip message={RESULT_RESULT_LINK_TIP} />
+          {examNotification
+            ? "Apply / Check Details URL (Optional)"
+            : "Result / Outcome URL (Optional)"}
+          <InfoTooltip message={RESULT_CHECK_OR_APPLY_LINK_TIP} />
         </label>
         <input
           type="url"
           pattern="https?://.+"
-          name="resultLink"
-          placeholder="https://ntaresults.nic.in/..."
+          name="checkOrApplyLink"
+          placeholder={
+            examNotification
+              ? "https://nta.ac.in/apply"
+              : "https://ntaresults.nic.in/..."
+          }
           className="sb-input"
-          maxLength={MAX_RESULT_RESULT_LINK}
-          value={draftFields.resultLink}
-          onChange={(e) => updateDraftField("resultLink", e.target.value)}
+          maxLength={MAX_RESULT_CHECK_OR_APPLY_LINK}
+          value={draftFields.checkOrApplyLink}
+          onChange={(e) =>
+            updateDraftField("checkOrApplyLink", e.target.value)
+          }
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {draftFields.resultLink.length}/{MAX_RESULT_RESULT_LINK} characters
+          {draftFields.checkOrApplyLink.length}/{MAX_RESULT_CHECK_OR_APPLY_LINK} characters
         </div>
       </div>
 
@@ -292,7 +324,7 @@ export default function ResultForm({
           loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
           disabled={submitting || isFormOverLimit}
         >
-          {mode === "edit" ? "Save Changes" : "Publish Result"}
+          {mode === "edit" ? "Save Changes" : "Publish"}
         </SubmitBtnWithAuth>
       </div>
     </form>

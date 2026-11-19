@@ -14,14 +14,8 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { ResultWithAuthor } from "@/types/cards";
-
-const TYPE_LABELS: Record<string, string> = {
-  ADMISSION: "Admission Result",
-  VACANCY: "Vacancy Result",
-  EVENT: "Event Result",
-  EXAM: "Exam Result",
-  OTHER: "Other Result",
-};
+import { resultBadgeLabel, resultLinkActions } from "@/lib/results/entry-types";
+import { resultEditHref, resultHref } from "@/lib/results/routes";
 
 export function ResultCard({
   result,
@@ -36,11 +30,15 @@ export function ResultCard({
   const isFollowing = (result.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (result.votes || [])[0]?.voteType ?? null;
-  // Share payload: mirror results/[id]/page.tsx generateMetadata().
+  // Share payload: mirror exams-and-results/[id]/page.tsx generateMetadata().
   const shareTitle = result.title;
   const shareText =
     (result.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ||
     result.title;
+  const links = resultLinkActions(result.kind, {
+    notificationLink: result.notificationLink,
+    checkOrApplyLink: result.checkOrApplyLink,
+  });
 
   return (
     <ListPageCardShell
@@ -57,13 +55,13 @@ export function ResultCard({
       frozenEntityType="POST"
       frozenOwnerId={result.author?.id ?? null}
       frozenHasActiveAppeal={result.hasActiveAppeal ?? false}
-      detailPageHref={`/results/${result.id}`}
+      detailPageHref={resultHref(result.id)}
       shareTitle={shareTitle}
       shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
-            editHref={`/results/${result.id}/edit`}
+            editHref={resultEditHref(result.id)}
             isOwner={true}
             onDelete={async () => {
               try {
@@ -109,7 +107,7 @@ export function ResultCard({
           initialIsBookmarked={Array.isArray(result.bookmarks) && result.bookmarks.length > 0}
         />
       }
-      footerCommentsHref={`/results/${result.id}`}
+      footerCommentsHref={resultHref(result.id)}
       footerCommentsCount={result.totalComments}
       footerReportMenu={
         <ReportMenu
@@ -124,28 +122,34 @@ export function ResultCard({
       }
       noBodyLink={true}
       bodyBottomContent={
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <SafeExternalLink
-            url={result.notificationLink}
-            onClick={(e) => e.stopPropagation()}
-            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-          >
-            View Notification
-          </SafeExternalLink>
-          <SafeExternalLink
-            url={result.resultLink}
-            onClick={(e) => e.stopPropagation()}
-            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-          >
-            Check Results
-          </SafeExternalLink>
-        </div>
+        (links.primary || links.secondary) && (
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            {links.primary && (
+              <SafeExternalLink
+                url={links.primary.href}
+                onClick={(e) => e.stopPropagation()}
+                className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+              >
+                {links.primary.label}
+              </SafeExternalLink>
+            )}
+            {links.secondary && (
+              <SafeExternalLink
+                url={links.secondary.href}
+                onClick={(e) => e.stopPropagation()}
+                className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
+              >
+                {links.secondary.label}
+              </SafeExternalLink>
+            )}
+          </div>
+        )
       }
     >
-      <Link href={`/results/${result.id}`} prefetch={false} className="block group">
+      <Link href={resultHref(result.id)} prefetch={false} className="block group">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
-            {TYPE_LABELS[result.type] || result.type}
+            {resultBadgeLabel(result.kind, result.type)}
           </span>
           {result.category && (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">

@@ -25,7 +25,7 @@ DECLARE
   content_tables text[] := ARRAY[
     'Article', 'SocialPost', 'HelpPost', 'Contribution',
     'Publication', 'ResearchTool', 'ResearchGrant', 'Course',
-    'Result', 'ResearchSurvey', 'CallForPaper',
+    'ExamsAndResults', 'ResearchSurvey', 'CallForPaper',
     'Admission', 'AcademicPosition', 'Recommendation', 'JournalReview'
   ];
 

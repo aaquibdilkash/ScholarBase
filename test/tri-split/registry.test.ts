@@ -231,12 +231,13 @@ describe("CONTENT_LIST_CONFIGS", () => {
     );
   });
 
-  it("RESULT selects the outbound links its list card renders", () => {
-    // Regression: `ResultCard` renders "View Notification" and "Check Results"
-    // from these columns. Omitting them made the list page drop both buttons
-    // while the detail page still showed them.
+  it("RESULT selects the kind and outbound links its list card renders", () => {
+    // Regression: `ResultCard` badges a row by kind/type and renders the
+    // "View official notification" / "Check result" actions from these
+    // columns. Omitting them made the list page drop the badge and both
+    // buttons while the detail page still showed them.
     const result = CONTENT_LIST_CONFIGS.RESULT;
-    for (const field of ["notificationLink", "resultLink"]) {
+    for (const field of ["kind", "type", "notificationLink", "checkOrApplyLink"]) {
       expect(result.select[field], field).toBe(true);
     }
   });

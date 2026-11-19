@@ -105,15 +105,15 @@ describe("raw SQL identifiers resolve against the live schema", () => {
     expect(columns, section).toContain("createdAt");
   });
 
-  it.each(PROFILE_SECTION_KEYS)("%s: bookmark parent is the section's own table", (section) => {
+  it.each(PROFILE_SECTION_KEYS)("%s: bookmark parent relation points at the section table", (section) => {
     const config = ENTITY_CONFIG[SECTION_MODULE[section]];
-    expect(
-      pascal(
-        PROFILE_SECTION_CONFIG[section as keyof typeof PROFILE_SECTION_CONFIG]
-          .bookmarkParent,
-      ),
-      section,
-    ).toBe(pascal(config.model));
+    const bookmarkConfig =
+      PROFILE_SECTION_CONFIG[section as keyof typeof PROFILE_SECTION_CONFIG];
+    const relation = model(pascal(bookmarkConfig.bookmarkModel)).fields.find(
+      (field) => field.name === bookmarkConfig.bookmarkParent,
+    );
+    expect(relation, section).toBeDefined();
+    expect(relation?.type, section).toBe(pascal(config.model));
   });
 });
 

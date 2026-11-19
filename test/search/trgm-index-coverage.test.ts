@@ -24,7 +24,7 @@ const MIGRATION_PATH = join(
   process.cwd(),
   "prisma/migrations/20261031120000_search_trgm_indexes/migration.sql",
 );
-const MIGRATION =
+const MIGRATION = (
   readFileSync(MIGRATION_PATH, "utf8") +
   readFileSync(
     join(
@@ -67,7 +67,18 @@ const MIGRATION =
       "prisma/migrations/20261116140000_course_fields/migration.sql",
     ),
     "utf8",
-  );
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261119120000_result_kind/migration.sql",
+    ),
+    "utf8",
+  )
+)
+  // Results became ExamsAndResults in a later migration. Normalise the legacy
+  // index names so the assertions check the indexes that exist today.
+  .replaceAll("Result_", "ExamsAndResults_");
 
 function hasIndex(name: string): boolean {
   return new RegExp(`CREATE INDEX IF NOT EXISTS "${name}"`).test(MIGRATION);

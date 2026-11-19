@@ -49,8 +49,8 @@ export default async function EditRecommendationPage({
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.recommendation.title}
       description={EDIT_PAGE_TEXT.recommendation.description}
-      backHref={`/supervisor/${id}/recommendation/${recommendationId}`}
-      backLabel="Cancel and Back to Recommendation"
+      backHref={`/supervisor/${id}#recommendations`}
+      backLabel="Cancel and Back to Recommendations"
       maxWidth="sm"
     >
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 dark:bg-slate-900 dark:border-slate-800">

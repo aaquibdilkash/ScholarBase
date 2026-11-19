@@ -157,14 +157,15 @@ export const REJECTION_REASON_TIP = "Provide a clear reason for rejection. This 
 // -----------------------------------------------------------------------------
 // RESULTS MODULE
 // -----------------------------------------------------------------------------
-export const RESULT_TITLE_TIP = "A descriptive title for the result announcement.";
-export const RESULT_TYPE_TIP = "The category of result (exam, admission, vacancy, event).";
+export const RESULT_KIND_TIP = "Choose whether this announces an exam or declares a result.";
+export const RESULT_TITLE_TIP = "A descriptive title for the exam notification or result.";
+export const RESULT_TYPE_TIP = "The outcome subject for a result notification.";
 export const RESULT_CATEGORY_TIP = "The specific exam or result category (e.g., NET, GATE, CAT).";
 export const RESULT_CONDUCTING_BODY_TIP = "The organization that conducted the exam or process.";
 export const RESULT_SESSION_TIP = "The exam session or cycle (e.g., June 2024, December 2024).";
-export const RESULT_DESCRIPTION_TIP = "Key details about the result, cutoffs, and statistics.";
-export const RESULT_NOTIFICATION_LINK_TIP = "URL to the official result notification.";
-export const RESULT_RESULT_LINK_TIP = "URL where candidates can check their individual results.";
+export const RESULT_DESCRIPTION_TIP = "Key details about the exam, result, cutoffs, and statistics.";
+export const RESULT_NOTIFICATION_LINK_TIP = "URL to the official notification.";
+export const RESULT_CHECK_OR_APPLY_LINK_TIP = "Where candidates check their result or apply for the exam.";
 
 // -----------------------------------------------------------------------------
 // HELP / FEEDBACK MODULE

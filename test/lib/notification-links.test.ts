@@ -28,7 +28,7 @@ function notification(partial: Partial<Notification>): Notification {
 }
 
 describe("target links", () => {
-  it("routes a journal review to the review, not the journal", () => {
+  it("routes a journal review to the journal's review section", () => {
     expect(
       getNotificationLink(
         notification({
@@ -36,10 +36,10 @@ describe("target links", () => {
           targetId: "journal-1/review-1",
         }),
       ),
-    ).toBe("/journals/journal-1/review/review-1");
+    ).toBe("/journals/journal-1#reviews");
   });
 
-  it("routes a recommendation through its supervisor", () => {
+  it("routes a recommendation to the supervisor's recommendation section", () => {
     expect(
       getNotificationLink(
         notification({
@@ -47,7 +47,7 @@ describe("target links", () => {
           targetId: "supervisor-1/rec-1",
         }),
       ),
-    ).toBe("/supervisor/supervisor-1/recommendation/rec-1");
+    ).toBe("/supervisor/supervisor-1#recommendations");
   });
 
   it("returns null for a nested target with no parent id, rather than a dead link", () => {
@@ -65,17 +65,17 @@ describe("target links", () => {
         getNotificationLink(
           notification({ targetType, targetId: "journal-1/review-1" }),
         ),
-      ).toBe("/journals/journal-1/review/review-1");
+      ).toBe("/journals/journal-1#reviews");
     }
   });
 
-  it("anchors comment-bearing notification types to the discussion", () => {
+  it("keeps a parent section anchor for comment-bearing nested targets", () => {
     for (const type of ["mention", "NEW_COMMENT", "NEW_REPLY"]) {
       expect(
         getNotificationLink(
           notification({ type, targetType: "journalReview", targetId: "j1/r1" }),
         ),
-      ).toBe("/journals/j1/review/r1#comments");
+      ).toBe("/journals/j1#reviews");
     }
   });
 

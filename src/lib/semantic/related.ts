@@ -13,6 +13,7 @@ import { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/db";
 import { stripHtmlTags } from "@/lib/html";
+import { resultHref } from "@/lib/results/routes";
 
 import { clampMatchLimit, type SemanticMatch } from "./matching";
 import { EMBEDDING_TABLES, type EmbeddingEntityType } from "./text";
@@ -398,7 +399,7 @@ async function hydrateItems(
     }
 
     case "RESULT": {
-      const rows = await prisma.result.findMany({
+      const rows = await prisma.examsAndResults.findMany({
         where,
         select: {
           id: true,
@@ -409,7 +410,7 @@ async function hydrateItems(
       });
 
       for (const row of rows) {
-        setItem(items, row.id, `/results/${row.id}`, row.title, {
+        setItem(items, row.id, resultHref(row.id), row.title, {
           subtitle: row.conductingBody ?? undefined,
           avatarUrl: row.author?.avatarUrl ?? null,
           authorName: row.author?.name ?? undefined,
@@ -544,7 +545,7 @@ async function hydrateItems(
         setItem(
           items,
           row.id,
-          `/supervisor/${row.supervisorId}/recommendation/${row.id}`,
+          `/supervisor/${row.supervisorId}#recommendations`,
           excerpt(row.feedback) || "Recommendation",
           {
             subtitle: row.supervisor.name,
@@ -572,7 +573,7 @@ async function hydrateItems(
         setItem(
           items,
           row.id,
-          `/journals/${row.journalId}/review/${row.id}`,
+          `/journals/${row.journalId}#reviews`,
           excerpt(row.feedback) || "Journal review",
           {
             subtitle: row.journal.title,

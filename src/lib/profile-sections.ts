@@ -482,7 +482,7 @@ export type SectionPayloads = {
     include: ViewerInclude & JournalInclude;
   }>;
   supervisors: Prisma.SupervisorGetPayload<{ include: ViewerInclude }>;
-  results: Prisma.ResultGetPayload<{ include: ViewerInclude }>;
+  results: Prisma.ExamsAndResultsGetPayload<{ include: ViewerInclude }>;
   contributionPosts: Prisma.ContributionGetPayload<{ include: ViewerInclude }>;
   publications: Prisma.PublicationGetPayload<{ include: ViewerInclude }>;
   surveys: Prisma.ResearchSurveyGetPayload<{ include: ViewerInclude }>;

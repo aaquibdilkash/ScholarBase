@@ -25,7 +25,7 @@ vi.mock("@/lib/db", () => {
       researchGrant: delegate("researchGrant"),
       course: delegate("course"),
       journal: delegate("journal"),
-      result: delegate("result"),
+      examsAndResults: delegate("examsAndResults"),
       researchSurvey: delegate("researchSurvey"),
       callForPaper: delegate("callForPaper"),
       admission: delegate("admission"),
@@ -175,7 +175,7 @@ describe("related content lookup", () => {
     const recommendations = await getRelatedContent("RECOMMENDATION", "r1");
 
     expect(recommendations[0]).toMatchObject({
-      href: "/supervisor/s1/recommendation/r2",
+      href: "/supervisor/s1#recommendations",
       title: "Great mentorship.",
       subtitle: "Dr. Hopper",
     });
@@ -193,7 +193,7 @@ describe("related content lookup", () => {
     const reviews = await getRelatedContent("JOURNAL_REVIEW", "j3");
 
     expect(reviews[0]).toMatchObject({
-      href: "/journals/j1/review/j2",
+      href: "/journals/j1#reviews",
       title: "Rigorous but slow.",
       subtitle: "Journal of Graphs",
     });

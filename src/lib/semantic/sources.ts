@@ -208,7 +208,7 @@ export async function loadEmbeddingSources(
     }
 
     case "RESULT": {
-      const rows = await prisma.result.findMany({
+      const rows = await prisma.examsAndResults.findMany({
         where,
         select: {
           id: true,

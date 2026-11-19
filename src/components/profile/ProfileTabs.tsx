@@ -39,6 +39,7 @@ import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { JournalReviewCard } from "@/components/journals/JournalReviewCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
+import { RESULTS_BASE_PATH, resultHref } from "@/lib/results/routes";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { PublicationCard } from "@/components/publications/PublicationCard";
 import { SurveyCard } from "@/components/surveys/SurveyCard";
@@ -236,8 +237,8 @@ const SECTIONS: SectionWithCount[] = [
   },
   {
     key: "results",
-    title: "Results",
-    emptyMessage: "No results posted yet.",
+    title: "Exams & Results",
+    emptyMessage: "No exam notifications or results posted yet.",
     renderItems: (items: ResultType[], currentUserId) =>
       items.map((r) => (
         <ResultCard key={r.id} result={r} currentUserId={currentUserId} />
@@ -789,16 +790,13 @@ const ACTIVITY_META: Record<
   PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
   JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },
   // A review vote writes the nested `journalId/reviewId` id (see
-  // handleVoteTransaction), so the entry links to the review itself rather than
-  // to the journal it belongs to. Without this entry the activity tab fell back
-  // to the generic "voted on content" wording.
+  // handleVoteTransaction). Reviews have no page of their own, so the entry
+  // links to the journal's review section.
   JOURNAL_REVIEW: {
     label: "journal review",
     href: (id) => {
-      const [journalId, reviewId] = id.split("/");
-      return journalId && reviewId
-        ? `/journals/${journalId}/review/${reviewId}`
-        : undefined;
+      const [journalId] = id.split("/");
+      return journalId ? `/journals/${journalId}#reviews` : undefined;
     },
   },
   RESEARCH_TOOL: {
@@ -809,15 +807,15 @@ const ACTIVITY_META: Record<
   CALL_FOR_PAPER: { label: "research event", href: (id) => `/call-for-papers/${id}` },
   ACADEMIC_POSITION: { label: "academic position", href: (id) => `/academic-positions/${id}` },
   HELP_POST: { label: "help post", href: (id) => `/help/${id}` },
-  RESULT: { label: "result", href: (id) => `/results/${id}` },
+  RESULT: { label: "result", href: resultHref },
   CONTRIBUTION: { label: "contribution", href: (id) => `/contributions/${id}` },
   SUPERVISOR: { label: "supervisor", href: (id) => `/supervisor/${id}` },
   RECOMMENDATION: {
     label: "recommendation",
     href: (id) => {
-      const [supervisorId, recommendationId] = id.split("/");
-      return supervisorId && recommendationId
-        ? `/supervisor/${supervisorId}/recommendation/${recommendationId}`
+      const [supervisorId] = id.split("/");
+      return supervisorId
+        ? `/supervisor/${supervisorId}#recommendations`
         : undefined;
     },
   },
@@ -865,7 +863,7 @@ const MODULE_ROUTE: Record<string, string> = {
   CALL_FOR_PAPER: "/call-for-papers",
   ACADEMIC_POSITION: "/academic-positions",
   HELP_POST: "/help",
-  RESULT: "/results",
+  RESULT: RESULTS_BASE_PATH,
   CONTRIBUTION: "/contributions",
   SUPERVISOR: "/supervisor",
   RECOMMENDATION: "/supervisor",

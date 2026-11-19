@@ -107,6 +107,18 @@ const nextConfig: NextConfig = {
         destination: "/academic-positions/:path*",
         permanent: true,
       },
+      // Results became Exams & Results; keep old links, bookmarks and search
+      // results working.
+      {
+        source: "/results",
+        destination: "/exams-and-results",
+        permanent: true,
+      },
+      {
+        source: "/results/:path*",
+        destination: "/exams-and-results/:path*",
+        permanent: true,
+      },
     ];
   },
   async headers() {

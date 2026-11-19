@@ -23,6 +23,15 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
+import {
+  resultBadgeLabel,
+  resultLinkActions,
+} from "@/lib/results/entry-types";
+import {
+  RESULTS_BASE_PATH,
+  resultHref,
+  resultEditHref,
+} from "@/lib/results/routes";
 
 export async function generateMetadata({
   params,
@@ -37,12 +46,12 @@ export async function generateMetadata({
   return buildMetadata({
     title: result.title,
     description: result.description.slice(0, 160),
-    path: `/results/${result.id}`,
+    path: resultHref(result.id),
     type: "article",
   });
 }
 
-const ResultDetailPage = async ({
+const ExamOrResultDetailPage = async ({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -60,28 +69,24 @@ const ResultDetailPage = async ({
     if (!removed) notFound();
     return (
       <RemovedContentNotice
-        backHref="/results"
-        backLabel="Back to Results"
+        backHref={RESULTS_BASE_PATH}
+        backLabel="Back to Exams & Results"
         entityId={removed.id}
         module="RESULT"
         ownerId={removed.authorId}
         currentUserId={user?.id}
         hasActiveAppeal={removed.hasActiveAppeal}
-        noun="result"
+        noun="exam or result"
       />
     );
   }
 
-  const TYPE_LABELS: Record<string, string> = {
-    ADMISSION: "Admission Result",
-    VACANCY: "Vacancy Result",
-    EVENT: "Event Result",
-    EXAM: "Exam Result",
-    OTHER: "Other Result",
-  };
-
   const userVote =
     (result.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
+  const links = resultLinkActions(result.kind, {
+    notificationLink: result.notificationLink,
+    checkOrApplyLink: result.checkOrApplyLink,
+  });
 
   const related = await getRelatedContent("RESULT", result.id);
 
@@ -92,7 +97,7 @@ const ResultDetailPage = async ({
           data={[
             buildContentJsonLd({
               type: CONTENT_SCHEMA.result,
-              path: `/results/${result.id}`,
+              path: resultHref(result.id),
               name: result.title,
               description: result.description,
               author: {
@@ -101,24 +106,26 @@ const ResultDetailPage = async ({
               },
               datePublished: result.createdAt,
               dateModified: result.editedAt,
-              extra: { genre: "Academic result" },
+              extra: { genre: "Exam notification or academic result" },
             }),
             buildBreadcrumbList([
-              { name: "Results", path: "/results" },
-              { name: result.title, path: `/results/${result.id}` },
+              { name: "Exams & Results", path: RESULTS_BASE_PATH },
+              { name: result.title, path: resultHref(result.id) },
             ]),
           ]}
         />
       }
-      relatedContent={<RelatedContent title="Related results" items={related} />}
+      relatedContent={
+        <RelatedContent title="Related exams and results" items={related} />
+      }
       isFrozen={result.isFrozen ?? false}
       frozenEntityId={result.id}
       frozenModule="RESULT"
       frozenEntityType="POST"
       frozenOwnerId={result.author?.id ?? null}
       frozenHasActiveAppeal={result.hasActiveAppeal ?? false}
-      backHref="/results"
-      backLabel="Back to Results"
+      backHref={RESULTS_BASE_PATH}
+      backLabel="Back to Exams & Results"
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
       authorHandle={result.author?.handle || undefined}
@@ -127,15 +134,18 @@ const ResultDetailPage = async ({
       managementControls={
         user?.id === result.author?.id ? (
           <OwnerActionsDropdown
-            editHref={`/results/${result.id}/edit`}
+            editHref={resultEditHref(result.id)}
             onDelete={async () => {
               "use server";
               const res = await deleteResult(result.id);
               if (res?.success === false) return res;
-              return { redirect: "/results", invalidateQueries: [["results"]] };
+              return {
+                redirect: RESULTS_BASE_PATH,
+                invalidateQueries: [["results"]],
+              };
             }}
             isOwner={true}
-            editLabel="Edit Result"
+            editLabel="Edit Exam or Result"
             deleteLabel="Delete"
           />
         ) : null
@@ -174,7 +184,7 @@ const ResultDetailPage = async ({
           }
         />
       }
-      footerCommentsHref={`/results/${result.id}#comments`}
+      footerCommentsHref={`${resultHref(result.id)}#comments`}
       footerCommentsCount={result.totalComments}
       footerReportMenu={
         <ReportMenu
@@ -201,7 +211,7 @@ const ResultDetailPage = async ({
     >
       <div className="mb-4 flex items-center gap-2">
         <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
-          {TYPE_LABELS[result.type] || result.type}
+          {resultBadgeLabel(result.kind, result.type)}
         </span>
         {result.category && (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -224,7 +234,9 @@ const ResultDetailPage = async ({
           {result.conductingBody && (
             <div className="flex min-w-0 items-center gap-2 break-words [overflow-wrap:anywhere]">
               <Building2 className="h-5 w-5 shrink-0" />
-              <span className="min-w-0 flex-1">Conducting Body: {result.conductingBody}</span>
+              <span className="min-w-0 flex-1">
+                Conducting Body: {result.conductingBody}
+              </span>
             </div>
           )}
           {result.session && (
@@ -236,22 +248,28 @@ const ResultDetailPage = async ({
         </div>
       )}
 
-      <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <SafeExternalLink
-          url={result.notificationLink}
-          className="flex-1 sb-button-soft"
-        >
-          View Notification
-        </SafeExternalLink>
-        <SafeExternalLink
-          url={result.resultLink}
-          className="flex-1 sb-button-primary"
-        >
-          Check Results
-        </SafeExternalLink>
-      </div>
+      {(links.primary || links.secondary) && (
+        <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {links.primary && (
+            <SafeExternalLink
+              url={links.primary.href}
+              className="flex-1 sb-button-primary"
+            >
+              {links.primary.label}
+            </SafeExternalLink>
+          )}
+          {links.secondary && (
+            <SafeExternalLink
+              url={links.secondary.href}
+              className="flex-1 sb-button-soft"
+            >
+              {links.secondary.label}
+            </SafeExternalLink>
+          )}
+        </div>
+      )}
     </DetailPageCardShell>
   );
 };
 
-export default ResultDetailPage;
+export default ExamOrResultDetailPage;

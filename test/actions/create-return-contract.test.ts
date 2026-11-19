@@ -248,8 +248,8 @@ const SPECS = [
     expectRow: { title: "Nature" },
   },
   {
-    name: "Result",
-    model: "result",
+    name: "ExamsAndResults",
+    model: "examsAndResults",
     create: createResult,
     fields: {
       title: "Key result",

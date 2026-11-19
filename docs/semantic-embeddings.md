@@ -19,7 +19,7 @@ trigram + `tsvector` indexes, and no search query reads an embedding.
 | Research grant | `ResearchGrant` | `title`, `description` |
 | Course | `Course` | `title`, `provider`, `instructor`, `format`, `level`, `description` |
 | Journal | `Journal` | `title`, `publisher`, `about`, `subjectArea` |
-| Result | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
+| Result | `ExamsAndResults` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Survey | `ResearchSurvey` | `title`, `description` |
 | Call for papers | `CallForPaper` | `title`, `location`, `description` |
 | Admission | `Admission` | `university`, `department`, `level`, `description` |
@@ -219,8 +219,6 @@ card via `<RelatedContent>`:
 | `/admissions/[id]` | `ADMISSION` | Related admissions |
 | `/academic-positions/[id]` | `ACADEMIC_POSITION` | Related academic positions |
 | `/supervisor/[id]` | `SUPERVISOR` | Related supervisors |
-| `/supervisor/[id]/recommendation/[recommendationId]` | `RECOMMENDATION` | Related recommendations |
-| `/journals/[id]/review/[reviewId]` | `JOURNAL_REVIEW` | Related journal reviews |
 
 The section renders nothing when the source has no vector yet (fresh row, worker
 not run) or when fewer than one neighbour was hydrated, so a detail page is

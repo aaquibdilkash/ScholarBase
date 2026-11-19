@@ -9,6 +9,7 @@ import { ResultCard } from "./ResultCard";
 import type { ResultWithAuthor } from "@/types/cards";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getResults } from "@/app/actions/results";
+import { RESULTS_BASE_PATH } from "@/lib/results/routes";
 
 export function ResultsList({
   results,
@@ -20,7 +21,7 @@ export function ResultsList({
   initialQuery?: string;
 }) {
   const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } = useListSearch(
-    "/results",
+    RESULTS_BASE_PATH,
     initialQuery,
   );
   // Client-side search: the key tracks the applied term, so a new term fetches
@@ -60,7 +61,10 @@ export function ResultsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage={listEmptyMessage(appliedQuery, "No results posted yet.")}
+        emptyMessage={listEmptyMessage(
+          appliedQuery,
+          "No exam notifications or results posted yet.",
+        )}
       />
     </div>
   );

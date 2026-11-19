@@ -38,7 +38,7 @@ export const STATIC_PATHS = [
   "/admissions",
   "/academic-positions",
   "/call-for-papers",
-  "/results",
+  "/exams-and-results",
   "/blog",
   "/research-tools",
   "/grants",

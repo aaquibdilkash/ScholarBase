@@ -1,5 +1,7 @@
 import type { Notification } from "@prisma/client";
 
+import { resultHref } from "@/lib/results/routes";
+
 /**
  * Everything we know about a notification target, in ONE registry.
  *
@@ -28,8 +30,8 @@ type TargetDef = {
 /**
  * Reviews and recommendations are nested under a parent (a journal, a
  * supervisor), so their notification target id is the composite
- * `parentId/childId`. A bare child id resolves to nothing rather than to a URL
- * that 404s.
+ * `parentId/childId`. They have no page of their own, so the link resolves to
+ * the parent's section anchor; a bare child id still resolves to nothing.
  */
 const nested = (build: (parentId: string, childId: string) => string) =>
   (targetId: string) => {
@@ -45,12 +47,12 @@ const TARGETS = {
   academicPosition: { link: (t: string) => `/academic-positions/${t}`, label: "Academic Positions", noun: "academic position" },
   admission: { link: (t: string) => `/admissions/${t}`, label: "Admissions", noun: "admission" },
   recommendation: {
-    link: nested((p, c) => `/supervisor/${p}/recommendation/${c}`),
+    link: nested((p) => `/supervisor/${p}#recommendations`),
     label: "Supervisor recommendation",
     noun: "recommendation",
   },
   journalReview: {
-    link: nested((p, c) => `/journals/${p}/review/${c}`),
+    link: nested((p) => `/journals/${p}#reviews`),
     label: "Journal review",
     noun: "journal review",
   },
@@ -59,7 +61,7 @@ const TARGETS = {
   researchTool: { link: (t: string) => `/research-tools/${t}`, label: "Research Tools", noun: "research tool" },
   researchGrant: { link: (t: string) => `/grants/${t}`, label: "Research Grants", noun: "research grant" },
   course: { link: (t: string) => `/learn/${t}`, label: "Courses", noun: "course" },
-  result: { link: (t: string) => `/results/${t}`, label: "Results", noun: "result" },
+  result: { link: (t: string) => resultHref(t), label: "Exams & Results", noun: "result" },
   contribution: { link: (t: string) => `/contributions/${t}`, label: "Contributions", noun: "contribution" },
   publication: { link: (t: string) => `/publications/${t}`, label: "Publications", noun: "publication" },
   survey: { link: (t: string) => `/surveys/${t}`, label: "Research Survey", noun: "survey" },
@@ -144,6 +146,10 @@ export function getNotificationLink(notification: Notification) {
   const discussionPath = () => {
     const basePath = pathFor(routeTargetId);
     if (!basePath) return null;
+    // Targets that already resolve to a parent section anchor (a review or a
+    // recommendation, which have no page of their own) have no discussion to
+    // jump to; keep the single valid fragment instead of appending a second.
+    if (basePath.includes("#")) return basePath;
     return commentId
       ? `${basePath}#comment-${encodeURIComponent(commentId)}`
       : `${basePath}#comments`;

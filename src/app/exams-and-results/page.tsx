@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
-
-export const metadata: Metadata = buildMetadata({
-  title: SEO_PAGES.results.title,
-  description: SEO_PAGES.results.description,
-  path: SEO_PAGES.results.path,
-  section: SEO_PAGES.results.section,
-});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { ResultsList } from "@/components/results/ResultsList";
@@ -15,10 +8,18 @@ import { getTrendingResults } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getResults } from "@/app/actions/results";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
+import { RESULTS_ADD_PATH, RESULTS_BASE_PATH } from "@/lib/results/routes";
+
+export const metadata: Metadata = buildMetadata({
+  title: SEO_PAGES.examsAndResults.title,
+  description: SEO_PAGES.examsAndResults.description,
+  path: SEO_PAGES.examsAndResults.path,
+  section: SEO_PAGES.examsAndResults.section,
+});
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 
-export default async function ResultsPage({
+export default async function ExamsAndResultsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
@@ -28,14 +29,14 @@ export default async function ResultsPage({
 
   return (
     <ListPageShell
-      title={LIST_PAGE_TEXT.results.title}
-      description={LIST_PAGE_TEXT.results.description}
-      addHref="/results/add"
-      addLabel="+ Add Result"
+      title={LIST_PAGE_TEXT.examsAndResults.title}
+      description={LIST_PAGE_TEXT.examsAndResults.description}
+      addHref={RESULTS_ADD_PATH}
+      addLabel="+ Add Exam or Result"
       tab={tab}
       enableTrending={true}
-      allHref="/results"
-      trendingHref="/results?tab=trending"
+      allHref={RESULTS_BASE_PATH}
+      trendingHref={`${RESULTS_BASE_PATH}?tab=trending`}
       trending={
         <AsyncListRegion
           fetcher={async () => {

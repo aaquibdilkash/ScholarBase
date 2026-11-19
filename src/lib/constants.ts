@@ -53,7 +53,7 @@ export const MAX_RESULT_CONDUCTING_BODY = 32;
 export const MAX_RESULT_SESSION = 32;
 export const MAX_RESULT_DESCRIPTION = 2048;
 export const MAX_RESULT_NOTIFICATION_LINK = 512;
-export const MAX_RESULT_RESULT_LINK = 512;
+export const MAX_RESULT_CHECK_OR_APPLY_LINK = 512;
 
 export const MAX_SUPERVISOR_NAME = 128;
 export const MAX_SUPERVISOR_UNIVERSITY = 128;
@@ -253,6 +253,7 @@ export const COMMENT_PAGE_SIZE = 5;
 
 // Rows per page in the admin panel tables (feeds, comments, users).
 export const ADMIN_PAGE_SIZE = 10;
+export const REVIEW_PAGE_SIZE = 10
 
 // Map ReportModule values to the contentType keys expected by moderateContent
 // and the admin content fetchers. Shared between client and server code so

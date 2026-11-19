@@ -20,6 +20,46 @@ import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/l
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import {
+  parseResultKind,
+  parseResultOutcomeType,
+  type ResultKindValue,
+} from "@/lib/results/entry-types";
+
+type ResolvedPostFields =
+  | { kind: ResultKindValue; type: string }
+  | { error: string };
+
+/**
+ * Resolves the kind/type pair for a create or edit.
+ *
+ * A result notification carries the chosen outcome type. An exam notification
+ * is always stored as `EXAM`, whatever the client sent. On edit, an omitted
+ * field keeps its stored value; switching the kind is an explicit choice, so an
+ * omitted type is only carried over when the kind did not change.
+ */
+function resolvePostFields(
+  formData: FormData,
+  existing?: { kind: ResultKindValue; type: string },
+): ResolvedPostFields {
+  const submittedKind = readOptionalFormValue(formData, "kind");
+  const kind =
+    submittedKind === null
+      ? (existing?.kind ?? "RESULT_NOTIFICATION")
+      : parseResultKind(submittedKind);
+  if (!kind) return { error: "Choose a valid post kind." };
+
+  if (kind === "EXAM_NOTIFICATION") return { kind, type: "EXAM" };
+
+  const submittedType = readOptionalFormValue(formData, "type");
+  const type =
+    submittedType === null
+      ? (existing?.kind === "RESULT_NOTIFICATION" ? existing.type : null)
+      : parseResultOutcomeType(submittedType);
+  if (!type) return { error: "Choose a valid outcome type." };
+
+  return { kind, type };
+}
 
 /**
  * Loads one page of result rows for the
@@ -43,18 +83,19 @@ export async function getResults(
 }
 
 export const getResult = cache(async (id: string, userId?: string) => {
-  return prisma.result.findUnique({
+  return prisma.examsAndResults.findUnique({
     where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,
       description: true,
+      kind: true,
       type: true,
       category: true,
       conductingBody: true,
       session: true,
       notificationLink: true,
-      resultLink: true,
+      checkOrApplyLink: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,
@@ -121,32 +162,38 @@ export async function createResult(formData: FormData) {
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESULT_DESCRIPTION, "Description");
-  const type = readFormValue(formData, "type");
+  const fields = resolvePostFields(formData);
+  if ("error" in fields) return { success: false, message: fields.error };
+  const { kind, type } = fields;
   const category = readOptionalFormValue(formData, "category");
   const conductingBody = readOptionalFormValue(formData, "conductingBody");
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
-  const resultLink = readOptionalFormValue(formData, "resultLink");
+  const checkOrApplyLink = readOptionalFormValue(formData, "checkOrApplyLink");
   let safeNotificationLink: string | null;
-  let safeResultLink: string | null;
+  let safeCheckOrApplyLink: string | null;
   try {
     safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-    safeResultLink = validateExternalUrl(resultLink, "Result link");
+    safeCheckOrApplyLink = validateExternalUrl(
+      checkOrApplyLink,
+      kind === "EXAM_NOTIFICATION" ? "Apply link" : "Result link",
+    );
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const newResult = await tx.result.create({
+    const newResult = await tx.examsAndResults.create({
       data: {
         title,
         description,
+        kind,
         type,
         category,
         conductingBody,
         session,
         notificationLink: safeNotificationLink,
-        resultLink: safeResultLink,
+        checkOrApplyLink: safeCheckOrApplyLink,
         authorId: user.id,
       },
       include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } } }
@@ -174,7 +221,9 @@ export async function createResult(formData: FormData) {
     type: "content-published",
     targetType: "Result",
     targetId: result.id,
-    title: `${user.email?.split("@")[0] || "Someone"} posted a new result`,
+    title: `${user.email?.split("@")[0] || "Someone"} posted a new ${
+      kind === "EXAM_NOTIFICATION" ? "exam notification" : "result"
+    }`,
     body: `${title}${category ? ` (${category})` : ""}${conductingBody ? ` - ${conductingBody}` : ""}`,
   });
 
@@ -193,24 +242,15 @@ export async function updateResult(formData: FormData, resultId: string) {
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESULT_DESCRIPTION, "Description");
-  const type = readFormValue(formData, "type");
   const category = readOptionalFormValue(formData, "category");
   const conductingBody = readOptionalFormValue(formData, "conductingBody");
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
-  const resultLink = readOptionalFormValue(formData, "resultLink");
-  let safeNotificationLink: string | null;
-  let safeResultLink: string | null;
-  try {
-    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-    safeResultLink = validateExternalUrl(resultLink, "Result link");
-  } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
-  }
+  const checkOrApplyLink = readOptionalFormValue(formData, "checkOrApplyLink");
 
-  const result = await prisma.result.findUnique({
+  const result = await prisma.examsAndResults.findUnique({
     where: { id: resultId },
-    select: { authorId: true },
+    select: { authorId: true, kind: true, type: true },
   });
 
   if (!result) {
@@ -220,17 +260,37 @@ export async function updateResult(formData: FormData, resultId: string) {
     throw new Error("Not authorized to edit this result.");
   }
 
-  const updatedResult = await prisma.result.update({
+  const fields = resolvePostFields(formData, {
+    kind: result.kind,
+    type: result.type,
+  });
+  if ("error" in fields) return { success: false, message: fields.error };
+  const { kind, type } = fields;
+
+  let safeNotificationLink: string | null;
+  let safeCheckOrApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeCheckOrApplyLink = validateExternalUrl(
+      checkOrApplyLink,
+      kind === "EXAM_NOTIFICATION" ? "Apply link" : "Result link",
+    );
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
+
+  const updatedResult = await prisma.examsAndResults.update({
     where: { id: resultId },
     data: {
       title,
       description,
+      kind,
       type,
       category,
       conductingBody,
       session,
       notificationLink: safeNotificationLink,
-      resultLink: safeResultLink,
+      checkOrApplyLink: safeCheckOrApplyLink,
       editedAt: new Date(),
     },
   });
@@ -247,7 +307,7 @@ export async function deleteResult(resultId: string) {
   const writeLimit = await enforceRateLimit({ namespace: "result:delete", key: user.id, limit: 20, window: "10 m" });
   if (!writeLimit.allowed) return { success: false as const, error: writeLimit.error };
 
-  const result = await prisma.result.findUnique({
+  const result = await prisma.examsAndResults.findUnique({
     where: { id: resultId },
     select: { authorId: true, totalVotes: true, totalComments: true },
   });
@@ -261,7 +321,7 @@ export async function deleteResult(resultId: string) {
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.result.update({
+    await tx.examsAndResults.update({
       where: { id: resultId },
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });

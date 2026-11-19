@@ -34,6 +34,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { SBIcon } from "@/components/SBIcon";
 import { SEO_PAGES } from "@/constants/seo";
 import { isComingSoon } from "@/lib/feature-flags";
+import { RESULTS_BASE_PATH } from "@/lib/results/routes";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.home.title,
@@ -123,9 +124,9 @@ export default async function HomePage() {
       icon: <BookMarked className="h-8 w-8" />,
     },
     {
-      title: "Results",
-      description: "Exam results and academic outcome announcements.",
-      href: "/results",
+      title: "Exams & Results",
+      description: "Exam notifications, results, and academic outcome announcements.",
+      href: RESULTS_BASE_PATH,
       icon: <BarChart className="h-8 w-8" />,
     },
     {

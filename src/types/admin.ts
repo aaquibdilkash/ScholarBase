@@ -11,7 +11,7 @@ import {
   ResearchGrant,
   ResearchSurvey,
   ResearchTool,
-  Result,
+  ExamsAndResults,
   SocialPost,
   Supervisor,
   Course,
@@ -87,7 +87,7 @@ export type ContentItem =
   | (Course & { author: User })
   | (AcademicPosition & { author: User })
   | (HelpPost & { author: User })
-  | (Result & { author: User })
+  | (ExamsAndResults & { author: User })
   | (Contribution & { author: User })
   | (Supervisor & { author: User })
   | (ResearchSurvey & { author: User })

@@ -18,7 +18,7 @@ const TABLE_TO_MODULE: Record<string, ModuleKey> = {
   ResearchGrant: 'RESEARCH_GRANT',
   Course: 'COURSE',
   Journal: 'JOURNAL',
-  Result: 'RESULT',
+  ExamsAndResults: 'RESULT',
   ResearchSurvey: 'RESEARCH_SURVEY',
   CallForPaper: 'CALL_FOR_PAPER',
   Admission: 'ADMISSION',

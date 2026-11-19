@@ -270,7 +270,7 @@ WHERE journal."isDeleted" = false
   )) <> ''
 ON CONFLICT ("entityType", "entityId") DO NOTHING;
 
-\echo 'Enqueuing results (Result)'
+\echo 'Enqueuing results (ExamsAndResults)'
 INSERT INTO "public"."EmbeddingJob" (
     "id",
     "entityType",
@@ -284,7 +284,7 @@ SELECT
     result."id",
     now(),
     now()
-FROM "public"."Result" AS result
+FROM "public"."ExamsAndResults" AS result
 WHERE result."isDeleted" = false
   AND result."embedding" IS NULL
   AND btrim(concat_ws(

@@ -149,12 +149,12 @@ export const SEO_PAGES = {
         path: "/surveys",
         section: "Surveys",
     },
-    results: {
-        title: "Academic Results | ScholarBase",
+    examsAndResults: {
+        title: "Exams & Results | ScholarBase",
         description:
-            "Track admissions, exam results, and academic updates shared by the ScholarBase community.",
-        path: "/results",
-        section: "Results",
+            "Track exam notifications, admissions, results, and academic updates shared by the ScholarBase community.",
+        path: "/exams-and-results",
+        section: "Exams & Results",
     },
     researchTools: {
         title: "Research Tools | ScholarBase",
@@ -313,10 +313,10 @@ export const SEO_CREATE_PAGES = {
         description:
             "Share a software tool, workflow, or scholarly resource with the academic community.",
     },
-    results: {
-        title: "Add a result | ScholarBase",
+    examsAndResults: {
+        title: "Add an exam or result | ScholarBase",
         description:
-            "Share a research result, academic update, or milestone with the ScholarBase community.",
+            "Announce an exam or share a result update with the ScholarBase community.",
     },
     supervisor: {
         title: "Add a supervisor | ScholarBase",
@@ -384,10 +384,10 @@ export const CREATE_PAGE_TEXT = {
         description:
             "Share a software tool, workflow, or scholarly resource with the academic community.",
     },
-    results: {
-        title: "Add a Result",
+    examsAndResults: {
+        title: "Add an Exam or Result",
         description:
-            "Share a research result, academic update, or milestone with the ScholarBase community.",
+            "Announce an exam or share a result update with the ScholarBase community.",
     },
     supervisor: {
         title: "Add a Supervisor",
@@ -444,10 +444,10 @@ export const EDIT_PAGE_TEXT = {
         description:
             "Update metrics, descriptions, or links for this journal.",
     },
-    results: {
-        title: "Edit Result Information",
+    examsAndResults: {
+        title: "Edit Exam or Result Information",
         description:
-            "Update the result details, links, or description.",
+            "Update the exam or result details, links, or description.",
     },
     grants: {
         title: "Edit Research Grant",
@@ -497,10 +497,10 @@ export const LIST_PAGE_TEXT = {
         description:
             "Discover and share tools that can help with your research.",
     },
-    results: {
-        title: "Results",
+    examsAndResults: {
+        title: "Exams & Results",
         description:
-            "Admission results, vacancy outcomes, exam results, and other important notifications.",
+            "Exam notifications, admission results, vacancy outcomes, exam results, and other important updates.",
     },
     blog: {
         title: "Research Blog",

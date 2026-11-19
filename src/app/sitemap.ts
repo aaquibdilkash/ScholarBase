@@ -7,6 +7,7 @@ import {
   contentEntries,
   staticEntries,
 } from "@/lib/sitemap";
+import { resultHref } from "@/lib/results/routes";
 
 // `next build` runs without runtime secrets and the database is unreachable
 // there, so the route must never be prerendered. It stays cheap at runtime
@@ -70,7 +71,7 @@ const getSitemapData = unstable_cache(
         where: { isDeleted: false },
         select: { id: true, createdAt: true, editedAt: true },
       }),
-      prisma.result.findMany({
+      prisma.examsAndResults.findMany({
         where: { isDeleted: false },
         select: { id: true, createdAt: true, editedAt: true },
       }),
@@ -89,18 +90,6 @@ const getSitemapData = unstable_cache(
       prisma.contribution.findMany({
         where: { status: "APPROVED", isDeleted: false },
         select: { id: true, createdAt: true, editedAt: true },
-      }),
-      prisma.recommendation.findMany({
-        where: { isDeleted: false },
-        select: { id: true, supervisorId: true, createdAt: true, editedAt: true },
-      }),
-      // Journal reviews are a real, indexable page
-      // (`/journals/[id]/review/[reviewId]`) that was missing from this file
-      // entirely. It is discoverable by crawling from the journal page, but a
-      // page absent from the sitemap is a page waiting to be dropped.
-      prisma.journalReview.findMany({
-        where: { isDeleted: false },
-        select: { id: true, journalId: true, createdAt: true, editedAt: true },
       }),
       prisma.user.findMany({
         where: { isDeleted: false },
@@ -145,8 +134,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     socialPosts,
     supervisors,
     contributions,
-    recommendations,
-    journalReviews,
     users,
     venues,
     publishedPapers,
@@ -169,19 +156,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       (item) => `/academic-positions/${item.id}`,
     ),
     ...contentEntries(events, (item) => `/call-for-papers/${item.id}`),
-    ...contentEntries(results, (item) => `/results/${item.id}`),
+    ...contentEntries(results, (item) => resultHref(item.id)),
     ...contentEntries(helpPosts, (item) => `/help/${item.id}`),
     ...contentEntries(socialPosts, (item) => `/feed/${item.id}`),
     ...contentEntries(supervisors, (item) => `/supervisor/${item.id}`),
     ...contentEntries(contributions, (item) => `/contributions/${item.id}`),
-    ...contentEntries(
-      recommendations,
-      (item) => `/supervisor/${item.supervisorId}/recommendation/${item.id}`,
-    ),
-    ...contentEntries(
-      journalReviews,
-      (item) => `/journals/${item.journalId}/review/${item.id}`,
-    ),
     ...contentEntries(users, (item) => `/scholars/${item.id}`),
     ...contentEntries(venues, (item) => `${venuePath(item.type)}/${item.slug}`),
     // `publishedAt` is the meaningful `lastmod` for a paper; `updatedAt` would

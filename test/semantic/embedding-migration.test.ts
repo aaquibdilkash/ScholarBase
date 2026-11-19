@@ -45,6 +45,13 @@ const MIGRATION = (
       "prisma/migrations/20261101000000_semantic_embeddings/migration.sql",
     ),
     "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261119120000_result_kind/migration.sql",
+    ),
+    "utf8",
   )
 )
   // The original migrations are intentionally immutable; the forward migrations
@@ -54,7 +61,12 @@ const MIGRATION = (
   .replaceAll("PhdAdmission", "Admission")
   .replaceAll("PHD_ADMISSION", "ADMISSION")
   .replaceAll("JobVacancy", "AcademicPosition")
-  .replaceAll("JOB_VACANCY", "ACADEMIC_POSITION");
+  .replaceAll("JOB_VACANCY", "ACADEMIC_POSITION")
+  // Results became ExamsAndResults in a later migration. Normalise the legacy
+  // identifiers so the assertions below check the table that exists today.
+  .replaceAll("Result_", "ExamsAndResults_")
+  .replaceAll('"Result"', '"ExamsAndResults"')
+  .replaceAll("'Result'", "'ExamsAndResults'");
 
 const ENTITY_ENTRIES = Object.entries(EMBEDDING_TABLES) as Array<
   [EmbeddingEntityType, string]

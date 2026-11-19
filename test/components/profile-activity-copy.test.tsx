@@ -67,7 +67,7 @@ describe("ActivityItemCard headlines", () => {
     expect(text).not.toContain("|||");
 
     const reviewLink = container.querySelector(
-      'a[href="/journals/journal-1/review/review-1"]',
+      'a[href="/journals/journal-1#reviews"]',
     );
     expect(reviewLink?.textContent).toContain("Testing working");
 

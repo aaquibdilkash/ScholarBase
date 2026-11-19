@@ -181,7 +181,7 @@ export const ENTITY_CONFIG = {
     commentFk: 'journalId',
   },
   RESULT: {
-    model: 'result' as const,
+    model: 'examsAndResults' as const,
     voteModel: 'resultVote' as const,
     bookmarkModel: 'resultBookmark' as const,
     commentModel: 'resultComment' as const,
@@ -543,8 +543,8 @@ export async function handleVoteTransaction(
         nestedTargetId = `${rec.supervisorId}/${entityId}`
       }
     } else if (module === 'JOURNAL_REVIEW') {
-      // Journal reviews live at /journals/[journalId]/review/[reviewId], so a
-      // bare review id would send the reader nowhere.
+      // Journal reviews have no page of their own: the parent journal id is
+      // needed to link the activity row to its `#reviews` section.
       const review = await (tx.journalReview as unknown as AnyDelegate).findUnique({
         where: { id: entityId },
         select: { journalId: true },
@@ -708,8 +708,9 @@ export async function createCommentTransaction(
       select: {
         [config.titleField]: true,
         isFrozen: true,
-        // Nested content routes need the parent's foreign key to build a
-        // clickable activity link (e.g. /supervisor/[id]/recommendation/[id]).
+        // Nested content has no page of its own; the parent's foreign key
+        // builds the activity link to its section anchor
+        // (e.g. /supervisor/[id]#recommendations).
         ...(moduleName === 'RECOMMENDATION' ? { supervisorId: true } : {}),
         ...(moduleName === 'JOURNAL_REVIEW' ? { journalId: true } : {}),
       },

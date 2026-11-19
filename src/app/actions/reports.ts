@@ -120,8 +120,8 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
   RESULT: {
-    delegate: prisma.result as unknown as ModuleConfig["delegate"],
-    model: "result",
+    delegate: prisma.examsAndResults as unknown as ModuleConfig["delegate"],
+    model: "examsAndResults",
     reportCountField: "reportCount",
   },
   CONTRIBUTION: {
@@ -513,9 +513,8 @@ async function resolveModerationTarget(
   if (model) {
     const modelDelegate = tx[model];
     // Reviews and recommendations are nested under a parent, so a bare row id
-    // would link nowhere: a review lives at
-    // /journals/[journalId]/review/[reviewId], a recommendation at
-    // /supervisor/[supervisorId]/recommendation/[recommendationId].
+    // would link nowhere: they have no page of their own, and the composite
+    // id is what resolves their parent section anchor.
     const nestedFk =
       contentType === "recommendation"
         ? "supervisorId"

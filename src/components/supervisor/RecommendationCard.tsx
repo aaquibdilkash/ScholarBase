@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
-import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -111,13 +110,13 @@ export function RecommendationCard({
       frozenModule="RECOMMENDATION"
       frozenEntityType="POST"
       // The banner must know the real owner even when the review is anonymous —
-      // `ownerId` is already in the row (the owner's own dropdown uses it), and
-      // without it the owner saw a freeze notice here with no appeal while the
-      // detail page offered one.
+      // `ownerId` is already in the row (the owner's own dropdown uses it).
       frozenOwnerId={ownerId ?? null}
       frozenHasActiveAppeal={recommendation.hasActiveAppeal ?? false}
-      detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
-      // Share payload: mirror the recommendation detail page generateMetadata().
+      // Recommendations have no page of their own; they live inline on the
+      // supervisor page, so every link/share target that section.
+      detailPageHref={`/supervisor/${supervisor.id}#recommendations`}
+      // Share payload: mirror the recommendation section on the supervisor page.
       shareTitle={`Recommendation for ${supervisor.name || "Supervisor"}`}
       shareText={`A ${
         recommendation.rating ? `${recommendation.rating}/5 ` : ""
@@ -151,18 +150,7 @@ export function RecommendationCard({
           isOwnContent={isOwner}
         />
       }
-      footerBookmarkButton={
-        <BookmarkButton
-          frozen={recommendation.isFrozen === true}
-          targetId={recommendation.id}
-          module="RECOMMENDATION"
-          initialTotalBookmarks={recommendation.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(recommendation.bookmarks) && recommendation.bookmarks.length > 0}
-        />
-      }
-      footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
-      footerCommentsCount={recommendation.totalComments}
-            footerReportMenu={
+      footerReportMenu={
         <ReportMenu
           entityId={recommendation.id}
           entityType="POST"
@@ -178,7 +166,7 @@ export function RecommendationCard({
       }
     >
       <Link
-        href={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
+        href={`/supervisor/${supervisor.id}#recommendations`}
         prefetch={false}
         className="block group"
       >

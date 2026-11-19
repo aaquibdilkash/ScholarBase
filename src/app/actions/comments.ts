@@ -212,12 +212,12 @@ export async function createComment(
     return { success: false, error: "Invalid comment type" };
   }
 
-  // Nested targets (recommendation, journalReview) live at
-  // `/supervisor/[sup]/recommendation/[rec]` and
-  // `/journals/[j]/review/[r]`, so their notification targetId must be the
-  // composite `parentId/childId` (same as vote notifications and activity
-  // rows). A bare child id makes getNotificationLink() return null and the
-  // card renders as a dead div instead of a Link.
+  // Nested targets (recommendation, journalReview) have no page of their own,
+  // so their notification targetId must be the composite `parentId/childId`
+  // (same as vote notifications and activity rows) for the link to resolve the
+  // parent section (`/supervisor/<id>#recommendations`,
+  // `/journals/<id>#reviews`). A bare child id makes getNotificationLink()
+  // return null and the card renders as a dead div instead of a Link.
   const notificationTargetId = await resolveNestedNotificationTargetId(
     prisma,
     moduleKey,

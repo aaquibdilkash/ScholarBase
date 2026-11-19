@@ -25,7 +25,7 @@ DECLARE
     'ResearchTool',
     'ResearchGrant',
     'Course',
-    'Result',
+    'ExamsAndResults',
     'CallForPaper',
     'Admission',
     'AcademicPosition',

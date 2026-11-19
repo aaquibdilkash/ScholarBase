@@ -158,8 +158,6 @@ enum EmbeddingEntityType {
   ADMISSION
   ACADEMIC_POSITION
   SUPERVISOR
-  RECOMMENDATION
-  JOURNAL_REVIEW
 }
 
 /// First-party publishing: a `Venue` is either a journal or a conference we
@@ -231,10 +229,11 @@ enum ReviewDecision {
   REJECT
 }
 
-/// What a Result row is. An exam notification announces an exam (dates,
-eligibility, application window); a result declares an outcome. They are
-separate rows because they publish at different times and link to different
-documents. type still describes the outcome subject for RESULT rows.
+/// What an ExamsAndResults row is. An exam notification announces an exam
+/// (dates, eligibility, application window); a result notification declares an
+/// outcome. They are separate rows because they publish at different times and
+/// link to different documents. `type` describes the outcome subject for a
+/// result notification, and is always EXAM for an exam notification.
 enum ResultKind {
   RESULT_NOTIFICATION
   EXAM_NOTIFICATION
@@ -700,8 +699,8 @@ model ResultBookmark {
   userId    String
   createdAt DateTime @default(now())
 
-  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  result ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, userId])
   @@index([userId, createdAt(sort: Desc)])
@@ -1395,7 +1394,7 @@ model User {
   journalReviewComments     JournalReviewComment[]
   journalReviewCommentVotes JournalReviewCommentVote[]
 
-  results            Result[]
+  results            ExamsAndResults[]
   resultVotes        ResultVote[]
   resultComments     ResultComment[]
   resultCommentVotes ResultCommentVote[]
@@ -2115,20 +2114,20 @@ model JournalReviewCommentVote {
   @@unique([commentId, userId])
 }
 
-model ExamsAndResult {
+model ExamsAndResults {
   id               String    @id @default(cuid())
   title            String
   description      String
-    /// An exam notification or a result/outcome post.
+  /// An exam notification or a result/outcome post.
   kind             ResultKind @default(RESULT_NOTIFICATION)
-  /// Outcome subject for RESULT_NOTIFICATION rows: ADMISSION | VACANCY | EVENT | EXAM |
-  /// OTHER. A RESULT_NOTIFICATION row is always stored with EXAM_NOTIFICATION.
-type             String // ADMISSION | VACANCY | EVENT | EXAM | OTHER
+  /// Outcome subject for RESULT_NOTIFICATION rows: ADMISSION | VACANCY | EVENT |
+  /// EXAM | OTHER. An EXAM_NOTIFICATION row is always stored with type EXAM.
+  type             String // ADMISSION | VACANCY | EVENT | EXAM | OTHER
   category         String? // e.g. "NET", "JRF", "SET", "GATE"
   conductingBody   String? // e.g. "UGC", "NTA", "CBSE"
   session          String? // e.g. "June 2024", "December 2024"
   notificationLink String?
-  checkOrApplyLink       String?
+  checkOrApplyLink String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   editedAt         DateTime?
@@ -2167,7 +2166,7 @@ model ResultVote {
   userId    String
   voteType  VoteType
   createdAt DateTime @default(now())
-  result    Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result    ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, userId])
@@ -2193,8 +2192,8 @@ model ResultComment {
   isFrozen        Boolean        @default(false)
   hasActiveAppeal Boolean        @default(false)
 
-  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  result ExamsAndResults @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  author User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResultComment[] @relation("ResultReplies")

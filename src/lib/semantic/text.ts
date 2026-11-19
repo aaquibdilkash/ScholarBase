@@ -53,7 +53,7 @@ export const EMBEDDING_TABLES = {
   RESEARCH_GRANT: "ResearchGrant",
   COURSE: "Course",
   JOURNAL: "Journal",
-  RESULT: "Result",
+  RESULT: "ExamsAndResults",
   RESEARCH_SURVEY: "ResearchSurvey",
   CALL_FOR_PAPER: "CallForPaper",
   ADMISSION: "Admission",

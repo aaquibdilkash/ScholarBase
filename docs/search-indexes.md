@@ -76,7 +76,7 @@ indexes every declared field, not only the high-traffic ones.
 | Grants | `ResearchGrant` | `title`, `amount`, `description`, `applyLink`, `infoLink` |
 | Courses | `Course` | `title`, `provider`, `instructor`, `format`, `level`, `description` |
 | Journals | `Journal` | `title`, `publisher`, `about`, `issn` |
-| Results | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
+| Results | `ExamsAndResults` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Surveys | `ResearchSurvey` | `title`, `description` |
 | Calls for papers | `CallForPaper` | `title`, `location`, `description` |
 | Admissions | `Admission` | `university`, `department`, `description` |

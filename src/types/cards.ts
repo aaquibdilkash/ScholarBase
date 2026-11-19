@@ -13,7 +13,7 @@ import type {
     ResearchGrant,
     Course,
     Journal,
-    Result,
+    ExamsAndResults,
     Contribution,
     Publication,
     ResearchSurvey,
@@ -196,7 +196,7 @@ export type JournalWithAuthor = Partial<Journal> & {
     ratingSum?: number;
   };
 
-export type ResultWithAuthor = Partial<Result> & {
+export type ResultWithAuthor = Partial<ExamsAndResults> & {
     id: string;
     createdAt: Date;
     updatedAt: Date;

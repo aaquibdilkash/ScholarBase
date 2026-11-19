@@ -1,103 +1,17 @@
 "use server";
 
-import { cache } from "react";
-
 import { Prisma, JournalOutcome } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
-import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
 import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
-
-/**
- * A single journal review (detail page). Mirrors `getRecommendation`:
- * materialized counters + the viewer's filtered vote/bookmark/comment state —
- * no dynamic `_count`, no relation-array fan-out (RULE 2).
- */
-export const getJournalReview = cache(
-  async (reviewId: string, userId?: string) => {
-    return prisma.journalReview.findUnique({
-      where: { id: reviewId, isDeleted: false },
-      select: {
-        id: true,
-        rating: true,
-        feedback: true,
-        outcome: true,
-        turnaroundTimeDays: true,
-        editorialQualityScore: true,
-        peerReviewRigorScore: true,
-        isAnonymous: true,
-        authorId: true,
-        journalId: true,
-        createdAt: true,
-        updatedAt: true,
-        editedAt: true,
-        totalVotes: true,
-        totalBookmarks: true,
-        isFrozen: true,
-        hasActiveAppeal: true,
-        isDeleted: true,
-        deletedByType: true,
-        totalComments: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            handle: true,
-            avatarUrl: true,
-            institutionVerifiedAt: true,
-            followers: userId
-              ? { where: { followerId: userId }, select: { followerId: true } }
-              : false,
-          },
-        },
-        journal: { select: { id: true, title: true } },
-        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-        comments: {
-          where: VISIBLE_PARENT_COMMENT_WHERE,
-          orderBy: { createdAt: "desc" },
-          take: COMMENT_PAGE_SIZE + 1,
-          select: {
-            isDeleted: true,
-            isFrozen: true,
-            hasActiveAppeal: true,
-            deletedByType: true,
-            id: true,
-            content: true,
-            createdAt: true,
-            updatedAt: true,
-            editedAt: true,
-            parentId: true,
-            authorId: true,
-            totalVotes: true,
-            totalReplies: true,
-            author: {
-              select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true,
-                institutionVerifiedAt: true,
-              },
-            },
-            mentions: true,
-            votes: userId
-              ? { where: { userId }, select: { voteType: true } }
-              : false,
-          },
-        },
-      },
-    });
-  },
-);
 
 /**
  * Paginated slice of a journal's reviews, used as a one-item-per-slide

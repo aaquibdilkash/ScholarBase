@@ -24,6 +24,7 @@ import {
   AdminShieldUsageItem,
 } from "@/types/admin";
 import { ADMIN_PAGE_SIZE, MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
+import { resultHref } from "@/lib/results/routes";
 
 // Freeze/unfreeze content
 export async function toggleContentFreeze(
@@ -48,7 +49,7 @@ export async function toggleContentFreeze(
     event: prisma.callForPaper,
     academicPosition: prisma.academicPosition,
     help: prisma.helpPost,
-    result: prisma.result,
+    result: prisma.examsAndResults,
     contribution: prisma.contribution,
     supervisor: prisma.supervisor,
     recommendation: prisma.recommendation,
@@ -156,7 +157,7 @@ export async function getAdminStats() {
         'CallForPaper',
         'AcademicPosition',
         'HelpPost',
-        'Result',
+        'ExamsAndResults',
         'Contribution',
         'Supervisor',
         'Recommendation',
@@ -187,7 +188,7 @@ export async function getAdminStats() {
     events: estimate("CallForPaper"),
     academicPositions: estimate("AcademicPosition"),
     help: estimate("HelpPost"),
-    results: estimate("Result"),
+    results: estimate("ExamsAndResults"),
     contributions: estimate("Contribution"),
     supervisors: estimate("Supervisor"),
     recommendations: estimate("Recommendation"),
@@ -536,7 +537,7 @@ export async function getAdminAppeals(
     researchTool: prisma.researchTool,
     researchGrant: prisma.researchGrant,
     course: prisma.course,
-    result: prisma.result,
+    result: prisma.examsAndResults,
     contribution: prisma.contribution,
     help: prisma.helpPost,
     event: prisma.callForPaper,
@@ -674,13 +675,13 @@ export async function getAdminAppeals(
       else if (linkCt === "admission")
         detailHref = `/admissions/${linkId}`;
       else if (linkCt === "help") detailHref = `/help/${linkId}`;
-      else if (linkCt === "result") detailHref = `/results/${linkId}`;
+      else if (linkCt === "result") detailHref = resultHref(linkId);
       else if (linkCt === "contribution")
         detailHref = `/contributions/${linkId}`;
       else if (linkCt === "supervisor")
         detailHref = `/supervisor/${linkId}`;
       else if (linkCt === "recommendation")
-        detailHref = `/supervisor/${linkEntity?.supervisorId ?? ""}/recommendation/${linkId}`;
+        detailHref = `/supervisor/${linkEntity?.supervisorId ?? ""}#recommendations`;
       else if (linkCt === "survey") detailHref = `/surveys/${linkId}`;
       else if (linkCt === "SCHOLAR_PROFILE")
         detailHref = `/scholars/${linkId}`;
@@ -986,8 +987,8 @@ export async function getAdminContent(
         detailHref: (item) => `/help/${item.id}`,
       },
       results: {
-        model: prisma.result,
-        detailHref: (item) => `/results/${item.id}`,
+        model: prisma.examsAndResults,
+        detailHref: (item) => resultHref(item.id),
       },
       contributions: {
         model: prisma.contribution,
@@ -1000,7 +1001,7 @@ export async function getAdminContent(
       recommendations: {
         model: prisma.recommendation,
         detailHref: (item) =>
-          `/supervisor/${"supervisorId" in item ? item.supervisorId : ""}/recommendation/${item.id}`,
+          `/supervisor/${"supervisorId" in item ? item.supervisorId : ""}#recommendations`,
       },
       surveys: {
         model: prisma.researchSurvey,
@@ -1011,7 +1012,7 @@ export async function getAdminContent(
       journalReviews: {
         model: prisma.journalReview,
         detailHref: (item) =>
-          `/journals/${"journalId" in item ? item.journalId : ""}/review/${item.id}`,
+          `/journals/${"journalId" in item ? item.journalId : ""}#reviews`,
       },
     };
 

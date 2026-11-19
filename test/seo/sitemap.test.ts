@@ -60,9 +60,9 @@ describe("contentEntries", () => {
   it("passes the real row to the href builder", () => {
     const entries = contentEntries(
       [{ id: "r1", supervisorId: "s1" }],
-      (row) => `/supervisor/${row.supervisorId}/recommendation/${row.id}`,
+      (row) => `/supervisor/${row.supervisorId}#recommendations`,
     );
-    expect(entries[0].url).toBe(`${SITE_URL}/supervisor/s1/recommendation/r1`);
+    expect(entries[0].url).toBe(`${SITE_URL}/supervisor/s1#recommendations`);
   });
 });
 

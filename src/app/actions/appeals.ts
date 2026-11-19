@@ -30,7 +30,7 @@ const POST_DELEGATES: Record<string, string> = {
   researchTool: "researchTool",
   researchGrant: "researchGrant",
   course: "course",
-  result: "result",
+  result: "examsAndResults",
   contribution: "contribution",
   help: "helpPost",
   event: "callForPaper",

@@ -1,96 +1,15 @@
 "use server";
 
-import { cache } from "react";
-
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
-import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
 import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
-
-export const getRecommendation = cache(
-  async (recommendationId: string, userId?: string) => {
-    return prisma.recommendation.findUnique({
-      where: { id: recommendationId, isDeleted: false },
-      // RULE 2 (Zero-Compute): strict select + materialized counters.
-      // No include trees, no dynamic _count aggregation.
-      select: {
-        id: true,
-        rating: true,
-        feedback: true,
-        turnaroundTimeDays: true,
-        responsivenessScore: true,
-        guidanceScore: true,
-        isAnonymous: true,
-        authorId: true,
-        createdAt: true,
-        updatedAt: true,
-        editedAt: true,
-        totalVotes: true,
-        totalBookmarks: true,
-        isFrozen: true,
-        hasActiveAppeal: true,
-        isDeleted: true,
-        deletedByType: true,
-        totalComments: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            handle: true,
-            avatarUrl: true, institutionVerifiedAt: true,
-          },
-        },
-        supervisor: { select: { id: true, name: true } },
-        // Filtered select resolves the viewer's vote in the same round-trip
-        // instead of shipping every vote row into memory.
-        votes: userId
-          ? { where: { userId }, select: { voteType: true } }
-          : false,
-        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-        comments: {
-          where: VISIBLE_PARENT_COMMENT_WHERE,
-          // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
-          orderBy: { createdAt: "desc" },
-          take: COMMENT_PAGE_SIZE + 1,
-          select: {
-            isDeleted: true,
-            isFrozen: true,
-            hasActiveAppeal: true,
-            deletedByType: true,
-            id: true,
-            content: true,
-            createdAt: true,
-            updatedAt: true,
-            editedAt: true,
-            parentId: true,
-            authorId: true,
-            totalVotes: true,
-            totalReplies: true,
-            author: {
-              select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true, institutionVerifiedAt: true,
-              },
-            },
-            mentions: true,
-            votes: userId
-              ? { where: { userId }, select: { voteType: true } }
-              : false,
-          },
-        },
-      },
-    });
-  },
-);
 
 export async function createRecommendation(
   formData: FormData,
