@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
-import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -72,7 +71,7 @@ export function JournalReviewCard({
     }
   };
 
-    const outcomeLabel = (o: JournalOutcome) =>
+  const outcomeLabel = (o: JournalOutcome) =>
     ({
       ACCEPTED: "Accepted",
       MINOR_REVISION: "Minor Revision",
@@ -84,12 +83,16 @@ export function JournalReviewCard({
 
   return (
     <ListPageCardShell
-      detailPageHref={`/journals/${review.journalId}/review/${review.id}`}
+      detailPageHref={`/journals/${review.journalId}#reviews`}
       // Share payload: mirror the review detail page generateMetadata().
-      shareTitle={`Review of ${review.journal?.title || "Journal"}`}
-      shareText={`A ${Number(review.rating).toFixed(1)}/5 peer review of ${
-        review.journal?.title || "a journal"
-      }.`}
+      shareTitle={`Review of ${review.journal?.title || "Journal"}`
+      }
+      shareText={
+        "A " +
+        Number(review.rating).toFixed(1) +
+        "/5 peer review of " +
+        (review.journal?.title || "a journal")
+      }
       // The card renders its own <Link> below (star rating + feedback body),
       // so the shell's generic body link must be disabled to avoid nesting
       // <a> inside <a> (hydration error).
@@ -145,17 +148,7 @@ export function JournalReviewCard({
           isOwnContent={isOwner}
         />
       }
-      footerBookmarkButton={
-        <BookmarkButton
-          targetId={review.id}
-          module="JOURNAL_REVIEW"
-          initialTotalBookmarks={review.totalBookmarks ?? 0}
-          initialIsBookmarked={
-            Array.isArray(review.bookmarks) && review.bookmarks.length > 0
-          }
-        />
-      }
-      footerCommentsHref={`/journals/${review.journalId}/review/${review.id}#comments`}
+      footerCommentsHref={`/journals/${review.journalId}#reviews`}
       footerCommentsCount={review.totalComments}
       footerReportMenu={
         <ReportMenu
@@ -171,7 +164,7 @@ export function JournalReviewCard({
       managementControls={
         isOwner ? (
           <OwnerActionsDropdown
-            editHref={`/journals/${review.journalId}/review/${review.id}/edit`}
+            editHref={`/journals/${review.journalId}/review/edit`}
             onDelete={handleDeleteFromDropdown}
             isOwner={true}
             editLabel="Edit Review"
@@ -186,7 +179,7 @@ export function JournalReviewCard({
         </p>
       ) : null}
       <Link
-        href={`/journals/${review.journalId}/review/${review.id}`}
+        href={`/journals/${review.journalId}#reviews`}
         prefetch={false}
         className="block group"
       >
@@ -224,7 +217,7 @@ export function JournalReviewCard({
           </div>
         </div>
 
-                <RichContent
+        <RichContent
           content={review.feedback}
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />

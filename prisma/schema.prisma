@@ -231,6 +231,15 @@ enum ReviewDecision {
   REJECT
 }
 
+/// What a Result row is. An exam notification announces an exam (dates,
+eligibility, application window); a result declares an outcome. They are
+separate rows because they publish at different times and link to different
+documents. type still describes the outcome subject for RESULT rows.
+enum ResultKind {
+  RESULT_NOTIFICATION
+  EXAM_NOTIFICATION
+}
+
 /// Append-only manuscript history. One row per status change, assignment,
 /// review, revision, transfer, or publication. Drives the author timeline and
 /// the transfer provenance; there is no second history table.
@@ -2106,16 +2115,20 @@ model JournalReviewCommentVote {
   @@unique([commentId, userId])
 }
 
-model Result {
+model ExamsAndResult {
   id               String    @id @default(cuid())
   title            String
   description      String
-  type             String // ADMISSION | VACANCY | EVENT | EXAM | OTHER
+    /// An exam notification or a result/outcome post.
+  kind             ResultKind @default(RESULT_NOTIFICATION)
+  /// Outcome subject for RESULT_NOTIFICATION rows: ADMISSION | VACANCY | EVENT | EXAM |
+  /// OTHER. A RESULT_NOTIFICATION row is always stored with EXAM_NOTIFICATION.
+type             String // ADMISSION | VACANCY | EVENT | EXAM | OTHER
   category         String? // e.g. "NET", "JRF", "SET", "GATE"
   conductingBody   String? // e.g. "UGC", "NTA", "CBSE"
   session          String? // e.g. "June 2024", "December 2024"
   notificationLink String?
-  resultLink       String?
+  checkOrApplyLink       String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   editedAt         DateTime?
