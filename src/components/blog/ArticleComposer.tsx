@@ -141,7 +141,7 @@ export function ArticleComposer({
         ["article", updatedArticle.slug],
         updatedArticle,
       );
-      toast("Article updated successfully!", "success");
+      toast("Blog updated successfully!", "success");
       router.push(`/blog/${updatedArticle.slug}`);
     },
     onError: (error) => {

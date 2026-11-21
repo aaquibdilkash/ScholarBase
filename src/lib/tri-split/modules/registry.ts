@@ -470,6 +470,7 @@ export const CONTENT_LIST_CONFIGS = {
       category: true,
       conductingBody: true,
       session: true,
+      deadline: true,
       notificationLink: true,
       checkOrApplyLink: true,
       createdAt: true,

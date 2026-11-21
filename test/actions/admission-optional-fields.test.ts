@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 import { createAdmission, updateAdmission } from "@/app/actions/admissions";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -191,5 +192,48 @@ describe("admission optional fields", () => {
     const [row] = fakeDb.rows("admission");
     expect(row.department).toBeNull();
     expect(row.location).toBe("New Delhi");
+  });
+});
+
+describe("admission publish notification copy", () => {
+  beforeEach(() => {
+    resetFakeDb();
+    mockCurrentUser = { id: AUTHOR };
+    fakeDb.seed("user", [
+      {
+        id: AUTHOR,
+        isDeleted: false,
+        name: "Author",
+        handle: "author",
+        reputation: 0,
+      },
+    ]);
+    vi.mocked(notifyFollowersOfActivity).mockClear();
+  });
+
+  it("says \"admission notification\" instead of repeating the degree level", async () => {
+    await createAdmission(
+      formOf(baseFields({ level: "MS_BY_RESEARCH", department: "Physics" })),
+    );
+
+    expect(notifyFollowersOfActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringMatching(/posted a new admission notification$/),
+      }),
+    );
+    expect(notifyFollowersOfActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringContaining("MS / MSc by Research"),
+      }),
+    );
+  });
+
+  it("says \"Apply by\" rather than \"Deadline\" in the body", async () => {
+    await createAdmission(formOf(baseFields({ deadline: "2030-01-01" })));
+
+    const [call] = vi.mocked(notifyFollowersOfActivity).mock.calls;
+    const body = String((call?.[0] as { body?: string } | undefined)?.body ?? "");
+    expect(body).toMatch(/ - Apply by [A-Z][a-z]{2} \d{1,2}, 2030$/);
+    expect(body).not.toContain("Deadline");
   });
 });

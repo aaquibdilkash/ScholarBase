@@ -86,13 +86,21 @@ const ROLLUP_TYPES: Record<string, "NEW_COMMENT" | "NEW_REPLY" | "NEW_FOLLOWER">
 export async function notifyUserById(params: NotifyUserByIdParams) {
   if (params.recipientId === params.actorId) return;
 
-  void queueNotification({
-    mode: "TARGETED",
-    ...params,
-    type: ROLLUP_TYPES[params.type] ?? params.type,
-  }).catch((error) => {
+  try {
+    // Await the enqueue. A fire-and-forget publish is dropped when the
+    // serverless function freezes the moment the action returns — which is
+    // exactly where the journal-review / recommendation author notices sit
+    // (last statement before `return`). Fan-out already awaits its publish;
+    // this helper must too, and an enqueue failure still must not roll back
+    // the content mutation.
+    await queueNotification({
+      mode: "TARGETED",
+      ...params,
+      type: ROLLUP_TYPES[params.type] ?? params.type,
+    });
+  } catch (error) {
     console.error("QStash targeted notification error:", error);
-  });
+  }
 }
 
 const MENTION_REGEX = /@(\w+)/g;

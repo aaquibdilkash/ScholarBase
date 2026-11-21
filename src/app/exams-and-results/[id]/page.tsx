@@ -22,6 +22,7 @@ import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { formatDate } from "@/utils/date";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 import {
   resultBadgeLabel,
@@ -145,7 +146,7 @@ const ExamOrResultDetailPage = async ({
               };
             }}
             isOwner={true}
-            editLabel="Edit Exam or Result"
+            editLabel="Edit"
             deleteLabel="Delete"
           />
         ) : null
@@ -229,7 +230,7 @@ const ExamOrResultDetailPage = async ({
         className="text-slate-800 leading-relaxed mb-4 sm:mb-6"
       />
 
-      {(result.conductingBody || result.session) && (
+      {(result.conductingBody || result.session || result.deadline) && (
         <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
           {result.conductingBody && (
             <div className="flex min-w-0 items-center gap-2 break-words [overflow-wrap:anywhere]">
@@ -237,6 +238,12 @@ const ExamOrResultDetailPage = async ({
               <span className="min-w-0 flex-1">
                 Conducting Body: {result.conductingBody}
               </span>
+            </div>
+          )}
+          {result.deadline && (
+            <div className="flex min-w-0 items-center gap-2 break-words [overflow-wrap:anywhere]">
+              <Calendar className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">Apply by: {formatDate(result.deadline)}</span>
             </div>
           )}
           {result.session && (

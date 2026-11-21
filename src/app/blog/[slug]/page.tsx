@@ -129,7 +129,7 @@ export default async function ArticlePage({
             editHref={`/blog/${a.slug}/edit`}
             onDelete={handleDelete}
             isOwner={true}
-            editLabel="Edit Article"
+            editLabel="Edit Blog"
             deleteLabel="Delete"
           />
         ) : null

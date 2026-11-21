@@ -52,7 +52,7 @@ export function ArticleCard({
           <OwnerActionsDropdown
             editHref={`/blog/${article.slug}/edit`}
             isOwner={true}
-            editLabel="Edit Article"
+            editLabel="Edit"
             deleteLabel="Delete"
             onDelete={async () => {
               try {
@@ -66,7 +66,7 @@ export function ArticleCard({
                   ["articles"],
                   response.data.deletedId,
                 );
-                toast({ title: "Success", description: "Article deleted successfully." });
+                toast({ title: "Success", description: "Blog deleted successfully." });
                 return { refresh: false };
               } catch (error) {
                 const message = friendlyActionError(error, "Unknown error");

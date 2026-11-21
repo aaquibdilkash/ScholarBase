@@ -136,6 +136,7 @@ describe("TARGETED rollup: same-actor guard", () => {
         type: "NEW_FOLLOWER",
         targetType: "profile",
         targetId: "u-recip",
+        title: "Someone started following you",
       });
 
     await process(follow("u-alice"));
@@ -144,6 +145,7 @@ describe("TARGETED rollup: same-actor guard", () => {
 
     await process(follow("u-bob"));
     expect(unread()[0].count).toBe(2);
+    expect(unread()[0].title).toBe("ada and 1 other started following you");
   });
 
   it("a read row does not block a fresh unread one (partial-index semantics)", async () => {
@@ -178,6 +180,24 @@ describe("TARGETED rollup: same-actor guard", () => {
     await process(targeted("u-recip"));
     expect(rows).toHaveLength(0);
   });
+
+  it("clustered comment titles name the other actors", async () => {
+    const comment = (actorId: string) =>
+      targeted(actorId, {
+        type: "NEW_COMMENT",
+        targetType: "post",
+        targetId: "post-1::comment::c-1",
+        title: "Someone commented on your post",
+        body: "Nice write-up",
+      });
+
+    await process(comment("u-alice"));
+    expect(unread()[0].title).toBe("ada commented on your post");
+
+    await process(comment("u-bob"));
+    expect(unread()[0].count).toBe(2);
+    expect(unread()[0].title).toBe("ada and 1 other commented on your post");
+  });
 });
 
 describe("TARGETED rollup: survey-response (aggregated, one row per survey)", () => {
@@ -186,7 +206,7 @@ describe("TARGETED rollup: survey-response (aggregated, one row per survey)", ()
       type: "survey-response",
       targetType: "survey",
       targetId: "survey-1",
-      title: "Someone posted a response to your survey",
+      title: "Someone participated in a survey",
       body: "Research survey",
       ...overrides,
     });
@@ -197,6 +217,7 @@ describe("TARGETED rollup: survey-response (aggregated, one row per survey)", ()
     const [row] = unread();
     expect(row.count).toBe(1);
     expect(row.actorId).toBe("u-alice");
+    expect(row.title).toBe("ada participated in a survey");
     expect(row.body).toBe('ada posted a response to "Research survey".');
   });
 
@@ -208,6 +229,7 @@ describe("TARGETED rollup: survey-response (aggregated, one row per survey)", ()
     expect(unreadRows).toHaveLength(1);
     expect(unreadRows[0].count).toBe(2);
     expect(unreadRows[0].actorId).toBe("u-bob");
+    expect(unreadRows[0].title).toBe("ada and 1 other participated in a survey");
     expect(unreadRows[0].body).toBe('ada and 1 other posted responses to "Research survey".');
   });
 

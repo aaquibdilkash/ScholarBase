@@ -432,7 +432,7 @@ export const EDIT_PAGE_TEXT = {
             "Update the position details, salary, deadlines, or links.",
     },
     blog: {
-        title: "Edit Article",
+        title: "Edit Blog",
     },
     callForPapers: {
         title: "Edit Call for Paper",
@@ -445,7 +445,7 @@ export const EDIT_PAGE_TEXT = {
             "Update metrics, descriptions, or links for this journal.",
     },
     examsAndResults: {
-        title: "Edit Exam or Result Information",
+        title: "Edit Exams & Results Information",
         description:
             "Update the exam or result details, links, or description.",
     },

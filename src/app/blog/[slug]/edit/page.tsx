@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoindexMetadata(
-  "Edit Article - ScholarBase",
+  "Edit Blog - ScholarBase",
 );
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -47,7 +47,7 @@ export default async function EditArticlePage({
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.blog.title}
       backHref={`/blog/${article.slug}`}
-      backLabel="Cancel and Back to Article"
+      backLabel="Cancel and Back to Blog"
       maxWidth="lg"
     >
       {/* Reusing the same composer with mode="edit" */}

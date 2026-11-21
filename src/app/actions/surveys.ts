@@ -1235,7 +1235,9 @@ export async function submitSurveyResponse(
       type: "survey-response",
       targetType: "survey",
       targetId: surveyId,
-      title: "New response to your survey",
+      // Actor-prefixed like the follower fan-out below, so a clustered row can
+      // read "Ada and 2 others participated in a survey".
+      title: "Someone participated in a survey",
       body: surveyForValidation.title,
     });
     await notifyFollowersOfActivity({

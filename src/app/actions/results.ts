@@ -30,6 +30,8 @@ type ResolvedPostFields =
   | { kind: ResultKindValue; type: string }
   | { error: string };
 
+type ResolvedExamDeadline = { deadline: Date | null } | { error: string };
+
 /**
  * Resolves the kind/type pair for a create or edit.
  *
@@ -59,6 +61,29 @@ function resolvePostFields(
   if (!type) return { error: "Choose a valid outcome type." };
 
   return { kind, type };
+}
+
+/**
+ * Resolves the last date to apply for an exam notification.
+ *
+ * Exam notifications must carry a deadline: the publish notification (and the
+ * card) say "Apply by <date>", and an exam notice without a date is the exact
+ * gap this field closes. A result notification has no deadline and stores NULL.
+ */
+function resolveExamDeadline(
+  formData: FormData,
+  kind: ResultKindValue,
+): ResolvedExamDeadline {
+  if (kind !== "EXAM_NOTIFICATION") return { deadline: null };
+  const raw = readFormValue(formData, "deadline");
+  if (!raw) {
+    return { error: "Last Date to Apply is required for an exam notification." };
+  }
+  const deadline = new Date(raw);
+  if (Number.isNaN(deadline.getTime())) {
+    return { error: "Invalid last date to apply." };
+  }
+  return { deadline };
 }
 
 /**
@@ -94,6 +119,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
       category: true,
       conductingBody: true,
       session: true,
+      deadline: true,
       notificationLink: true,
       checkOrApplyLink: true,
       createdAt: true,
@@ -165,6 +191,11 @@ export async function createResult(formData: FormData) {
   const fields = resolvePostFields(formData);
   if ("error" in fields) return { success: false, message: fields.error };
   const { kind, type } = fields;
+  const resolvedDeadline = resolveExamDeadline(formData, kind);
+  if ("error" in resolvedDeadline) {
+    return { success: false, message: resolvedDeadline.error };
+  }
+  const { deadline } = resolvedDeadline;
   const category = readOptionalFormValue(formData, "category");
   const conductingBody = readOptionalFormValue(formData, "conductingBody");
   const session = readOptionalFormValue(formData, "session");
@@ -192,6 +223,7 @@ export async function createResult(formData: FormData) {
         category,
         conductingBody,
         session,
+        deadline,
         notificationLink: safeNotificationLink,
         checkOrApplyLink: safeCheckOrApplyLink,
         authorId: user.id,
@@ -224,7 +256,11 @@ export async function createResult(formData: FormData) {
     title: `${user.email?.split("@")[0] || "Someone"} posted a new ${
       kind === "EXAM_NOTIFICATION" ? "exam notification" : "result"
     }`,
-    body: `${title}${category ? ` (${category})` : ""}${conductingBody ? ` - ${conductingBody}` : ""}`,
+    body: `${title}${category ? ` (${category})` : ""}${conductingBody ? ` - ${conductingBody}` : ""}${
+      kind === "EXAM_NOTIFICATION" && deadline
+        ? ` - Apply by ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+        : ""
+    }`,
   });
 
   // Purge the cached result pages: publish must be visible at once, not after the TTL.
@@ -266,6 +302,11 @@ export async function updateResult(formData: FormData, resultId: string) {
   });
   if ("error" in fields) return { success: false, message: fields.error };
   const { kind, type } = fields;
+  const resolvedDeadline = resolveExamDeadline(formData, kind);
+  if ("error" in resolvedDeadline) {
+    return { success: false, message: resolvedDeadline.error };
+  }
+  const { deadline } = resolvedDeadline;
 
   let safeNotificationLink: string | null;
   let safeCheckOrApplyLink: string | null;
@@ -289,6 +330,7 @@ export async function updateResult(formData: FormData, resultId: string) {
       category,
       conductingBody,
       session,
+      deadline,
       notificationLink: safeNotificationLink,
       checkOrApplyLink: safeCheckOrApplyLink,
       editedAt: new Date(),

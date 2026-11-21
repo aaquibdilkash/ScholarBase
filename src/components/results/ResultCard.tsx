@@ -16,6 +16,7 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { ResultWithAuthor } from "@/types/cards";
 import { resultBadgeLabel, resultLinkActions } from "@/lib/results/entry-types";
 import { resultEditHref, resultHref } from "@/lib/results/routes";
+import { formatDate } from "@/utils/date";
 
 export function ResultCard({
   result,
@@ -167,10 +168,13 @@ export function ResultCard({
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
 
-        {(result.conductingBody || result.session) && (
+        {(result.conductingBody || result.session || result.deadline) && (
           <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
             {result.conductingBody && (
               <span className="break-words [overflow-wrap:anywhere]">Conducting Body: {result.conductingBody}</span>
+            )}
+            {result.deadline && (
+              <span className="break-words">Apply by: {formatDate(result.deadline)}</span>
             )}
             {result.session && <span className="break-words">Session: {result.session}</span>}
           </div>

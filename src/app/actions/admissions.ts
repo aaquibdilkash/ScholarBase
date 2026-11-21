@@ -23,7 +23,7 @@ import {
   MAX_ADMISSION_DESCRIPTION,
   MAX_ADMISSION_LOCATION,
 } from "@/lib/constants";
-import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
+import { parseAdmissionLevel } from "@/lib/admissions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
@@ -233,8 +233,10 @@ export async function createAdmission(formData: FormData) {
     type: "content-published",
     targetType: "Admission",
     targetId: admission.id,
-    title: `${user.email?.split("@")[0] || "Someone"} posted a new ${getAdmissionLevelLabel(level)} admission`,
-    body: `${department ? `${department} at ` : ""}${university} - ${isRolling ? "Rolling applications" : `Deadline: ${deadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}`,
+    // Level is deliberately omitted: "MS / MSc by Research admission" reads
+    // badly in an inbox, so the title stays a generic "admission notification".
+    title: `${user.email?.split("@")[0] || "Someone"} posted a new admission notification`,
+    body: `${department ? `${department} at ` : ""}${university} - ${isRolling ? "Rolling applications" : `Apply by ${deadline?.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}`,
   });
 
   // Purge the cached admission pages: publish must be visible at once, not after the TTL.

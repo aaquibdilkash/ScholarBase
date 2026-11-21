@@ -2,7 +2,9 @@
  * @vitest-environment jsdom
  *
  * Regression coverage: an aggregated notification row (e.g. multiple survey
- * respondents) shows its `count` so earlier respondents don't appear to vanish.
+ * respondents) must say "and N others" in its copy. The old UI showed a
+ * separate "+N" chip next to the type badge, which read like a counter and
+ * duplicated what the sentence already says.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
@@ -55,8 +57,8 @@ const makeNotification = (
   type: "survey-response",
   targetType: "survey",
   targetId: "survey-1",
-  title: "New response to your survey",
-  body: "Someone posted a response to \"Research survey\".",
+  title: "ada participated in a survey",
+  body: 'ada posted a response to "Research survey".',
   count: 1,
   readAt: null,
   isEmailed: false,
@@ -66,7 +68,7 @@ const makeNotification = (
   ...overrides,
 });
 
-describe("NotificationCard count badge", () => {
+describe("NotificationCard clustered copy", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -97,20 +99,33 @@ describe("NotificationCard count badge", () => {
     });
   };
 
-  it("hides the badge when count is 1", () => {
-    draw(makeNotification());
-    expect(container.textContent).not.toMatch(/×/);
-  });
-
-  it("shows the count badge when count is 3", () => {
+  it("never renders a separate count chip", () => {
     draw(makeNotification({ count: 3 }));
-    expect(container.textContent).toContain("×3");
-    const badge = container.querySelector('span[aria-label="3 interactions"]');
-    expect(badge).not.toBeNull();
+    expect(container.textContent).not.toMatch(/×\s*3/);
+    expect(container.querySelector('span[aria-label="3 interactions"]')).toBeNull();
   });
 
-  it("shows the badge for any aggregated rollup type", () => {
-    draw(makeNotification({ type: "NEW_VOTE", count: 4 }));
-    expect(container.textContent).toContain("×4");
+  it("keeps the \"and N others\" copy in a clustered title", () => {
+    draw(
+      makeNotification({
+        count: 3,
+        title: "ada and 2 others participated in a survey",
+        body: 'ada and 2 others posted responses to "Research survey".',
+      }),
+    );
+
+    expect(container.textContent).toContain("ada and 2 others participated in a survey");
+    expect(container.textContent).toContain("ada and 2 others posted responses to");
+  });
+
+  it("keeps the cluster suffix while resolving the actor prefix to the current profile", () => {
+    draw(
+      makeNotification({
+        count: 2,
+        title: "old_handle and 1 other participated in a survey",
+      }),
+    );
+
+    expect(container.textContent).toContain("ada and 1 other participated in a survey");
   });
 });

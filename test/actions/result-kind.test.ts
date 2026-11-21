@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 import { createResult, updateResult } from "@/app/actions/results";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -89,7 +90,7 @@ describe("createResult kind/type resolution", () => {
 
   it("forces an exam notification to type EXAM", async () => {
     const response = await createResult(
-      form({ ...baseFields, kind: "EXAM_NOTIFICATION", type: "VACANCY" }),
+      form({ ...baseFields, kind: "EXAM_NOTIFICATION", type: "VACANCY", deadline: "2026-11-30" }),
     );
 
     expect(response.success).toBe(true);
@@ -160,7 +161,7 @@ describe("updateResult kind/type resolution", () => {
     seedResult("RESULT_NOTIFICATION", "ADMISSION");
 
     const response = await updateResult(
-      form({ ...baseFields, kind: "EXAM_NOTIFICATION" }),
+      form({ ...baseFields, kind: "EXAM_NOTIFICATION", deadline: "2026-11-30" }),
       "r-1",
     );
 
@@ -199,5 +200,85 @@ describe("updateResult kind/type resolution", () => {
     const row = fakeDb.rows("examsAndResults")[0];
     expect(row.kind).toBe("RESULT_NOTIFICATION");
     expect(row.type).toBe("VACANCY");
+  });
+});
+
+describe("exam notification deadline", () => {
+  it("rejects an exam notification without a last date to apply", async () => {
+    const response = await createResult(
+      form({ ...baseFields, kind: "EXAM_NOTIFICATION" }),
+    );
+
+    expect(response).toMatchObject({
+      success: false,
+      message: "Last Date to Apply is required for an exam notification.",
+    });
+    expect(fakeDb.rows("examsAndResults")).toHaveLength(0);
+  });
+
+  it("stores the deadline and announces it as \"Apply by\"", async () => {
+    vi.mocked(notifyFollowersOfActivity).mockClear();
+
+    const response = await createResult(
+      form({
+        ...baseFields,
+        kind: "EXAM_NOTIFICATION",
+        category: "NET",
+        conductingBody: "NTA",
+        deadline: "2026-11-30",
+      }),
+    );
+
+    expect(response.success).toBe(true);
+    const row = fakeDb.rows("examsAndResults")[0];
+    expect(row.deadline).toBeInstanceOf(Date);
+    expect((row.deadline as Date).toISOString().slice(0, 10)).toBe("2026-11-30");
+
+    expect(notifyFollowersOfActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetType: "Result",
+        title: expect.stringContaining("posted a new exam notification"),
+        body: expect.stringMatching(
+          /^UGC NET June 2026 \(NET\) - NTA - Apply by [A-Z][a-z]{2} \d{1,2}, 2026$/,
+        ),
+      }),
+    );
+  });
+
+  it("stores no deadline for a result notification", async () => {
+    const response = await createResult(
+      form({
+        ...baseFields,
+        kind: "RESULT_NOTIFICATION",
+        type: "EXAM",
+        deadline: "2026-11-30",
+      }),
+    );
+
+    expect(response.success).toBe(true);
+    expect(fakeDb.rows("examsAndResults")[0].deadline).toBeNull();
+  });
+
+  it("clears the deadline when an exam notification becomes a result notification", async () => {
+    fakeDb.seed("examsAndResults", [
+      {
+        id: "r-1",
+        authorId: AUTHOR,
+        kind: "EXAM_NOTIFICATION",
+        type: "EXAM",
+        deadline: new Date("2026-11-30T00:00:00.000Z"),
+        totalVotes: 0,
+        totalComments: 0,
+        isDeleted: false,
+      },
+    ]);
+
+    const response = await updateResult(
+      form({ ...baseFields, kind: "RESULT_NOTIFICATION", type: "EXAM" }),
+      "r-1",
+    );
+
+    expect(response.success).toBe(true);
+    expect(fakeDb.rows("examsAndResults")[0].deadline).toBeNull();
   });
 });

@@ -160,6 +160,7 @@ export const REJECTION_REASON_TIP = "Provide a clear reason for rejection. This 
 export const RESULT_KIND_TIP = "Choose whether this announces an exam or declares a result.";
 export const RESULT_TITLE_TIP = "A descriptive title for the exam notification or result.";
 export const RESULT_TYPE_TIP = "The outcome subject for a result notification.";
+export const RESULT_DEADLINE_TIP = "The last date to apply for this exam. Shown as \"Apply by\" in the publish notification.";
 export const RESULT_CATEGORY_TIP = "The specific exam or result category (e.g., NET, GATE, CAT).";
 export const RESULT_CONDUCTING_BODY_TIP = "The organization that conducted the exam or process.";
 export const RESULT_SESSION_TIP = "The exam session or cycle (e.g., June 2024, December 2024).";

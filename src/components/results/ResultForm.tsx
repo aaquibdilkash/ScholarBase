@@ -33,6 +33,7 @@ import {
   RESULT_KIND_TIP,
   RESULT_TITLE_TIP,
   RESULT_TYPE_TIP,
+  RESULT_DEADLINE_TIP,
   RESULT_CATEGORY_TIP,
   RESULT_CONDUCTING_BODY_TIP,
   RESULT_SESSION_TIP,
@@ -48,6 +49,7 @@ export type ResultFormValues = {
   category: string;
   conductingBody: string;
   session: string;
+  deadline: string;
   description: string;
   notificationLink: string;
   checkOrApplyLink: string;
@@ -70,6 +72,7 @@ export default function ResultForm({
     category: initialValues?.category ?? "",
     conductingBody: initialValues?.conductingBody ?? "",
     session: initialValues?.session ?? "",
+    deadline: initialValues?.deadline ?? "",
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
     checkOrApplyLink: initialValues?.checkOrApplyLink ?? "",
@@ -174,7 +177,22 @@ export default function ResultForm({
             ))}
           </Select>
         </div>
-        {!examNotification && (
+        {examNotification ? (
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Last Date to Apply
+              <InfoTooltip message={RESULT_DEADLINE_TIP} />
+            </label>
+            <input
+              type="date"
+              name="deadline"
+              className="sb-input"
+              required
+              value={draftFields.deadline}
+              onChange={(e) => updateDraftField("deadline", e.target.value)}
+            />
+          </div>
+        ) : (
           <div>
             <label className="sb-label inline-flex items-center gap-1.5">
               Result Type

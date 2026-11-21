@@ -111,7 +111,7 @@ function OrcidIcon({ className }: { className?: string }) {
 const SECTIONS: SectionWithCount[] = [
   {
     key: "articles",
-    title: "Research Blog",
+    title: "Blogs",
     emptyMessage: "No Blog posts published yet.",
     renderItems: (items: ArticleType[], currentUserId) =>
       items.map((a) => (

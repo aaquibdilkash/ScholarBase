@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { getModuleNoun } from "@/lib/notification-links";
 import { queueNotification, type NotificationPayload } from "@/lib/qstash";
-import { formatPublishedContentTitle } from "@/lib/notification-text";
+import { formatPublishedContentTitle, formatRollupTitle } from "@/lib/notification-text";
 
 /**
  * Fan-out work bounds (P2-1).
@@ -138,6 +138,10 @@ export async function processNotificationPayload(payload: NotificationPayload) {
           data: {
             actorId: payload.actorId,
             count,
+            // Clustered rows read as "Ada and 2 others commented…" instead of
+            // relying on a separate "+2" chip in the inbox. The count is still
+            // stored so the same-actor guard and the dedupe index keep working.
+            title: formatRollupTitle(existingNotification.title, actorName, count - 1),
             body: formatRollupBody(payload.type, actorName, count - 1, payload.body, noun),
             updatedAt: new Date(),
           },

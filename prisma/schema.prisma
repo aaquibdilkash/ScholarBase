@@ -2126,6 +2126,9 @@ model ExamsAndResults {
   category         String? // e.g. "NET", "JRF", "SET", "GATE"
   conductingBody   String? // e.g. "UGC", "NTA", "CBSE"
   session          String? // e.g. "June 2024", "December 2024"
+  /// Last date to apply. Required for an exam notification so its publish
+  /// notification can say "Apply by <date>"; null for result notifications.
+  deadline         DateTime?
   notificationLink String?
   checkOrApplyLink String?
   createdAt        DateTime   @default(now())

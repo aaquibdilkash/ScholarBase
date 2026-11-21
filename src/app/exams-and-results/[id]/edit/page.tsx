@@ -9,7 +9,7 @@ import { EDIT_PAGE_TEXT } from "@/constants/seo";
 import { resultHref } from "@/lib/results/routes";
 
 export const metadata: Metadata = buildNoindexMetadata(
-  "Edit Exam or Result - ScholarBase",
+  "Edit Exams & Results Post - ScholarBase",
 );
 
 export default async function EditExamOrResultPage({
@@ -33,6 +33,7 @@ export default async function EditExamOrResultPage({
       category: true,
       conductingBody: true,
       session: true,
+      deadline: true,
       description: true,
       notificationLink: true,
       checkOrApplyLink: true,
@@ -66,6 +67,9 @@ export default async function EditExamOrResultPage({
           category: result.category ?? "",
           conductingBody: result.conductingBody ?? "",
           session: result.session ?? "",
+          deadline: result.deadline
+            ? result.deadline.toISOString().slice(0, 10)
+            : "",
           description: result.description,
           notificationLink: result.notificationLink ?? "",
           checkOrApplyLink: result.checkOrApplyLink ?? "",
