@@ -496,7 +496,7 @@ function CommentCard({
                 <Link
                   href={`/scholars/${comment.author?.id ?? "#"}`}
                   prefetch={false}
-                  className="mt-0.5 block truncate text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
+                  className="mt-0.5 block truncate text-[11px] font-medium text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
                 >
                   @{comment.author?.handle}
                 </Link>
@@ -506,8 +506,8 @@ function CommentCard({
               suppressHydrationWarning
               className={`font-medium ${
                 isReply
-                  ? "text-[10px] text-slate-400 md:text-[11px]"
-                  : "text-[11px] text-slate-400 md:text-xs"
+                  ? "text-[10px] text-slate-500 md:text-[11px]"
+                  : "text-[11px] text-slate-500 md:text-xs"
               }`}
             >
               Created {formatTimeAgo(comment.createdAt)}
@@ -541,14 +541,14 @@ function CommentCard({
             </form>
           ) : (
             <>
-              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-700 mt-2 [overflow-wrap:anywhere] dark:text-slate-300 md:text-sm">
+              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-800 mt-2 [overflow-wrap:anywhere] dark:text-slate-300 md:text-sm">
                 {renderMentionContent(comment.content, comment.mentions)}
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
                 {wasEdited && (
                   <span
                     suppressHydrationWarning
-                    className="text-xs font-semibold text-slate-400 dark:text-slate-500"
+                    className="text-xs font-semibold text-slate-500 dark:text-slate-500"
                   >
                     {`Edited ${formatTimeAgo(comment.editedAt)}`}
                   </span>

@@ -214,6 +214,18 @@ describe("runOutreachCron guards", () => {
     expect(emailModule.sendScholarOutreachEmail).toHaveBeenCalledTimes(1);
   });
 
+  it("sends a newly added pending contact with production defaults", async () => {
+    seedContact({ createdAt: new Date("2026-03-10T11:59:00.000Z") });
+
+    const result = await runOutreachCron({
+      now: NOW,
+      random: () => 0.99,
+      redis: new FakeRedis(),
+    });
+
+    expect(result).toMatchObject({ success: true, sent: 1, contactId: "c-1" });
+  });
+
   it("supports a sending window that crosses midnight", async () => {
     seedContact();
 

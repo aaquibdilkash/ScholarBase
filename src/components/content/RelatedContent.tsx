@@ -32,7 +32,7 @@ export default function RelatedContent({
 
   return (
     <section className="mt-6 xl:mt-0" aria-label={title}>
-      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
         {title}
       </h2>
 
@@ -69,7 +69,7 @@ export default function RelatedContent({
                         {item.authorName}
                       </span>
                       {item.authorHandle ? (
-                        <span className="mt-0.5 block truncate text-xs font-medium text-slate-500 dark:text-slate-400">
+                        <span className="mt-0.5 block truncate text-xs font-medium text-slate-600 dark:text-slate-400">
                           @{item.authorHandle}
                         </span>
                       ) : null}

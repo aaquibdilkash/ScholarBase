@@ -75,7 +75,7 @@ export function MentionComposer({
     <div className="relative min-w-0">
       {label && (
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
             {label}
           </span>
           {tooltip && <InfoTooltip message={tooltip} />}
@@ -112,7 +112,7 @@ export function MentionComposer({
           }
         }}
       />
-      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
         {value.length}/{maxLength} characters
       </div>
       <ScholarSuggestionDropdown
@@ -122,7 +122,7 @@ export function MentionComposer({
         onSelect={insertSuggestion}
       />
       {showPreview && (
-        <div className="mt-2 break-words overflow-wrap-anywhere rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
+        <div className="mt-2 break-words overflow-wrap-anywhere rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-sm leading-relaxed text-slate-800 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
           {renderMentionContent(value || placeholder, mentionedUsers)}
         </div>
       )}

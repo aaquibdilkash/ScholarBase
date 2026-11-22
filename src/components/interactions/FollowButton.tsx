@@ -74,7 +74,7 @@ export function FollowButton({
     <button
       disabled={isPending}
       onClick={handleClick}
-      className={`sb-button-primary min-w-0 flex-1 sm:flex-none ${
+      className={`sb-button-primary sb-follow-button min-w-0 flex-1 sm:flex-none ${
         optimisticIsFollowing ? "opacity-90" : ""
       }`}
     >

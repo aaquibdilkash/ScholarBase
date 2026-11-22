@@ -171,7 +171,10 @@ const DAILY_LIMIT = 20;
 const SEND_PROBABILITY = 1;
 const WINDOW_START_UTC = 7;
 const WINDOW_END_UTC = 21;
-const MIN_AGE_HOURS = 24;
+// A contact explicitly added by an admin is already intentional. The cron
+// cadence and caps provide pacing, so a hidden 24-hour delay should not leave
+// a visible PENDING contact unexplained.
+const MIN_AGE_HOURS = 0;
 const DOMAIN_DAILY_LIMIT = 1;
 
 /**
@@ -339,7 +342,7 @@ async function claimDomainSlot(
  *  3. Redis lock so two overlapping runs cannot double-send.
  *  4. Daily cap.
  *  5. PENDING-only, never-contacted, non-member, non-opted-out candidates,
- *     at least `MIN_AGE_HOURS` old.
+ *     respecting the configured minimum age.
  *  6. One email per recipient domain per day.
  *  7. Template rotation so consecutive sends never repeat copy.
  */
