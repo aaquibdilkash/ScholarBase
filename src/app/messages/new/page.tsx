@@ -7,8 +7,10 @@ import { getScholarById } from '@/app/actions/scholars'
 import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { NewMessageForm } from '@/components/messages/NewMessageForm'
+import { NewGroupForm } from '@/components/messages/NewGroupForm'
 import { useToast } from '@/components/ui/Toast'
 import CreateOrEditPageShell from '@/components/layout/CreateOrEditPageShell'
+import Link from 'next/link'
 
 type Scholar = NonNullable<Awaited<ReturnType<typeof getScholarById>>>
 
@@ -16,6 +18,10 @@ function NewConversationPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const recipientId = searchParams.get('to')
+  const isGroup = searchParams.get('group') === '1'
+  const contextType = searchParams.get('contextType') ?? undefined
+  const contextId = searchParams.get('contextId') ?? undefined
+  const groupTitle = searchParams.get('title') ?? undefined
   const [user, setUser] = useState<User | null>(null)
   const [recipient, setRecipient] = useState<Scholar | null>(null)
   const [loading, setLoading] = useState(true)
@@ -67,8 +73,8 @@ function NewConversationPageContent() {
 
   return (
     <CreateOrEditPageShell
-      title="New Message"
-      description="Start a new conversation with another scholar."
+      title={isGroup ? "New Group" : "New Message"}
+      description={isGroup ? "Create a private discussion group with up to eight scholars." : "Start a new conversation with another scholar."}
       backHref="/messages"
       backLabel="Back to Messages"
       maxWidth="md"
@@ -76,7 +82,8 @@ function NewConversationPageContent() {
       {/* No width wrapper: the form spans the shell's max-w-4xl, so the card
           aligns exactly with the title above it — same as every other add/edit
           page (events, grants, blog, ...). */}
-      <NewMessageForm initialRecipient={recipient} />
+      {!isGroup && <div className="mb-4 flex justify-end"><Link href="/messages/new?group=1" className="sb-button-soft">Create a group</Link></div>}
+      {isGroup ? <NewGroupForm contextType={contextType} contextId={contextId} initialTitle={groupTitle} /> : <NewMessageForm initialRecipient={recipient} />}
     </CreateOrEditPageShell>
   )
 }

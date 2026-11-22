@@ -12,10 +12,10 @@ import {
   RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
-import { queueMessagePush } from "@/lib/qstash";
+import { queueGroupMessagePush, queueMessagePush } from "@/lib/qstash";
 import { after } from "next/server";
 import { Prisma } from "@prisma/client";
-import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
+import { MAX_GROUP_PARTICIPANTS, MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 
 const sidebarUserSelect = {
@@ -44,6 +44,10 @@ function normalizeMessageBody(body: string): string {
 
 const directConversationSelect = {
   id: true,
+  type: true,
+  title: true,
+  contextType: true,
+  contextId: true,
   lastMessageAt: true,
   updatedAt: true,
   participants: {
@@ -70,6 +74,14 @@ const directConversationSelect = {
     },
   },
 } as const;
+
+const groupContextTypes = ["CALL_FOR_PAPER"] as const;
+type GroupContextType = (typeof groupContextTypes)[number];
+
+function readGroupMemberIds(formData: FormData): string[] {
+  const values = formData.getAll("memberIds");
+  return [...new Set(values.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).map((value) => value.trim()))];
+}
 
 // ⚡ ZERO-COMPUTE: Attach unread counts for only the fetched page of
 // conversations, in one indexed raw query (Rule 2).
@@ -259,6 +271,77 @@ export async function findDirectConversation(otherUserId: string) {
   return conversation?.id ?? null;
 }
 
+/** Create a bounded private group. The hard cap is intentionally centralized so
+ * the database write, UI and future scale-up all share one limit. */
+export async function createGroupConversation(formData: FormData): Promise<SubmitResult> {
+  const auth = await getActiveUser("Please log in to create a group.");
+  if (auth.frozen) return { success: false, error: auth.message };
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:group-create",
+    key: auth.user.id,
+    limit: 10,
+    window: "1 m",
+    onDegraded: "closed",
+  });
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
+  }
+
+  const title = readFormValue(formData, "title").trim();
+  const memberIds = readGroupMemberIds(formData).filter((id) => id !== auth.user.id);
+  const contextType = readOptionalFormValue(formData, "contextType") as GroupContextType | null;
+  const contextId = readOptionalFormValue(formData, "contextId");
+
+  if (!title || title.length > 120) return { success: false, error: "A group name between 1 and 120 characters is required." };
+  if (memberIds.length === 0) return { success: false, error: "Add at least one other scholar to the group." };
+  if (memberIds.length + 1 > MAX_GROUP_PARTICIPANTS) {
+    return { success: false, error: `Groups can have up to ${MAX_GROUP_PARTICIPANTS} participants.` };
+  }
+  if (contextType && (!groupContextTypes.includes(contextType) || !contextId)) {
+    return { success: false, error: "The group context is invalid." };
+  }
+
+  const members = await prisma.user.findMany({
+    where: { id: { in: memberIds }, isDeleted: false, isFrozen: false },
+    select: { id: true },
+  });
+  if (members.length !== memberIds.length) return { success: false, error: "One or more selected scholars are unavailable." };
+
+  const blocked = await prisma.block.findFirst({
+    where: { OR: memberIds.flatMap((memberId) => [
+      { blockerId: auth.user.id, blockedId: memberId },
+      { blockerId: memberId, blockedId: auth.user.id },
+    ]) },
+    select: { id: true },
+  });
+  if (blocked) return { success: false, error: "Remove blocked scholars before creating this group." };
+
+  if (contextType === "CALL_FOR_PAPER") {
+    const paper = await prisma.callForPaper.findUnique({ where: { id: contextId! }, select: { id: true, isDeleted: true } });
+    if (!paper || paper.isDeleted) return { success: false, error: "This call for papers is no longer available." };
+  }
+
+  const conversation = await prisma.conversation.create({
+    data: {
+      type: "GROUP",
+      title,
+      contextType: contextType ?? null,
+      contextId: contextId ?? null,
+      createdById: auth.user.id,
+      participants: {
+        create: [
+          { userId: auth.user.id, role: "OWNER", lastReadAt: new Date() },
+          ...memberIds.map((userId) => ({ userId, role: "MEMBER" as const })),
+        ],
+      },
+    },
+    select: { id: true },
+  });
+
+  return { success: true, redirect: `/messages/${conversation.id}`, data: { id: conversation.id } };
+}
+
 export async function getConversation(conversationId: string) {
   const currentUser = await requireCurrentUser("Please log in to view messages.");
   const userId = currentUser.id;
@@ -270,6 +353,10 @@ export async function getConversation(conversationId: string) {
     },
     select: {
       id: true,
+      type: true,
+      title: true,
+      contextType: true,
+      contextId: true,
       lastMessageAt: true,
       participants: {
         select: {
@@ -289,9 +376,9 @@ export async function getConversation(conversationId: string) {
 
   // ⚡ BLOCK STATE: Resolve block relationships in the same action so the chat
   // UI can disable the composer and render the correct notice banner.
-  const otherParticipantId = conversation.participants.find(
+  const otherParticipantId = conversation.type === "DIRECT" ? conversation.participants.find(
     (p) => p.user.id !== userId,
-  )?.user.id;
+  )?.user.id : undefined;
 
   if (!otherParticipantId) return conversation;
 
@@ -592,6 +679,7 @@ export async function sendMessage(
     },
     select: {
       id: true,
+      type: true,
       participants: {
         select: {
           userId: true,
@@ -604,12 +692,14 @@ export async function sendMessage(
   if (!conversation)
     return { success: false, error: "Conversation not found.", code: "CONVERSATION_DELETED" };
 
-  // ⚡ BLOCK ENFORCEMENT (Issue 5): Dual-direction check — a block in either
-  // direction must prevent the message from being created.
-  const otherParticipant = conversation.participants.find(
-    (p) => p.userId !== user.id,
-  );
-  if (otherParticipant) {
+  const otherParticipant = conversation.type === "DIRECT"
+    ? conversation.participants.find((p) => p.userId !== user.id)
+    : undefined;
+  if (conversation.type === "GROUP") {
+    // Group conversations deliberately do not inherit direct-message block
+    // semantics: a block between two members must not break the shared paper
+    // discussion for the remaining members.
+  } else if (otherParticipant) {
     if (otherParticipant.user.isDeleted) {
       return {
         success: false,
@@ -668,7 +758,20 @@ export async function sendMessage(
   // ⚡ `after()`: mirrors `startConversation`. Only the *other* participant is
   // notified, and only after the transaction above committed. Runs after the
   // response, so the send stays instant even when the request worker exits.
-  if (otherParticipant) {
+  if (conversation.type === "GROUP") {
+    const recipientIds = conversation.participants
+      .filter((participant) => participant.userId !== user.id && !participant.user.isDeleted && !participant.user.isFrozen)
+      .map((participant) => participant.userId);
+    if (recipientIds.length > 0) {
+      after(() => queueGroupMessagePush({
+        messageId: createdMessage.id,
+        conversationId,
+        recipientIds,
+        senderName: (createdMessage.sender.name?.trim() || "A researcher").slice(0, 120),
+        body: createdMessage.body,
+      }).catch((error) => console.error("Group message push enqueue error:", error)));
+    }
+  } else if (otherParticipant) {
     after(() =>
       queueMessagePush({
         messageId: createdMessage.id,

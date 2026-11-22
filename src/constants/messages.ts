@@ -1,1 +1,2 @@
 export const MESSAGE_THREAD_PAGE_SIZE = 20;
+export const MAX_GROUP_PARTICIPANTS = 8;

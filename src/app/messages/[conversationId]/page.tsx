@@ -27,6 +27,7 @@ import {
   UserCheck,
   Loader2,
   Flag,
+  ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
@@ -61,6 +62,10 @@ type Participant = {
 };
 type Conversation = {
   id: string;
+  type: "DIRECT" | "GROUP";
+  title: string | null;
+  contextType: string | null;
+  contextId: string | null;
   participants: Participant[];
   messages: SentMessage[];
   blockedByMe?: boolean;
@@ -78,9 +83,10 @@ export default function ConversationPage({
   if (!context)
     throw new Error("ConversationPage must be used within a MessagesLayout");
 
-  const { setIsSidebarOpen } = context;
+  const { isSidebarOpen, setIsSidebarOpen } = context;
   const [user, setUser] = useState<User | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  const conversationTypeRef = useRef<Conversation["type"]>("DIRECT");
   const [blockState, setBlockState] = useState({
     blockedByMe: false,
     blockedMe: false,
@@ -94,12 +100,12 @@ export default function ConversationPage({
   const isCurrentUserFrozen = useIsFrozen();
 
   const [isTyping, setIsTyping] = useState(false);
+  const [typingUserIds, setTypingUserIds] = useState<Set<string>>(new Set());
+  const [groupReadAt, setGroupReadAt] = useState<Record<string, number>>({});
   const lastTypedAt = useRef<number>(0);
   const roomRef = useRef<RealtimeChannel | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const typingTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
     useState<Date>(new Date(0));
@@ -295,6 +301,7 @@ export default function ConversationPage({
       }
 
       setConversation(conv as unknown as Conversation);
+      conversationTypeRef.current = (conv as unknown as Conversation).type;
       setBlockState({
         blockedByMe: Boolean((conv as Conversation).blockedByMe),
         blockedMe: Boolean((conv as Conversation).blockedMe),
@@ -334,6 +341,17 @@ export default function ConversationPage({
       if (otherP?.lastReadAt) {
         setOtherParticipantLastReadAt(new Date(otherP.lastReadAt));
       }
+      if ((conv as unknown as Conversation).type === "GROUP") {
+        const reads: Record<string, number> = {};
+        for (const participant of (conv as unknown as Conversation).participants) {
+          if (participant.user.id !== user.id) {
+            reads[participant.user.id] = participant.lastReadAt
+              ? new Date(participant.lastReadAt).getTime()
+              : 0;
+          }
+        }
+        setGroupReadAt(reads);
+      }
     };
 
     void fetchUserAndConversation();
@@ -346,6 +364,7 @@ export default function ConversationPage({
     (p) => p.user.id !== userId,
   );
   const otherParticipant = otherParticipantData?.user;
+  const isGroup = conversation?.type === "GROUP";
 
   // A reply target belongs to one conversation. Switching threads must clear it
   // so the composer does not quote a message from the previous thread (and send
@@ -356,15 +375,18 @@ export default function ConversationPage({
 
   // ⚡ Online status comes from the centralized global presence channel.
   const { onlineUserIds } = usePresence();
-  const isOtherOnline = otherParticipant
+  const isOtherOnline = !isGroup && otherParticipant
     ? onlineUserIds.has(otherParticipant.id)
     : false;
-
-  useEffect(() => {
-    if (!isTyping) return;
-    const timer = setTimeout(() => setIsTyping(false), 3000);
-    return () => clearTimeout(timer);
-  }, [isTyping]);
+  const onlineGroupCount = isGroup
+    ? (conversation?.participants.filter((participant) => participant.user.id !== userId && onlineUserIds.has(participant.user.id)).length ?? 0)
+    : 0;
+  const typingNames = isGroup
+    ? [...typingUserIds].map((id) => conversation?.participants.find((participant) => participant.user.id === id)?.user.name || "Scholar")
+    : [];
+  const groupReadCutoff = isGroup && conversation
+    ? Math.min(...conversation.participants.filter((participant) => participant.user.id !== userId).map((participant) => groupReadAt[participant.user.id] ?? 0))
+    : otherParticipantLastReadAt.getTime();
 
   // ⚡ ONE private channel per conversation (see supabase/realtime/README.md).
   //  - Messages: Broadcast from Database. The `Message` AFTER INSERT/UPDATE
@@ -478,17 +500,28 @@ export default function ConversationPage({
         "broadcast",
         { event: "typing" },
         ({ payload }: { payload: TypingPayload }) => {
-          if (!payload || payload.userId === userId) return;
+          if (!payload || !payload.userId || payload.userId === userId) return;
           if (payload.isTyping) {
             setIsTyping(true);
-            if (typingClearTimerRef.current)
-              clearTimeout(typingClearTimerRef.current);
-            typingClearTimerRef.current = setTimeout(
-              () => setIsTyping(false),
-              3000,
-            );
+            setTypingUserIds((current) => new Set(current).add(payload.userId!));
+            const previousTimer = typingTimersRef.current.get(payload.userId!);
+            if (previousTimer) clearTimeout(previousTimer);
+            typingTimersRef.current.set(payload.userId!, setTimeout(() => {
+              setTypingUserIds((current) => {
+                const next = new Set(current);
+                next.delete(payload.userId!);
+                setIsTyping(next.size > 0);
+                return next;
+              });
+              typingTimersRef.current.delete(payload.userId!);
+            }, 3000));
           } else {
-            setIsTyping(false);
+            setTypingUserIds((current) => {
+              const next = new Set(current);
+              next.delete(payload.userId!);
+              setIsTyping(next.size > 0);
+              return next;
+            });
           }
         },
       )
@@ -499,7 +532,12 @@ export default function ConversationPage({
           if (!payload || payload.userId === userId || !payload.lastReadAt) {
             return;
           }
-          updateOtherParticipantLastReadAt(new Date(payload.lastReadAt));
+          const readAt = new Date(payload.lastReadAt);
+          if (conversationTypeRef.current === "GROUP") {
+            setGroupReadAt((current) => ({ ...current, [payload.userId]: readAt.getTime() }));
+          } else {
+            updateOtherParticipantLastReadAt(readAt);
+          }
         },
       )
       .subscribe((status: string) => {
@@ -531,13 +569,14 @@ export default function ConversationPage({
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    const typingTimers = typingTimersRef.current;
 
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
-      if (typingClearTimerRef.current)
-        clearTimeout(typingClearTimerRef.current);
+      for (const timer of typingTimers.values()) clearTimeout(timer);
+      typingTimers.clear();
       if (channel) void supabase.removeChannel(channel);
       roomRef.current = null;
     };
@@ -664,7 +703,7 @@ export default function ConversationPage({
   };
 
   // ⚡ ISSUE 5: A block in either direction disables the composer.
-  const isPeerFrozen = Boolean(otherParticipant?.isFrozen);
+  const isPeerFrozen = !isGroup && Boolean(otherParticipant?.isFrozen);
   const isChatDisabled =
     isCurrentUserFrozen ||
     isPeerFrozen ||
@@ -676,19 +715,22 @@ export default function ConversationPage({
       <div className="relative z-40 flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-2 dark:border-slate-800 sm:px-4">
         <button
           type="button"
-          onClick={() => setIsSidebarOpen(true)}
-          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm lg:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
+          onClick={() => setIsSidebarOpen((current) => !current)}
+          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
+          aria-label={isSidebarOpen ? "Collapse conversations" : "Expand conversations"}
         >
-          <ChevronsRight className="h-6 w-6" />
+          {isSidebarOpen ? <ChevronsLeft className="h-6 w-6" /> : <ChevronsRight className="h-6 w-6" />}
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Link
             prefetch={false}
-            href={otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
+            href={!isGroup && otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
             className="flex shrink-0 items-center gap-3"
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
-              {otherParticipant?.avatarUrl ? (
+              {isGroup ? (
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">G</div>
+              ) : otherParticipant?.avatarUrl ? (
                 <UserAvatar
                   src={otherParticipant.avatarUrl}
                   name={otherParticipant?.name}
@@ -702,16 +744,18 @@ export default function ConversationPage({
             </div>
             <div className="min-w-0">
               <h1 className="truncate font-semibold text-slate-900 dark:text-slate-100">
-                {otherParticipant?.name || "Scholar"}
+                {isGroup ? conversation?.title || "Group discussion" : otherParticipant?.name || "Scholar"}
               </h1>
               <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                 {isTyping ? (
                   <span className="text-blue-500 font-medium italic">
-                    typing...
+                    {isGroup ? `${typingNames.slice(0, 2).join(", ") || "Someone"}${typingNames.length > 2 ? " and others" : ""} typing…` : "typing..."}
                   </span>
+                ) : isGroup ? (
+                  <span>{onlineGroupCount > 0 ? `${onlineGroupCount} online` : `${conversation?.participants.length ?? 0} participants`}</span>
                 ) : isOtherOnline ? (
                   <span className="text-green-500 font-medium">Online</span>
-                ) : otherParticipant?.handle ? (
+                ) : !isGroup && otherParticipant?.handle ? (
                   `@${otherParticipant.handle}`
                 ) : (
                   "scholar"
@@ -720,7 +764,8 @@ export default function ConversationPage({
             </div>
           </Link>
         </div>
-        <div className="relative" data-block-menu>
+        <div className="ml-auto flex items-center gap-2">
+          {!isGroup && <div className="relative" data-block-menu>
           <button
             onClick={() => setMenuOpen((o) => !o)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
@@ -759,6 +804,7 @@ export default function ConversationPage({
               </button>
             </div>
           )}
+          </div>}
         </div>
       </div>
 
@@ -768,7 +814,7 @@ export default function ConversationPage({
             conversationId={conversation.id}
             initialMessages={conversation.messages}
             user={user}
-            otherParticipantLastReadAt={otherParticipantLastReadAt}
+            otherParticipantLastReadAt={new Date(groupReadCutoff)}
             registerAppend={handleAppendMessage}
             registerAddFailed={handleRegisterAddFailed}
             registerUpdate={handleRegisterUpdate}

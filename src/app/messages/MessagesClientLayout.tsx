@@ -9,7 +9,7 @@ import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox, getConversationPreview } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
-import { EnablePushButton } from "@/components/push/EnablePushButton";
+import { MessagesActionsDropdown } from "@/components/messages/MessagesActionsDropdown";
 import { MessagesLayoutContext } from "./messages-context";
 import { Check, CheckCheck, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 import useMediaQuery from "@/hooks/useMediaQuery";
@@ -18,7 +18,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; };
 type Message = { id?: string; body: string; createdAt?: Date | string | number; senderId?: string; sender?: { id: string; }; };
-type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
+type InboxConversation = { id: string; type: "DIRECT" | "GROUP"; title: string | null; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
 // ⚡ INFINITE SCROLL: conversations per page.
 const PAGE_SIZE = 10;
@@ -59,11 +59,14 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
   // has no drawer to collapse. The desktop drawer on /messages keeps it, since
   // the cookie-driven collapsed rail still applies there.
   const isInlineList = isInline;
+  const isConversationView = pathname.startsWith("/messages/") && pathname !== "/messages/new";
 
   // ⚡ ZERO CLS: this is derived from state only — never from a JS-measured
   // breakpoint — so SSR and the first client paint always agree. On desktop it
   // tracks the cookie-backed state; on mobile it flips when the drawer opens.
-  const showExpanded = isInlineList ? true : isSidebarOpen || mobileOpen;
+  const showExpanded = isInlineList
+    ? (isDesktop ? isSidebarOpen : true)
+    : isSidebarOpen || mobileOpen;
 
   useEffect(() => {
     pathnameRef.current = pathname;
@@ -89,7 +92,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       setIsLoading(true);
       getInbox(user.id, PAGE_SIZE)
         .then((data) => {
-          setInbox(data);
+          setInbox(data.map((conversation) => ({ ...conversation, type: conversation.type ?? "DIRECT", title: conversation.title ?? null })));
           setHasMore(data.length === PAGE_SIZE);
         })
         .catch(() => setInbox([]))
@@ -303,6 +306,8 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       const now = new Date();
       const optimistic: InboxConversation = {
         id: conversationId,
+        type: "DIRECT",
+        title: null,
         lastMessageAt: now,
         unreadCount: 0,
         participants: [
@@ -398,21 +403,12 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       <div className={`flex h-16 shrink-0 items-center border-b border-slate-200 px-2.5 dark:border-slate-800 sm:px-4 ${showExpanded ? "justify-between gap-2" : "justify-center"}`}>
         {showExpanded && <h2 className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg xl:text-xl">Conversations</h2>}
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {/* ⚡ Bell sits LEFT of the New button. Always visible (it was
-              `hidden sm:inline-flex`, which hid it below the 640px `sm`
-              breakpoint on phones) in BOTH the inline /messages list and the
-              conversation drawer, matching the main navbar bell. */}
-          {showExpanded && (
-            <span className="inline-flex">
-              <EnablePushButton variant="compact" />
-            </span>
-          )}
-          {showExpanded && ( 
-            <Link prefetch={false} href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary min-h-8 px-3 py-1.5 text-xs dark:bg-black dark:hover:bg-black sm:px-4 sm:py-2">New</Link>
+          {(!isInlineList || showExpanded) && (
+            <MessagesActionsDropdown onNavigate={handleNewMessageClick} />
           )}
           {/* No drawer to collapse on the inline /messages list. */}
-          {!isInlineList && (
-            <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={showExpanded ? "Collapse conversations" : "Expand conversations"}>
+          {(!isInlineList || isDesktop) && (!isConversationView || !isDesktop) && (
+            <button onClick={() => setIsSidebarOpen((prev) => !prev)} className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 ${isInlineList ? "lg:inline-flex" : ""}`} aria-label={showExpanded ? "Collapse conversations" : "Expand conversations"}>
               {showExpanded ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
             </button>
           )}
@@ -450,6 +446,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
           ) : displayList.length > 0 ? (
             <div className="space-y-2 p-2 overflow-x-hidden">
               {displayList.map((conversation) => {
+                const isGroup = conversation.type === "GROUP";
                 const otherParticipantData = conversation.participants.find((p) => p.user.id !== user.id) ?? conversation.participants[0];
                 const otherParticipant = otherParticipantData?.user ?? conversation.participants[0]?.user;
                 const latestMessage = conversation.messages[0];
@@ -476,7 +473,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                     latestSenderId !== user.id &&
                     new Date(conversation.lastMessageAt) > lastReadAt);
                 const isActive = pathname === `/messages/${conversation.id}`;
-                const isOtherUserOnline = !otherParticipant?.isFrozen && onlineUserIds.has(otherParticipant?.id || "");
+                const isOtherUserOnline = !isGroup && !otherParticipant?.isFrozen && onlineUserIds.has(otherParticipant?.id || "");
 
                 return (
                   <Link prefetch={false}
@@ -497,7 +494,9 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                     <div className={`flex min-w-0 items-center overflow-hidden ${showExpanded ? "justify-between gap-2" : "justify-center"}`}>
                       <div className={`flex min-w-0 items-center ${showExpanded ? "flex-1 gap-3" : ""}`}>
                         <div className="relative h-10 w-10 shrink-0">
-                          {otherParticipant?.avatarUrl ? (
+                          {isGroup ? (
+                            <div className="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">G</div>
+                          ) : otherParticipant?.avatarUrl ? (
                             <UserAvatar
                               src={otherParticipant.avatarUrl}
                               name={otherParticipant?.name}
@@ -514,7 +513,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                         </div>
                         {showExpanded && ( 
                           <div className="min-w-0 flex-1">
-                            <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{otherParticipant?.name || "Scholar"}</div>
+                            <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{isGroup ? conversation.title || "Group discussion" : otherParticipant?.name || "Scholar"}</div>
                             {latestMessage && (
                               <p className={`mt-0.5 min-w-0 max-w-full line-clamp-1 text-sm [overflow-wrap:anywhere] ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
                                 {latestMessage.body}
@@ -526,7 +525,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                       {showExpanded && (
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <div suppressHydrationWarning className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{<SidebarTimeAgo date={conversation.lastMessageAt} />}</div>
-                          {latestMessageIsMine ? (
+                          {latestMessageIsMine && !isGroup ? (
                             <div className="flex items-center text-slate-400 dark:text-slate-500">
                               {isLastMessageReadByOther ? (
                                 <CheckCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
@@ -728,8 +727,8 @@ export default function MessagesClientLayout({
         <div
           className={
             isInboxIndex
-              ? `relative z-0 flex w-full min-h-0 flex-1 flex-col border-b border-slate-200 sb-sidebar-bg lg:static lg:z-auto lg:h-auto lg:w-80 lg:flex-none lg:border-b-0 lg:border-r dark:border-slate-800 ${isSidebarOpen ? "lg:w-80" : "lg:w-16"}`
-              : `fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-conversation-drawer h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] ${isSidebarOpen ? "lg:w-80" : "lg:w-16"}`
+              ? `relative z-0 flex w-full min-h-0 flex-1 flex-col border-b border-slate-200 sb-sidebar-bg lg:static lg:z-auto lg:h-auto lg:flex-none lg:border-b-0 lg:border-r dark:border-slate-800 ${isSidebarOpen ? "lg:w-80" : "lg:w-20"}`
+              : `fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-conversation-drawer h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] ${isSidebarOpen ? "lg:w-80" : "lg:w-20"}`
           }
         >
           <Suspense fallback={

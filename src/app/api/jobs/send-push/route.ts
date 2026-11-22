@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import {
   messagePushPayloadSchema,
   type MessagePushPayload,
+  groupMessagePushPayloadSchema,
+  type GroupMessagePushPayload,
 } from "@/lib/qstash";
 import { isUserActive } from "@/lib/push-activity";
 import { sendMessagePush } from "@/lib/push-server";
@@ -22,11 +24,22 @@ import { sendMessagePush } from "@/lib/push-server";
  */
 async function handler(request: Request) {
   try {
-    const parsedPayload = messagePushPayloadSchema.safeParse(await request.json());
+    const parsedPayload = messagePushPayloadSchema.or(groupMessagePushPayloadSchema).safeParse(await request.json());
     if (!parsedPayload.success) {
       return NextResponse.json({ error: "Invalid push payload" }, { status: 400 });
     }
-    const payload: MessagePushPayload = parsedPayload.data;
+    const payload: MessagePushPayload | GroupMessagePushPayload = parsedPayload.data;
+
+    if ("recipientIds" in payload) {
+      const results = await Promise.all(payload.recipientIds.map(async (recipientId) => {
+        if (await isUserActive(recipientId)) return { skipped: "ACTIVE" as const };
+        return sendMessagePush({ ...payload, recipientId });
+      }));
+      if (results.some((result) => "transientFailure" in result && result.transientFailure)) {
+        return NextResponse.json({ error: "Push service temporarily unavailable" }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, recipients: results.length });
+    }
 
     if (await isUserActive(payload.recipientId)) {
       return NextResponse.json({ success: true, skipped: "ACTIVE" });

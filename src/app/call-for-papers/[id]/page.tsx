@@ -19,6 +19,7 @@ import { FeedImage } from "@/components/feed/FeedImage";
 import { isValidImageUrl } from "@/lib/image-constants";
 import { BookOpen, Building2, Calendar, Clock, MapPin } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
+import Link from "next/link";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -202,18 +203,26 @@ const EventDetailPage = async ({
         />
       }
       bodyBottomContent={
-        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
-          <SmartExternalLink
-            url={event.notificationLink}
-            className="flex-1 sb-button-soft"
-            urlLabel="View Brochure"
-          />
-          <SmartExternalLink
-            url={event.applyLink}
-            className="flex-1 sb-button-primary"
-            urlLabel="Register Now"
-            emailLabel="Email to Register"
-          />
+        <div className="mt-3 flex flex-col gap-3 sm:mt-4 sm:gap-4">
+          <div className="flex gap-3 sm:gap-4">
+            <SmartExternalLink
+              url={event.notificationLink}
+              className="flex-1 sb-button-soft justify-center"
+              urlLabel="View Brochure"
+            />
+            <SmartExternalLink
+              url={event.applyLink}
+              className="flex-1 sb-button-primary justify-center"
+              urlLabel="Register Now"
+              emailLabel="Email to Register"
+            />
+          </div>
+          <Link
+            href={`/messages/new?group=1&contextType=CALL_FOR_PAPER&contextId=${encodeURIComponent(event.id)}&title=${encodeURIComponent(`${event.title} discussion`)}`}
+            className="sb-button-soft w-full justify-center"
+          >
+            Discuss in a group
+          </Link>
         </div>
       }
       discussion={

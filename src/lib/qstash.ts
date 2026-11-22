@@ -143,6 +143,16 @@ export const messagePushPayloadSchema = z.object({
 
 export type MessagePushPayload = z.infer<typeof messagePushPayloadSchema>;
 
+export const groupMessagePushPayloadSchema = z.object({
+  messageId: z.string().min(1),
+  conversationId: z.string().min(1),
+  senderName: z.string().min(1).max(120),
+  body: z.string().min(1).max(2000),
+  recipientIds: z.array(z.string().min(1)).min(1).max(7),
+});
+
+export type GroupMessagePushPayload = z.infer<typeof groupMessagePushPayloadSchema>;
+
 export async function queueMessagePush(payload: MessagePushPayload) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
@@ -180,5 +190,27 @@ export async function queueMessagePush(payload: MessagePushPayload) {
     // the same logical message to QStash more than once. The queue then
     // collapses the duplicate instead of delivering it twice.
     deduplicationId: `msg-${payload.messageId}-${payload.recipientId}`,
+  });
+}
+
+export async function queueGroupMessagePush(payload: GroupMessagePushPayload) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) return Promise.reject(new Error("NEXT_PUBLIC_SITE_URL is not configured."));
+  const destination = new URL(siteUrl);
+  if (["localhost", "127.0.0.1", "::1"].includes(destination.hostname)) {
+    if (process.env.NODE_ENV === "development") {
+      const { isUserActive } = await import("@/lib/push-activity");
+      const { sendMessagePush } = await import("@/lib/push-server");
+      return Promise.all(payload.recipientIds.map(async (recipientId) =>
+        (await isUserActive(recipientId)) ? { skipped: "ACTIVE" as const } : sendMessagePush({ ...payload, recipientId }),
+      ));
+    }
+    throw new Error("QStash destination must be publicly reachable in production.");
+  }
+  return getQstashClient().publishJSON({
+    url: `${destination.toString().replace(/\/$/, "")}/api/jobs/send-push`,
+    body: payload,
+    retries: 3,
+    deduplicationId: `group-msg-${payload.messageId}`,
   });
 }
