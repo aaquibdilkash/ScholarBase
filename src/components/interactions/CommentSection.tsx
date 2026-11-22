@@ -308,6 +308,7 @@ export function CommentSection({
                 label="Add a comment"
                 tooltip={COMMENT_CONTENT_TIP}
                 maxLength={MAX_COMMENT_BODY}
+                rows={3}
               />
               <div className="flex justify-end">
                 <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base" disabled={submitting} loadingText="Posting...">

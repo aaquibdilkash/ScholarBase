@@ -27,6 +27,7 @@ export function FeedImage({
   width = 800,
   height = 416,
   unoptimized = false,
+  priority = false,
   className = "block h-auto w-auto max-w-full",
 }: {
   src: string;
@@ -34,6 +35,7 @@ export function FeedImage({
   width?: number;
   height?: number;
   unoptimized?: boolean;
+  priority?: boolean;
   className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,6 +62,7 @@ export function FeedImage({
           width={width}
           height={height}
           unoptimized={unoptimized}
+          loading={priority ? "eager" : "lazy"}
           style={{ maxHeight: CONTENT_IMAGE_MAX_HEIGHT }}
           className={`${className} transition duration-200 hover:scale-[1.02]`}
         />

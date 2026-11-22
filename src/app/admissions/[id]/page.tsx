@@ -281,6 +281,7 @@ const AdmissionDetailPage = async ({
             alt={[admission.university, admission.department]
               .filter(Boolean)
               .join(" — ")}
+            priority
           />
         </div>
       )}

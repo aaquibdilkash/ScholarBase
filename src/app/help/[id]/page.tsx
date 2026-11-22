@@ -209,7 +209,7 @@ export default async function HelpPostPage({
 
       {isValidImageUrl(post.imageUrl) && (
         <div className="mb-6">
-          <FeedImage src={post.imageUrl} alt={post.title} />
+          <FeedImage src={post.imageUrl} alt={post.title} priority />
         </div>
       )}
 

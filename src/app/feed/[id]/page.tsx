@@ -204,7 +204,7 @@ export default async function SinglePostPage({
 
       {isValidImageUrl(p.imageUrl) && (
         <div className="mt-4 sm:mt-6">
-          <FeedImage src={p.imageUrl} />
+          <FeedImage src={p.imageUrl} priority />
         </div>
       )}
     </DetailPageCardShell>

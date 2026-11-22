@@ -52,11 +52,12 @@ export function AcademicPositionsList({
         initialItems={isServerQuery ? positions : undefined}
         keepPreviousOnKeyChange
         fetchPage={(cursor) => getAcademicPositions(appliedQuery, 10, cursor)}
-        renderItem={(position) => (
+        renderItem={(position, index) => (
           <AcademicPositionCard
             key={position.id}
             academicPosition={position}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"

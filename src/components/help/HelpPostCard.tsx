@@ -17,9 +17,11 @@ import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 export function HelpPostCard({
   helpPost,
   currentUserId,
+  priority = false,
 }: {
   helpPost: HelpPostWithAuthor;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -123,6 +125,7 @@ export function HelpPostCard({
       <CollapsibleMediaBody
         href={`/help/${helpPost.id}`}
         imageUrl={helpPost.imageUrl}
+        priority={priority}
         contentKey={`${helpPost.message}|${helpPost.imageUrl ?? ""}`}
         header={
           <>

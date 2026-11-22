@@ -10,13 +10,29 @@ import type { OutreachContactItem } from "@/app/actions/outreach";
 
 export const OUTREACH_QUERY_KEY = ["admin-outreach"] as const;
 
+export type OutreachListFilters = {
+  status?: string;
+  search?: string;
+};
+
 /**
  * One cache entry per page. `OUTREACH_QUERY_KEY` stays the prefix, so
  * `invalidateQueries({ queryKey: OUTREACH_QUERY_KEY })` purges every page while
  * row-level optimistic patches target exactly the page on screen.
  */
-export function outreachQueryKey(page: number) {
-  return [...OUTREACH_QUERY_KEY, page] as const;
+export function outreachQueryKey(page: number, filters?: OutreachListFilters) {
+  if (!filters || (!filters.status && !filters.search)) {
+    return [...OUTREACH_QUERY_KEY, page] as const;
+  }
+
+  return [
+    ...OUTREACH_QUERY_KEY,
+    page,
+    {
+      status: filters.status ?? "all",
+      search: filters.search ?? "",
+    },
+  ] as const;
 }
 
 const OPTIMISTIC_ID_PREFIX = "optimistic-";

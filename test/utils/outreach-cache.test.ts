@@ -210,4 +210,15 @@ describe("outreachQueryKey", () => {
   it("separates page entries", () => {
     expect(outreachQueryKey(1)).not.toEqual(outreachQueryKey(2));
   });
+
+  it("separates filtered entries from the unfiltered page", () => {
+    expect(outreachQueryKey(1, { status: "PENDING", search: "gmail" })).toEqual([
+      ...OUTREACH_QUERY_KEY,
+      1,
+      { status: "PENDING", search: "gmail" },
+    ]);
+    expect(outreachQueryKey(1, { status: "PENDING" })).not.toEqual(
+      outreachQueryKey(1, { status: "OUTREACHED" }),
+    );
+  });
 });

@@ -298,6 +298,7 @@ const EventDetailPage = async ({
           <FeedImage
             src={event.imageUrl}
             alt={event.title}
+            priority
           />
         </div>
       )}

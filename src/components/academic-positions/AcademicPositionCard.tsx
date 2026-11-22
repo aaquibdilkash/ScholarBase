@@ -22,9 +22,11 @@ import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-pos
 
 export function AcademicPositionCard({ academicPosition,
   currentUserId,
+  priority = false,
 }: {
   academicPosition: AcademicPositionWithAuthor;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -166,6 +168,7 @@ export function AcademicPositionCard({ academicPosition,
       <CollapsibleMediaBody
         href={`/academic-positions/${academicPosition.id}`}
         imageUrl={academicPosition.imageUrl}
+        priority={priority}
         contentKey={`${academicPosition.description}|${academicPosition.imageUrl ?? ""}`}
         header={
           <>

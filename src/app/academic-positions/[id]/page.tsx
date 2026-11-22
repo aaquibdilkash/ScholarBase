@@ -343,6 +343,7 @@ const AcademicPositionDetailPage = async ({
           <FeedImage
             src={academicPosition.imageUrl}
             alt={academicPosition.title}
+            priority
           />
         </div>
       )}

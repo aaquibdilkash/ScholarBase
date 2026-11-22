@@ -15,9 +15,11 @@ import { actionErrorMessage, friendlyActionError } from "@/lib/utils";
 export function ArticleCard({
   article,
   currentUserId,
+  priority = false,
 }: {
   article: ArticleWithAuthor;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -119,6 +121,7 @@ export function ArticleCard({
       <CollapsibleMediaBody
         href={`/blog/${article.slug}`}
         imageUrl={article.imageUrl}
+        priority={priority}
         header={
           <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
             {article.title}

@@ -52,11 +52,12 @@ export function ArticleList({
             setIsLoadingResults(false);
           }
         }}
-        renderItem={(article) => (
+        renderItem={(article, { index }) => (
           <ArticleCard
             key={article.id}
             article={article}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"

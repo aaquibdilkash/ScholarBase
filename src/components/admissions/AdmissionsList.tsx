@@ -52,11 +52,12 @@ export function AdmissionsList({
             setIsLoadingResults(false);
           }
         }}
-        renderItem={(item) => (
+        renderItem={(item, { index }) => (
           <AdmissionCard
             key={item.id}
             admission={item}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"

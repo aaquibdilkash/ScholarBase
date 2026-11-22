@@ -9,6 +9,8 @@ import type { ListPage } from "@/components/layout/listPage";
 export type ListRenderContext<T> = {
   /** Patch an item in place, e.g. toggling a locally-owned `isFollowing` flag. */
   updateItem: (id: string, patch: Partial<T>) => void;
+  /** Zero-based position in the currently rendered list. */
+  index: number;
 };
 
 export function AppendMoreList<T extends { id: string }>({
@@ -168,7 +170,7 @@ export function AppendMoreList<T extends { id: string }>({
         ))
       ) : (
         <>
-          {items.map((item) => renderItem(item, { updateItem }))}
+          {items.map((item, index) => renderItem(item, { updateItem, index }))}
           <LoadMoreSentinel onVisible={loadMore} disabled={!hasMore || loading} />
           {loading
             ? (loadingIndicator ?? (

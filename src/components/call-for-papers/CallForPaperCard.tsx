@@ -24,9 +24,11 @@ import { getCallForPaperCategoryLabel } from "@/lib/call-for-papers";
 export function CallForPaperCard({
   callForPaper,
   currentUserId,
+  priority = false,
 }: {
   callForPaper: CallForPaperWithAuthor;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -151,6 +153,7 @@ export function CallForPaperCard({
       <CollapsibleMediaBody
         href={`/call-for-papers/${callForPaper.id}`}
         imageUrl={callForPaper.imageUrl}
+        priority={priority}
         contentKey={`${callForPaper.description}|${callForPaper.imageUrl ?? ""}`}
         header={
           <>

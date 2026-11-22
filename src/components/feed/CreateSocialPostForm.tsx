@@ -147,6 +147,7 @@ export function CreateSocialPostForm() {
           label="Post Content"
           tooltip={FEED_CONTENT_TIP}
           maxLength={MAX_SOCIAL_POST_CONTENT}
+          rows={4}
           showPreview={true}
         />
 

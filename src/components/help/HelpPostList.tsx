@@ -52,11 +52,12 @@ export function HelpPostList({
         initialItems={isServerQuery ? posts : undefined}
         keepPreviousOnKeyChange
         fetchPage={(cursor) => getHelpPosts(query, 10, cursor)}
-        renderItem={(post) => (
+        renderItem={(post, index) => (
           <HelpPostCard
             key={(post as HelpPostWithAuthor).id}
             helpPost={post as HelpPostWithAuthor}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"

@@ -215,6 +215,7 @@ function ReplyForm({
           label="Add a reply"
           tooltip={COMMENT_CONTENT_TIP}
           maxLength={MAX_COMMENT_BODY}
+          rows={3}
         />
       </div>
       <div className="flex justify-end">
@@ -525,6 +526,7 @@ function CommentCard({
                 onMentionedUsersChange={setEditedMentions}
                 label="Edit comment"
                 maxLength={MAX_COMMENT_BODY}
+                rows={3}
               />
               <div className="mt-3 flex items-center justify-end gap-3">
                 <button

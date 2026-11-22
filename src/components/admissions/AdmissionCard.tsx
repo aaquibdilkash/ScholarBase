@@ -23,9 +23,11 @@ import { getAdmissionLevelLabel } from "@/lib/admissions";
 export function AdmissionCard({
   admission,
   currentUserId,
+  priority = false,
 }: {
   admission: AdmissionWithAuthor;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -153,6 +155,7 @@ export function AdmissionCard({
       <CollapsibleMediaBody
         href={`/admissions/${admission.id}`}
         imageUrl={admission.imageUrl}
+        priority={priority}
         contentKey={`${admission.description}|${admission.imageUrl ?? ""}`}
         header={
           <>

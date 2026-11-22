@@ -36,6 +36,7 @@ import {
   removeOutreachContactFromList,
   type OutreachListData,
 } from "@/utils/outreach-cache";
+import type { OutreachListFilters } from "@/utils/outreach-cache";
 
 type OutreachStatus =
   | "PENDING"
@@ -58,10 +59,13 @@ function toFieldValues(item: OutreachContactItem): OutreachContactFieldValues {
 export function OutreachActionsDropdown({
   contact,
   page,
+  filters,
 }: {
   contact: OutreachContactItem;
   /** Current list page — optimistic patches target exactly that cache entry. */
   page: number;
+  /** Current server-side list filters. */
+  filters?: OutreachListFilters;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -81,7 +85,7 @@ export function OutreachActionsDropdown({
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const pageKey = outreachQueryKey(page);
+  const pageKey = outreachQueryKey(page, filters);
 
   const snapshot = () =>
     queryClient.getQueryData<OutreachListData>(pageKey);

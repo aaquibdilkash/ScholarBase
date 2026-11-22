@@ -52,11 +52,12 @@ export function CallForPapersList({
         initialItems={isServerQuery ? callForPapers : undefined}
         keepPreviousOnKeyChange
         fetchPage={(cursor) => getCallForPapers(appliedQuery, 10, cursor)}
-        renderItem={(callForPaper) => (
+        renderItem={(callForPaper, index) => (
           <CallForPaperCard
             key={callForPaper.id}
             callForPaper={callForPaper}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"

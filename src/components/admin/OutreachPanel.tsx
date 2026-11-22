@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   listOutreachContacts,
   sendOutreachBatch,
@@ -24,6 +24,7 @@ import {
   Edit3,
   Loader2,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { ADMIN_PAGE_SIZE, MAX_OUTREACH_BATCH_SIZE } from "@/lib/constants";
 import {
@@ -32,10 +33,12 @@ import {
   patchOutreachContactsInList,
   type OutreachListData,
 } from "@/utils/outreach-cache";
+import type { OutreachListFilters } from "@/utils/outreach-cache";
 
 type OutreachRow = OutreachContactItem;
 type OutreachView = "contacts" | "compose";
 type OutreachSendMode = "send" | "resend";
+type OutreachStatusFilter = "all" | "PENDING" | "OUTREACHED" | "BOUNCED" | "REPLIED" | "UNSUBSCRIBED";
 
 function statusLabel(status: string): string {
   return status
@@ -120,17 +123,29 @@ export function OutreachPanel() {
   const [view, setView] = useState<OutreachView>("contacts");
   const [page, setPage] = useState(1);
   const [sendMode, setSendMode] = useState<OutreachSendMode>("send");
+  const [statusFilter, setStatusFilter] = useState<OutreachStatusFilter>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const listFilters: OutreachListFilters = {
+    status: statusFilter,
+    search,
+  };
   const query = useQuery({
-    queryKey: outreachQueryKey(page),
+    queryKey: outreachQueryKey(page, listFilters),
     queryFn: () =>
       listOutreachContacts({
         page,
         pageSize: ADMIN_PAGE_SIZE,
-        status: "all",
-        search: "",
+        status: statusFilter,
+        search,
       }),
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,
@@ -140,7 +155,7 @@ export function OutreachPanel() {
   });
 
   const data = query.data;
-  const pageKey = outreachQueryKey(page);
+  const pageKey = outreachQueryKey(page, listFilters);
 
   const batchSendMutation = useMutation({
     mutationFn: async (contactIds: string[]) => {
@@ -198,6 +213,12 @@ export function OutreachPanel() {
     if (data && nextPage > data.totalPages) return;
     setSelectedIds(new Set());
     setPage(nextPage);
+  };
+
+  const handleStatusFilterChange = (nextStatus: OutreachStatusFilter) => {
+    setStatusFilter(nextStatus);
+    setSelectedIds(new Set());
+    setPage(1);
   };
 
   // A new contact always lands at the top of page 1, so jump there after an
@@ -342,7 +363,7 @@ export function OutreachPanel() {
       key: "actions",
       header: "Actions",
       render: (item: OutreachRow) => (
-        <OutreachActionsDropdown contact={item} page={page} />
+        <OutreachActionsDropdown contact={item} page={page} filters={listFilters} />
       ),
       cellClassName: "w-24",
     },
@@ -419,6 +440,39 @@ export function OutreachPanel() {
                       ? "Select pending contacts to send"
                       : "Select contacted contacts to resend"}
                 </span>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="relative min-w-0 sm:w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <span className="sr-only">Search outreach contacts</span>
+                  <input
+                    type="search"
+                    value={searchInput}
+                    onChange={(event) => {
+                      setSearchInput(event.target.value);
+                      setSelectedIds(new Set());
+                      setPage(1);
+                    }}
+                    placeholder="Search name, email, institution"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                </label>
+                <label>
+                  <span className="sr-only">Filter outreach contacts by status</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => handleStatusFilterChange(event.target.value as OutreachStatusFilter)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 sm:w-40"
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="OUTREACHED">Outreached</option>
+                    <option value="BOUNCED">Bounced</option>
+                    <option value="REPLIED">Replied</option>
+                    <option value="UNSUBSCRIBED">Unsubscribed</option>
+                  </select>
+                </label>
               </div>
 
               <div className="flex items-center gap-2">
