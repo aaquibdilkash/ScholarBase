@@ -16,8 +16,6 @@ const OUTREACH_FROM_ADDRESS = 'ScholarBase Updates <updates@scholarbase.app>';
 
 const OUTREACH_REPLY_TO = 'updates@scholarbase.app';
 
-const OUTREACH_LIST_ID = 'scholarbase-updates';
-
 /**
  * CAN-SPAM requires a physical postal address in every commercial email. This
  * is the address already published on the Terms and Privacy pages. It lives in
@@ -156,12 +154,9 @@ export async function sendScholarOutreachEmail({
       html: generateScholarInviteHtml({ ...emailProps, footerText, unsubscribeUrl }),
       text: generateScholarInvitePlainText({ ...emailProps, footerText, unsubscribeUrl }),
       headers: {
-        'List-ID': `${OUTREACH_LIST_ID} <${OUTREACH_LIST_ID}.scholarbase.app>`,
+        // Keep one-click unsubscribe for recipient control and deliverability.
         'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${OUTREACH_REPLY_TO}?subject=Unsubscribe>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        Precedence: 'bulk',
-        'Auto-Submitted': 'auto-generated',
-        'X-Auto-Response-Suppress': 'OOF, RN, NRN, AutoReply',
       },
     });
 

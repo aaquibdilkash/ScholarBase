@@ -7,6 +7,7 @@ import {
   SCHOLAR_OUTREACH_VARIANTS,
   type OutreachVariant,
 } from "@/lib/emails/scholarInvite";
+import { FAMOUS_EMAIL_PLATFORM_DOMAINS } from "@/lib/email-domain-allowlist";
 import { normalizeEmail } from "@/lib/email-normalizer";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
@@ -77,7 +78,7 @@ export async function deliverOutreachEmail(
     ctaLabel: variant.ctaLabel,
     inviteUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://scholarbase.app").replace(/\/+$/, "")}`,
     // Outreach goes out as the team, never as the signed-in admin.
-    senderName: "Outreach Team",
+    senderName: "ScholarBase",
     senderRole: "ScholarBase",
     footerText: variant.footerText,
   });
@@ -162,13 +163,12 @@ const DOMAIN_TTL_SECONDS = 24 * 60 * 60;
  * dashboard silently disabling the caps). Change the value here and redeploy
  * when the policy changes.
  *
- * The scheduler already runs at a controlled cadence and the daily/domain
- * caps provide the safety limits. A probability gate made a successful cron
- * execution silently do nothing, leaving pending contacts indefinitely stuck;
- * production therefore sends one eligible contact per scheduled run.
+ * The scheduler runs every 20 minutes, so a probability gate prevents every
+ * invocation from sending. The daily/domain caps provide a second safety
+ * layer, while eligible contacts are retried on later runs.
  */
 const DAILY_LIMIT = 20;
-const SEND_PROBABILITY = 1;
+const SEND_PROBABILITY = 0.4;
 const WINDOW_START_UTC = 7;
 const WINDOW_END_UTC = 21;
 // A contact explicitly added by an admin is already intentional. The cron
@@ -176,6 +176,11 @@ const WINDOW_END_UTC = 21;
 // a visible PENDING contact unexplained.
 const MIN_AGE_HOURS = 0;
 const DOMAIN_DAILY_LIMIT = 1;
+
+// Consumer providers host many unrelated recipients under one shared domain.
+// Their addresses are paced by the global daily limit instead of being grouped
+// together as if they belonged to one institution.
+const CONSUMER_DOMAIN_LIMIT = 0;
 
 /**
  * The subset of Upstash Redis this worker uses. Declaring it locally keeps the
@@ -278,6 +283,15 @@ function emailDomain(email: string): string | null {
   if (atIndex <= 0 || atIndex === normalized.length - 1) return null;
 
   return normalized.slice(atIndex + 1);
+}
+
+function domainLimitFor(
+  domain: string,
+  institutionalLimit: number,
+): number {
+  return FAMOUS_EMAIL_PLATFORM_DOMAINS.has(domain)
+    ? CONSUMER_DOMAIN_LIMIT
+    : institutionalLimit;
 }
 
 function shuffle<T>(items: T[], random: () => number): T[] {
@@ -493,7 +507,7 @@ export async function runOutreachCron(
       const domainAllowed = await claimDomainSlot(
         redis,
         domainKey,
-        config.domainDailyLimit,
+        domainLimitFor(domain, config.domainDailyLimit),
         dryRun,
       );
 

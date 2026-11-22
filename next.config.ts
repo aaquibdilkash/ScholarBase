@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const securityHeaders = [
   // Prevent clickjacking by forbidding embedding in iframes
@@ -131,4 +132,26 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Source-map uploads require a build-time auth token. Keep the wrapper off for
+// local/CI builds that do not have Sentry release credentials; runtime error
+// capture continues to work through the instrumentation files.
+const hasSentryBuildCredentials = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+    process.env.SENTRY_ORG &&
+    process.env.SENTRY_PROJECT,
+);
+
+export default hasSentryBuildCredentials
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      sourcemaps: {
+        deleteSourcemapsAfterUpload: true,
+      },
+      release: {
+        name: process.env.SOURCE_COMMIT,
+      },
+    })
+  : nextConfig;

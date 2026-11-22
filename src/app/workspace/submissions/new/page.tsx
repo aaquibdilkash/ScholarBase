@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { ArrowRight, FilePlus2 } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -18,13 +19,14 @@ const VENUE_TYPE_LABELS = {
 } as const;
 
 function defaultAuthorFor(
-  user: any,
+  user: SupabaseUser | null,
 ): { name: string; email: string; orcid: string | null } {
   if (!user) return { name: "", email: "", orcid: "" };
 
-  const name = user?.name ?? user?.user_metadata?.full_name ?? "";
-  const email = user?.email ?? "";
-  const orcid = orcidIdFromUrl(user?.orcidUrl ?? user?.user_metadata?.orcid);
+  const name =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
+  const email = user.email ?? "";
+  const orcid = orcidIdFromUrl(user.user_metadata?.orcid);
 
   return {
     name: String(name),

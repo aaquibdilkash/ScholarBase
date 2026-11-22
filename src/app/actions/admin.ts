@@ -6,7 +6,10 @@ import { notifyUserById } from "@/lib/notifications";
 import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import { invalidateApprovedDomainsCache } from "@/lib/email-domain-allowlist";
-import { MODERATION_LIST_KEY } from "@/lib/moderation-config";
+import {
+  COMMENT_TOP_LEVEL,
+  MODERATION_LIST_KEY,
+} from "@/lib/moderation-config";
 
 import {
   AdminCommentModel,
@@ -598,6 +601,7 @@ export async function getAdminAppeals(
       const select: Record<string, boolean> = {
         isFrozen: true,
         isDeleted: true,
+        reportCount: true,
       };
       if (contentType === "blog") select.slug = true;
       if (contentType === "recommendation") select.supervisorId = true;
@@ -608,6 +612,7 @@ export async function getAdminAppeals(
           })) as {
             isFrozen: boolean;
             isDeleted: boolean;
+            reportCount: number;
             slug?: string;
             supervisorId?: string;
           } | null)
@@ -707,6 +712,7 @@ export async function getAdminAppeals(
         // Alias the content tables use to surface the pending appeal text.
         appealReason: row.details,
         entityStatus,
+        reportCount: entity?.reportCount ?? 0,
       };
     }),
   );
@@ -929,11 +935,61 @@ export async function getAdminContent(
     });
     const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.details]));
 
-    // Comments have no detail page; the table renders them as plain text.
+    const commentParent = COMMENT_TOP_LEVEL[commentConfig.modelKey];
+    const parentIds = commentParent
+      ? rows
+          .map((row) => (row as Record<string, unknown>)[commentParent.fk])
+          .filter((id): id is string => typeof id === "string")
+      : [];
+    const parentDelegate = commentParent
+      ? (prisma as unknown as Record<string, { findMany: (args: unknown) => Promise<Array<Record<string, unknown>>> }>)[commentParent.model]
+      : undefined;
+    const parentSelect: Record<string, boolean> = { id: true };
+    if (commentParent?.model === "article") parentSelect.slug = true;
+    if (commentParent?.model === "recommendation") parentSelect.supervisorId = true;
+    if (commentParent?.model === "journalReview") parentSelect.journalId = true;
+    const parents =
+      parentDelegate && parentIds.length > 0
+        ? await parentDelegate.findMany({
+            where: { id: { in: [...new Set(parentIds)] } },
+            select: parentSelect,
+          })
+        : [];
+    const parentById = new Map(parents.map((parent) => [String(parent.id), parent]));
+    const commentHref = (row: Record<string, unknown>) => {
+      const parentId = commentParent
+        ? (row[commentParent.fk] as string | undefined)
+        : undefined;
+      if (!parentId || !commentParent) return "";
+      const parent = parentById.get(parentId);
+      let href = "";
+      switch (commentParent.model) {
+        case "socialPost": href = `/feed/${parentId}`; break;
+        case "article": href = `/blog/${String(parent?.slug ?? parentId)}`; break;
+        case "publication": href = `/publications/${parentId}`; break;
+        case "journal": href = `/journals/${parentId}`; break;
+        case "researchTool": href = `/research-tools/${parentId}`; break;
+        case "researchGrant": href = `/grants/${parentId}`; break;
+        case "course": href = `/learn/${parentId}`; break;
+        case "admission": href = `/admissions/${parentId}`; break;
+        case "callForPaper": href = `/call-for-papers/${parentId}`; break;
+        case "academicPosition": href = `/academic-positions/${parentId}`; break;
+        case "helpPost": href = `/help/${parentId}`; break;
+        case "examsAndResults": href = resultHref(parentId); break;
+        case "contribution": href = `/contributions/${parentId}`; break;
+        case "supervisor": href = `/supervisor/${parentId}`; break;
+        case "researchSurvey": href = `/surveys/${parentId}`; break;
+        case "recommendation": href = `/supervisor/${String(parent?.supervisorId ?? "")}`; break;
+        case "journalReview": href = `/journals/${String(parent?.journalId ?? "")}#reviews`; break;
+        default: return "";
+      }
+      return `${href}#comment-${String(row.id)}`;
+    };
+
     const items = rows.map((row) => ({
       ...row,
       modelKey: commentConfig.modelKey,
-      detailHref: "",
+      detailHref: commentHref(row as unknown as Record<string, unknown>),
       appealReason: appealMap.get(row.id) ?? null,
     })) as AdminContentItem[];
 

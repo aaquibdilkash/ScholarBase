@@ -21,19 +21,19 @@ export type OutreachVariantField = keyof OutreachVariant;
 
 export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
-    subject: "A note from ScholarBase",
+    subject: "A quick note about ScholarBase",
     greeting: "Hello",
-    headline: "ScholarBase for researchers — community, surveys, and a free AI detector",
-    body: "I'm writing to introduce ScholarBase, an academic community we're building for doctoral researchers and faculty.\n\nIt includes research surveys designed specifically for scholars, spaces to discuss research and supervisor experiences, and a growing collection of research tools and academic resources.\n\nOne tool worth noting is Scholar Shield: a free, unlimited AI-detection checker that runs 100% in your browser, so your papers never leave your device. If that sounds relevant to your work, you're welcome to take a look.",
+    headline: "A research community for scholars",
+    body: "I'm writing to introduce ScholarBase, an academic community we're building for doctoral researchers and faculty.\n\nIt brings together research surveys, academic discussions, and practical resources in one place. We are opening it gradually and thought it may be relevant to your work.",
     ctaLabel: "ScholarBase",
     footerText:
       "If you would prefer not to receive further notes from ScholarBase, simply reply or use the unsubscribe option in your email app.",
   },
   {
-    subject: "ScholarBase for doctoral researchers",
+    subject: "ScholarBase for researchers",
     greeting: "Hi",
-    headline: "ScholarBase: research community plus a free unlimited AI detector",
-    body: "I'm reaching out from ScholarBase, a research community we're shaping for doctoral researchers, faculty, and academic teams.\n\nThe platform brings together scholar-focused surveys, research discussions, supervisor experiences, and useful academic resources.\n\nIt also includes Scholar Shield: a free, unlimited AI-detection tool that runs entirely on-device in your browser, so your drafts stay private. If it feels relevant to your work, I'd be glad for you to have a look.",
+    headline: "A focused space for academic work",
+    body: "I'm reaching out from ScholarBase, a research community we're shaping for doctoral researchers, faculty, and academic teams.\n\nThe platform brings together scholar-focused surveys, research discussions, and useful academic resources. If that sounds relevant, you can take a look.",
     ctaLabel: "Open ScholarBase",
     footerText:
       "If these notes are not useful for you, reply anytime or use the unsubscribe option in your email app.",
@@ -41,8 +41,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "Question about PhD research workflows",
     greeting: "Greetings",
-    headline: "Could ScholarBase help your research workflow?",
-    body: "I'm writing from ScholarBase, where we're building a focused space for scholars to share research surveys, discuss academic experiences, and discover resources that may help with research work.\n\nOne feature is Scholar Shield: a free, unlimited AI-detection checker that runs completely in-browser, so your manuscripts never leave your device. If this is relevant to your department or research circle, you're welcome to visit and see whether it fits.",
+    headline: "Could ScholarBase be useful to you?",
+    body: "I'm writing from ScholarBase, where we're building a focused space for scholars to share research surveys, discuss academic experiences, and discover useful resources. If this is relevant to your department or research circle, you're welcome to visit and see whether it fits.",
     ctaLabel: "Visit ScholarBase",
     footerText:
       "If you would rather not receive another ScholarBase note, you can reply or use the unsubscribe option in your email app and we will not send further outreach.",
@@ -50,8 +50,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "A small academic community for researchers",
     greeting: "Hello",
-    headline: "A calmer place for academic research — and a free AI detector",
-    body: "I wanted to share ScholarBase with you. We're building it as a calm academic community for doctoral researchers and faculty.\n\nIt has research surveys, discussions, supervisor experiences, and academic resources in one place.\n\nScholar Shield is also available: a free, unlimited AI-detection checker that runs 100% on your device, so your research stays private. We're inviting scholars gradually so the community can grow with the right people and useful conversations.",
+    headline: "A small academic community for researchers",
+    body: "I wanted to share ScholarBase with you. We're building it as a calm academic community for doctoral researchers and faculty, with research surveys, discussions, and academic resources in one place. We're introducing it gradually as we build the first group of useful conversations.",
     ctaLabel: "Take a look",
     footerText:
       "If you do not want further ScholarBase outreach, reply to this email or use the unsubscribe option in your email app.",
@@ -59,8 +59,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "A quick ScholarBase introduction",
     greeting: "Hi",
-    headline: "A research space with surveys, discussions, and a free AI detector",
-    body: "I'm reaching out to share ScholarBase, a community we're building for people working through research, doctoral study, teaching, and academic collaboration.\n\nThe goal is to keep research surveys, academic discussions, supervisor experiences, and useful resources easier to find in one place.\n\nAlso included is Scholar Shield: a free, unlimited AI-detection tool that runs locally in your browser so your documents never leave your device. If that sounds relevant, you're welcome to take a look.",
+    headline: "A research space with surveys and discussions",
+    body: "I'm reaching out to share ScholarBase, a community for people working through research, doctoral study, teaching, and academic collaboration. The goal is to keep research surveys, academic discussions, and useful resources easier to find in one place.",
     ctaLabel: "View ScholarBase",
     footerText:
       "If ScholarBase outreach is not relevant for you, reply anytime or use the unsubscribe option in your email app.",
@@ -68,8 +68,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "ScholarBase and academic research communities",
     greeting: "Hello",
-    headline: "ScholarBase: a focused research community and a free AI detector",
-    body: "I'm writing from ScholarBase. We're creating a focused academic community for doctoral researchers, faculty, and scholars who want a more useful place to share research needs and resources.\n\nRight now, we're introducing it gradually to researchers who may find surveys, discussions, supervisor experiences, and academic tools useful.\n\nAlso available is Scholar Shield: a free, unlimited AI-detection checker that runs entirely on-device, so your research never leaves your browser. If it seems useful, you can have a look here.",
+    headline: "A focused research community",
+    body: "I'm writing from ScholarBase. We're creating a focused academic community for doctoral researchers, faculty, and scholars who want a useful place to share research needs and resources. We're introducing it gradually to researchers who may find the discussions and resources useful.",
     ctaLabel: "ScholarBase link",
     footerText:
       "If you would prefer not to receive ScholarBase outreach, reply anytime or use the unsubscribe option in your email app.",
@@ -77,8 +77,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "Could ScholarBase be useful to your scholars?",
     greeting: "Greetings",
-    headline: "A research community plus free unlimited AI detection",
-    body: "I'm reaching out to introduce ScholarBase, a platform for scholars to share research surveys, exchange academic experiences, and discover resources that may help with research work.\n\nWe're inviting doctoral researchers and faculty in a careful way, especially where the platform may be useful to a department, lab, or research group.\n\nOne feature is Scholar Shield: a free, unlimited AI-detection checker that runs 100% in your browser so your papers never leave your device. If it sounds useful, you can have a look.",
+    headline: "A platform for sharing academic work",
+    body: "I'm reaching out to introduce ScholarBase, a platform for scholars to share research surveys, exchange academic experiences, and discover resources that may help with research work. We're inviting doctoral researchers and faculty gradually, especially where the platform may be useful to a department, lab, or research group.",
     ctaLabel: "Open the site",
     footerText:
       "If this is not relevant, you can reply or use the unsubscribe option in your email app and we will not send further outreach.",
@@ -86,8 +86,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "A research community called ScholarBase",
     greeting: "Hi",
-    headline: "ScholarBase for research communities — and a free AI detector",
-    body: "I'm writing to introduce ScholarBase, an academic community for doctoral researchers and faculty.\n\nWe are bringing together research surveys, academic discussions, supervisor experiences, and research resources so scholars have a focused place to connect around their work. If it feels useful, please feel free to visit.\n\nAlso included is Scholar Shield: a free, unlimited AI-detection tool that runs entirely on-device in your browser, so your documents stay private.",
+    headline: "ScholarBase for research communities",
+    body: "I'm writing to introduce ScholarBase, an academic community for doctoral researchers and faculty. We are bringing together research surveys, academic discussions, and research resources so scholars have a focused place to connect around their work.",
     ctaLabel: "Visit the site",
     footerText:
       "If you would rather not receive notes like this, reply to this email or use the unsubscribe option in your email app.",
@@ -95,8 +95,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "A small note from ScholarBase",
     greeting: "Hello",
-    headline: "ScholarBase for researchers, with a free AI detection tool",
-    body: "I'm sharing ScholarBase with a small number of scholars as we continue building the community.\n\nIt is designed for academic research workflows: sharing surveys, discussing research experiences, finding tools, and learning from other scholars. If this is relevant to your work, you're welcome to explore it.\n\nScholar Shield is also available: a free, unlimited AI-detection checker that runs 100% in your browser, so your research never leaves your device.",
+    headline: "ScholarBase for researchers",
+    body: "I'm sharing ScholarBase with a small number of scholars as we continue building the community. It is designed for academic research workflows: sharing surveys, discussing research experiences, finding tools, and learning from other scholars.",
     ctaLabel: "Explore ScholarBase",
     footerText:
       "If you do not want further ScholarBase emails, reply or use the unsubscribe option in your email app.",
@@ -104,8 +104,8 @@ export const SCHOLAR_OUTREACH_VARIANTS: OutreachVariant[] = [
   {
     subject: "For researchers and PhD scholars",
     greeting: "Greetings",
-    headline: "A brief introduction to ScholarBase — and a free AI detector",
-    body: "I'm reaching out from ScholarBase, a community we're building for researchers, PhD scholars, and faculty.\n\nThe platform includes scholar-focused surveys, research discussions, academic resources, and spaces to share experiences that are often hard to find in one place. If it seems useful, you can have a look here.\n\nAlso included is Scholar Shield: a free, unlimited AI-detection checker that runs entirely on your device, so your documents never leave your browser.",
+    headline: "A brief introduction to ScholarBase",
+    body: "I'm reaching out from ScholarBase, a community we're building for researchers, PhD scholars, and faculty. The platform includes scholar-focused surveys, research discussions, academic resources, and spaces to share experiences that are often hard to find in one place.",
     ctaLabel: "See ScholarBase",
     footerText:
       "If this note is not useful for you, reply anytime or use the unsubscribe option in your email app.",
@@ -141,8 +141,14 @@ function escapeHtml(value: string): string {
   });
 }
 
+function humanizeOutreachCopy(value: string): string {
+  return value
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/\b100%\b/g, "fully");
+}
+
 function formatBody(value: string): string {
-  return escapeHtml(value).replace(/\r?\n/g, "<br />");
+  return escapeHtml(humanizeOutreachCopy(value)).replace(/\r?\n/g, "<br />");
 }
 
 function normalizeFooter(value: string): string {
@@ -316,10 +322,10 @@ export function applyScholarOutreachVariant<T extends OutreachVariant>(
 }
 
 export const SCHOLAR_INVITE_CONTEXT_LINES: string[] = [
-  "At the moment, registrations on ScholarBase are invite only. You are being invited, and it would be great if you could invite your fellow scholars to our ScholarBase community.",
-  "Right now, ScholarBase sign-ups are invite only. You're on the list, and it would mean a lot if you could also invite your fellow scholars to join our community.",
-  "ScholarBase is currently invite only for new sign-ups. Since you're being invited, we'd love your help in inviting your fellow scholars to our growing community.",
-  "New registrations on ScholarBase are invite only at this stage. You're being invited personally, and it would be great if you could invite your fellow scholars to our community as well.",
+  "ScholarBase is currently opening registrations gradually, so we are sharing it directly with a small number of researchers.",
+  "We are opening ScholarBase gradually while we improve the community and its research resources.",
+  "Registrations are currently invite only while we continue working on the first version of the community.",
+  "We are introducing ScholarBase carefully to researchers who may find the discussions and resources useful.",
 ];
 
 export function getNextScholarInviteContextLine(
@@ -357,7 +363,7 @@ export function buildScholarOutreachBody({
   inviteContext?: string;
 }): string {
   const contextLine = getScholarInvitationContextLine(inviteContext);
-  return `${body.trim()}\n\n${contextLine}`;
+  return `${humanizeOutreachCopy(body.trim())}\n\n${humanizeOutreachCopy(contextLine)}`;
 }
 
 export function generateScholarInvitePlainText({
@@ -378,13 +384,13 @@ export function generateScholarInvitePlainText({
     ? `\n\nUnsubscribe: ${unsubscribeUrl}`
     : "";
 
-  return `${greeting} ${displayName},
+  return `${humanizeOutreachCopy(greeting)} ${displayName},
 
-${headline}
+${humanizeOutreachCopy(headline)}
 
-${body}
+${humanizeOutreachCopy(body)}
 
-${ctaLabel}: ${inviteUrl}
+${humanizeOutreachCopy(ctaLabel)}: ${inviteUrl}
 
 Best regards,
 
@@ -392,7 +398,7 @@ ${senderName}
 ${senderRole}
 updates@scholarbase.app
 
-${normalizedFooter}${unsubscribeLine}`;
+${humanizeOutreachCopy(normalizedFooter)}${unsubscribeLine}`;
 }
 
 export function generateScholarInviteHtml({
@@ -409,16 +415,16 @@ export function generateScholarInviteHtml({
   unsubscribeUrl,
 }: ScholarInviteEmailProps): string {
   const displayName = scholarName.trim() || "Scholar";
-  const safeSubject = escapeHtml(subject);
+  const safeSubject = escapeHtml(humanizeOutreachCopy(subject));
   const safeName = escapeHtml(displayName);
-  const safeGreeting = escapeHtml(greeting);
-  const safeHeadline = escapeHtml(headline);
+  const safeGreeting = escapeHtml(humanizeOutreachCopy(greeting));
+  const safeHeadline = escapeHtml(humanizeOutreachCopy(headline));
   const safeBody = formatBody(body);
-  const safeCtaLabel = escapeHtml(ctaLabel);
+  const safeCtaLabel = escapeHtml(humanizeOutreachCopy(ctaLabel));
   const safeInviteUrl = escapeHtml(inviteUrl);
   const safeSenderName = escapeHtml(senderName);
   const safeSenderRole = escapeHtml(senderRole);
-  const safeFooterText = formatBody(normalizeFooter(footerText));
+  const safeFooterText = formatBody(humanizeOutreachCopy(normalizeFooter(footerText)));
   const safeUnsubscribeUrl = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : "";
 
   return `<!doctype html>

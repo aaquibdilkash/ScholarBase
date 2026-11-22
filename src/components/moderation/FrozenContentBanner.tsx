@@ -177,10 +177,9 @@ function ContentFreezeReasonDialog({
             <div className="mb-4 flex flex-col gap-2">
               {data.reports.length === 0 ? (
                 <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  A moderator froze this content after reviewing reports
-                  against it
-                  {data.reportCount > 0 ? ` (${data.reportCount} total)` : ""}.
-                  Reporter identities are kept private.
+                  {data.reportCount > 0
+                    ? `A moderator froze this content after reviewing reports against it (${data.reportCount} total). Reporter identities are kept private.`
+                    : "A moderator froze this content directly after a moderation review. No user report was attached. You can appeal this moderation decision if you believe it was made in error."}
                 </p>
               ) : (
                 data.reports.map((r) => (

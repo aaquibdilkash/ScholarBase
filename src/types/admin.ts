@@ -182,6 +182,8 @@ export type AdminAppealItem = {
   hasActiveAppeal: boolean;
   /** Pending appeal reason (mirrors content rows) — null when reviewed. */
   appealReason?: string | null;
+  /** Materialized report count on the appealed entity. */
+  reportCount?: number;
   /** Live moderation state of the appealed entity. */
   entityStatus?: "ACTIVE" | "FROZEN" | "DELETED";
 };

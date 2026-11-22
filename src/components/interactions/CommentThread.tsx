@@ -574,22 +574,24 @@ function CommentCard({
                       hasActiveAppeal={comment.hasActiveAppeal}
                     />
                   )}
-                  {!isFrozen && !_locked && !comment.isDeleted && (
+                  {(!isFrozen || isOwner || canDelete) && !comment.isDeleted && (
                     <>
                       <CommentActionsDropdown
                         isOwner={canDelete}
                         canEdit={isOwner}
                         onEdit={() => setEditingId(comment.id)}
                         onDelete={handleDeleteComment}
-                        onReply={onReply}
+                        onReply={!isFrozen && !_locked ? onReply : undefined}
                       />
-                      <CommentVoteButton
-                        commentId={comment.id}
-                        type={module}
-                        initialTotalVotes={comment.totalVotes}
-                        initialUserVote={comment.votes?.[0]?.voteType ?? null}
-                        isOwnContent={isOwner}
-                      />
+                      {!isFrozen && !_locked && (
+                        <CommentVoteButton
+                          commentId={comment.id}
+                          type={module}
+                          initialTotalVotes={comment.totalVotes}
+                          initialUserVote={comment.votes?.[0]?.voteType ?? null}
+                          isOwnContent={isOwner}
+                        />
+                      )}
                     </>
                   )}
                 </div>

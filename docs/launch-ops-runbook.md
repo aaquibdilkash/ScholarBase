@@ -11,6 +11,7 @@ the corresponding code reaches production.
 | `EMAIL_UNSUBSCRIBE_SECRET` | Vercel (Production + Preview) | **YES — deploy-breaking by design** | Outreach email signing/verification throws at first use instead of silently borrowing `CRON_SECRET`. Set it to any long random value (`openssl rand -hex 32`). Existing links signed under the old fallback stop verifying; they are outreach one-click-unsubscribe links only, so the blast radius is old marketing emails. |
 | `SUPABASE_CA_CERT_BASE64` | Vercel (Production) | **YES — cold-start failing by design** | `src/lib/db.ts` now **throws at import** in production when the CA is absent (verification would otherwise be disabled). `next build` is exempt via `NEXT_PHASE`. **Preview deployments must have it too** (Vercel previews run `NODE_ENV=production`). |
 | `NEXT_PUBLIC_SENTRY_DSN` | Vercel + Sentry project | Recommended | Sentry initialises disabled; the app runs but you are back to finding out from user complaints. |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | Build environment only | Recommended | Enables source-map upload during the image build. Never expose `SENTRY_AUTH_TOKEN` to the browser or runtime container. |
 | `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Vercel (already used by institution form) | Already required | Contact form now fails closed without them (same as the institution form). |
 
 ## 2. Lock origin traffic to Cloudflare (rate-limit bypass)
@@ -77,11 +78,12 @@ Free-tier safety (facts, not vibes):
 
 Deliberate scope cuts, revisit post-launch:
 - Edge runtime (`src/proxy.ts`) not instrumented (thin CSP/header layer).
-- No `withSentryConfig` in `next.config.ts` yet → no sourcemap upload, so
-  stack traces are minified. Add `SENTRY_AUTH_TOKEN` + `withSentryConfig`
-  when ready; runtime capture works without it.
-- Client React error boundaries not wrapped; capture relies on the SDK's
-  global handlers (covers uncaught errors, not handled-boundary renders).
+- `next.config.ts` enables `withSentryConfig` only when all three build
+  credentials exist. It uploads source maps and deletes them from the build
+  output afterwards; runtime capture still works without those credentials.
+- `src/app/error.tsx` and `src/app/global-error.tsx` explicitly report errors
+  caught by the App Router boundaries, including errors that do not reach the
+  browser's global handlers.
 
 Setup steps: create the project at sentry.io, set `NEXT_PUBLIC_SENTRY_DSN`
 in Vercel (Production + Preview), redeploy (NEXT_PUBLIC_ vars bake at build

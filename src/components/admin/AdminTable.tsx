@@ -37,7 +37,7 @@ export function AdminTable<T>({
 }: AdminTableProps<T>) {
   return (
     <div className="w-full min-w-0 overflow-x-auto">
-      <table className="w-full min-w-[42rem] text-left text-sm">
+      <table className="w-full min-w-[42rem] table-fixed text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
           <tr>
             {columns.map((col) => (

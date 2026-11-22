@@ -280,9 +280,13 @@ export function buildUsersColumns(
       key: "name",
       header: "Name",
       render: (item) => (
-        <p className="font-medium text-slate-900 dark:text-slate-100">
-          {item.name}
-        </p>
+        <Link
+          prefetch={false}
+          href={`/scholars/${item.id}`}
+          className="font-medium text-slate-900 hover:text-blue-700 hover:underline dark:text-slate-100 dark:hover:text-blue-300"
+        >
+          {item.name || item.email || "Unknown"}
+        </Link>
       ),
     },
     {

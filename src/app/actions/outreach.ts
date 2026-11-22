@@ -184,7 +184,20 @@ export async function previewOutreachImport(
   }
 
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
+  // `instanceof File` is unreliable across the browser -> Server Action
+  // boundary and in runtimes with more than one File global. Validate the
+  // capabilities we actually use instead.
+  if (
+    !file ||
+    typeof file !== "object" ||
+    !("size" in file) ||
+    typeof file.size !== "number" ||
+    !("name" in file) ||
+    typeof file.name !== "string" ||
+    !("arrayBuffer" in file) ||
+    typeof file.arrayBuffer !== "function" ||
+    file.size === 0
+  ) {
     return { success: false, error: "Choose a CSV or Excel file to import." };
   }
 

@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const send = vi.hoisted(() =>
-  vi.fn(async (_payload: { html: string; text: string }) => ({
+  vi.fn(async (_payload: { html: string; text: string; headers?: Record<string, string> }) => ({
     data: { id: "em_1" },
     error: null,
   })),
@@ -61,5 +61,21 @@ describe("sendScholarOutreachEmail postal address", () => {
     const [payload] = send.mock.calls[0]!;
     expect(payload.text).toContain("Reply to opt out.");
     expect(payload.text).toContain("ScholarBase, New Delhi, India");
+  });
+
+  it("keeps recipient controls without advertising bulk automation", async () => {
+    const { sendScholarOutreachEmail } = await import("@/lib/email");
+
+    await sendScholarOutreachEmail({
+      ...baseProps,
+      headline: "A note — for researchers",
+    });
+
+    const [payload] = send.mock.calls[0]!;
+    expect(payload.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+    expect(payload.headers?.Precedence).toBeUndefined();
+    expect(payload.headers?.["Auto-Submitted"]).toBeUndefined();
+    expect(payload.text).not.toContain("—");
+    expect(payload.html).not.toContain("—");
   });
 });

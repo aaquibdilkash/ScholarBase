@@ -542,7 +542,7 @@ describe("sendOutreachEmail", () => {
     expect(first?.subject).toBeTruthy();
     expect(second?.subject).not.toBe(first?.subject);
     // Outreach is sent as the team, never as the signed-in admin.
-    expect(first?.senderName).toBe("Outreach Team");
+    expect(first?.senderName).toBe("ScholarBase");
     expect(first?.senderRole).toBe("ScholarBase");
   });
 

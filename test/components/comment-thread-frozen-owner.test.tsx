@@ -171,10 +171,12 @@ describe("CommentThread for a frozen account", () => {
     expect(container.textContent).not.toContain("Add a reply");
   });
 
-  it("still hides the menu on content frozen by moderators", async () => {
+  it("keeps the owner's Edit/Delete menu on content frozen by moderators", async () => {
     await draw({ ...COMMENT, isFrozen: true });
 
-    expect(actions()).toHaveLength(0);
+    expect(actions()).toHaveLength(1);
+    expect(actions()[0]?.getAttribute("data-can-edit")).toBe("true");
+    expect(actions()[0]?.getAttribute("data-can-reply")).toBe("false");
   });
 
   it("does not offer Reply on a reply under a frozen root comment", async () => {
@@ -199,9 +201,11 @@ describe("CommentThread for a frozen account", () => {
 
     await draw({ ...COMMENT, isFrozen: true, totalReplies: 1, replies: [reply] });
 
-    // The frozen root hides its own menu; the reply menu renders but must not
-    // expose Reply.
-    expect(actions()).toHaveLength(1);
-    expect(actions()[0]?.getAttribute("data-can-reply")).toBe("false");
+    // Both menus remain available for ownership actions, but neither exposes
+    // Reply while the root comment is frozen.
+    expect(actions()).toHaveLength(2);
+    for (const action of actions()) {
+      expect(action.getAttribute("data-can-reply")).toBe("false");
+    }
   });
 });

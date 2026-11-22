@@ -201,7 +201,7 @@ describe("runOutreachCron guards", () => {
     expect(result.sent).toBe(1);
   });
 
-  it("does not randomly skip an eligible pending contact in production defaults", async () => {
+  it("uses the production probability gate", async () => {
     seedContact();
 
     const result = await runOutreachCron({
@@ -210,16 +210,16 @@ describe("runOutreachCron guards", () => {
       redis: new FakeRedis(),
     });
 
-    expect(result).toMatchObject({ success: true, sent: 1, contactId: "c-1" });
-    expect(emailModule.sendScholarOutreachEmail).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ success: true, sent: 0, reason: "probability_skip" });
+    expect(emailModule.sendScholarOutreachEmail).not.toHaveBeenCalled();
   });
 
-  it("sends a newly added pending contact with production defaults", async () => {
+  it("sends a newly added pending contact when the production roll passes", async () => {
     seedContact({ createdAt: new Date("2026-03-10T11:59:00.000Z") });
 
     const result = await runOutreachCron({
       now: NOW,
-      random: () => 0.99,
+      random: () => 0,
       redis: new FakeRedis(),
     });
 
@@ -331,6 +331,18 @@ describe("runOutreachCron eligibility", () => {
 
     expect(result.sent).toBe(1);
     expect(emailModule.sendScholarOutreachEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not group consumer-provider recipients under one shared domain cap", async () => {
+    seedContact({ id: "c-1", email: "a@gmail.com" });
+    seedContact({ id: "c-2", email: "b@gmail.com" });
+
+    const redis = new FakeRedis();
+    const result = await run(redis, { limit: 2 });
+
+    expect(result.sent).toBe(2);
+    expect(emailModule.sendScholarOutreachEmail).toHaveBeenCalledTimes(2);
+    expect(redis.store.has("cron:outreach:domain:gmail.com:2026-03-10")).toBe(false);
   });
 
   it("treats a domain limit of zero as unlimited", async () => {
