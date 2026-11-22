@@ -88,6 +88,17 @@ BEGIN
   GET DIAGNOSTICS assets_count = ROW_COUNT;
   total_assets_queued := total_assets_queued + assets_count;
 
+  -- E. HelpPost Cover Image
+  INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+  SELECT gen_random_uuid()::text, "imageUrl", NOW()
+  FROM "HelpPost"
+  WHERE "isDeleted" = true
+    AND "updatedAt" < NOW() - INTERVAL '30 days'
+    AND "imageUrl" IS NOT NULL
+    AND "imageUrl" LIKE '%/storage/v1/object/public/content-images/%';
+  GET DIAGNOSTICS assets_count = ROW_COUNT;
+  total_assets_queued := total_assets_queued + assets_count;
+
 
   -- =========================================================================
   -- 2. PURGE COMMENTS

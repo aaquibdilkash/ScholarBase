@@ -19,6 +19,11 @@ import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/l
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { promoteContentImages } from "@/lib/content-images";
+import {
+  extractCoverImagePath,
+  deleteContentImagePaths,
+} from "@/lib/supabase-storage";
 
 /**
  * Loads one page of help post rows for the
@@ -57,6 +62,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       subject: true,
       category: true,
       message: true,
+      imageUrl: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,
@@ -128,11 +134,24 @@ export async function createHelpPost(formData: FormData) {
   const subject = formData.get("subject") as string;
   const category = formData.get("category") as string;
   const message = formData.get("message") as string;
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
 
   if (!title || !subject || !category || !message) {
     throw new Error("Please fill in all fields.");
   }
   assertRichTextWithinLimit(message, MAX_HELP_POST_MESSAGE, "Message");
+
+  // Promote the draft cover image to published before the row is created.
+  const promoted = await promoteContentImages({
+    coverKind: "help-cover",
+    imageUrl: coverImageUrl || undefined,
+    html: message,
+    userId: user.id,
+  });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl } = promoted;
 
   const post = await prisma.$transaction(async (tx) => {
     const newPost = await tx.helpPost.create({
@@ -141,6 +160,7 @@ export async function createHelpPost(formData: FormData) {
         subject,
         category,
         message,
+        imageUrl: coverUrl,
         authorId: user.id,
       },
       include: {
@@ -204,6 +224,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
   const subject = formData.get("subject") as string;
   const category = formData.get("category") as string;
   const message = formData.get("message") as string;
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
 
   if (!title || !subject || !category || !message) {
     throw new Error("Please fill in all fields.");
@@ -212,7 +233,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 
   const post = await prisma.helpPost.findUnique({
     where: { id: helpPostId },
-    select: { authorId: true },
+    select: { authorId: true, imageUrl: true },
   });
 
   if (!post) {
@@ -222,10 +243,41 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
     throw new Error("Not authorized to edit this help post.");
   }
 
+  // Promote the draft cover image to published before updating.
+  const promoted = await promoteContentImages({
+    coverKind: "help-cover",
+    imageUrl: coverImageUrl || undefined,
+    html: message,
+    userId: user.id,
+  });
+  if (!promoted.ok) {
+    return { success: false, error: promoted.error, message: promoted.error };
+  }
+  const { coverUrl } = promoted;
+
+  // The old cover is only queued once the edit replaces it. The path comes from
+  // the stored row, never from the submitted form.
+  const oldCoverPath = extractCoverImagePath(post.imageUrl);
+  const newCoverPath = extractCoverImagePath(coverUrl);
+  const removedPaths =
+    oldCoverPath && oldCoverPath !== newCoverPath ? [oldCoverPath] : [];
+
   const updatedPost = await prisma.helpPost.update({
     where: { id: helpPostId },
-    data: { title, subject, category, message, editedAt: new Date() },
+    data: {
+      title,
+      subject,
+      category,
+      message,
+      imageUrl: coverUrl,
+      editedAt: new Date(),
+    },
   });
+
+  // Persist the edit FIRST, then collect the image it replaced.
+  if (removedPaths.length > 0) {
+    await deleteContentImagePaths(removedPaths);
+  }
 
   // Purge the cached help post pages: edit must be visible at once, not after the TTL.
   revalidateContent("HELP_POST", post.authorId);

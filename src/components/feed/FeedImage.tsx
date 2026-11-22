@@ -17,8 +17,9 @@ import {
  * image should be expandable).
  *
  * The cover sits in the same boxed, contained frame as an expanded list card:
- * fixed maximum height, natural aspect ratio, centred, and the box shrinks to
- * the image when it is shorter than the cap. The lightbox shows it in full.
+ * fixed maximum height, natural aspect ratio, and the box hugs the image —
+ * shrinking to the cover's width instead of leaving empty side padding when
+ * the cover is narrower than the column. The lightbox shows it in full.
  */
 export function FeedImage({
   src,
@@ -45,7 +46,7 @@ export function FeedImage({
         type="button"
         aria-label="Open image preview"
         title="Click to enlarge"
-        className="flex w-full cursor-pointer items-start justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900"
+        className="mx-auto flex w-fit max-w-full cursor-pointer items-start justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900"
         style={{ maxHeight: CONTENT_IMAGE_MAX_HEIGHT }}
         onClick={(e) => {
           e.preventDefault();

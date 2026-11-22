@@ -2,12 +2,12 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
-import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
@@ -118,30 +118,40 @@ export function HelpPostCard({
         />
       }
       noBodyLink={true}
+      constrainBody={false}
     >
-      <Link href={`/help/${helpPost.id}`} prefetch={false} className="block group">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-            {helpPost.category}
-          </span>
-        </div>
-        <h2 className="mb-1 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {helpPost.title}
-        </h2>
-        {helpPost.subject && (
-          <p className="mt-2 break-words text-sm text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
-            <span className="font-semibold text-slate-800 dark:text-slate-100">
-              Subject:
-            </span>{" "}
-            {helpPost.subject}
-          </p>
-        )}
-
-        <RichContent
-          content={helpPost.message}
-          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
-        />
-      </Link>
+      <CollapsibleMediaBody
+        href={`/help/${helpPost.id}`}
+        imageUrl={helpPost.imageUrl}
+        contentKey={`${helpPost.message}|${helpPost.imageUrl ?? ""}`}
+        header={
+          <>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                {helpPost.category}
+              </span>
+            </div>
+            <h2 className="mb-1 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+              {helpPost.title}
+            </h2>
+            {helpPost.subject && (
+              <p className="mt-2 break-words text-sm text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
+                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                  Subject:
+                </span>{" "}
+                {helpPost.subject}
+              </p>
+            )}
+          </>
+        }
+        text={
+          <RichContent
+            content={helpPost.message}
+            compact
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+          />
+        }
+      />
     </ListPageCardShell>
   );
 }

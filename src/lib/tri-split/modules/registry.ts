@@ -229,6 +229,7 @@ export const CONTENT_LIST_CONFIGS = {
       subject: true,
       category: true,
       message: true,
+      imageUrl: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,

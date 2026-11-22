@@ -38,11 +38,12 @@ const STACKED_COLLAPSED_LINES = 2;
 
 /**
  * The collapsed and expanded frames render the SAME contained image — natural
- * aspect ratio, centred, capped at CONTENT_IMAGE_MAX_HEIGHT — and only the
- * frame height changes: collapsed shows the top
- * CONTENT_IMAGE_COLLAPSED_RATIO of it, expanded shows all of it. Expanding
- * therefore reveals the hidden bottom ("unfurls") without changing width or
- * scale.
+ * aspect ratio, capped at CONTENT_IMAGE_MAX_HEIGHT — and the frame hugs the
+ * rendered width (`w-fit`, centred) so a cover narrower than the card never
+ * sits inside empty side padding. Only the frame height changes: collapsed
+ * shows the top CONTENT_IMAGE_COLLAPSED_RATIO of it, expanded shows all of it.
+ * Expanding therefore reveals the hidden bottom ("unfurls") without changing
+ * width or scale.
  */
 
 export type CollapsibleMediaBodyProps = {
@@ -76,8 +77,9 @@ export type CollapsibleMediaBodyProps = {
  * behaviour instead of re-implementing it:
  *
  *   collapsed  ->  text full width (clamped to STACKED_COLLAPSED_LINES), then
- *                  the cover contained (aspect ratio kept) in a frame showing
- *                  its top CONTENT_IMAGE_COLLAPSED_RATIO.
+ *                  the cover contained (aspect ratio kept) in a frame that
+ *                  hugs the cover's width and shows its top
+ *                  CONTENT_IMAGE_COLLAPSED_RATIO.
  *   expanded   ->  text full width, then the SAME cover in a taller frame, so
  *                  the hidden bottom is revealed without rescaling.
  *
@@ -242,7 +244,7 @@ export function CollapsibleMediaBody({
             ref={imageButtonRef}
             type="button"
             aria-label="Open image preview"
-            className="mb-3 flex w-full cursor-pointer items-start justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition-all duration-300 ease-out hover:opacity-90 dark:bg-slate-900"
+            className="mb-3 mx-auto flex w-fit max-w-full cursor-pointer items-start justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition-all duration-300 ease-out hover:opacity-90 dark:bg-slate-900"
             style={{ maxHeight: imageFrameHeight }}
             onClick={(e) => {
               e.preventDefault();
@@ -264,10 +266,11 @@ export function CollapsibleMediaBody({
                   setImageNatural({ w: el.naturalWidth, h: el.naturalHeight });
                 }
               }}
-              // Natural aspect ratio, centred, capped at CONTENT_IMAGE_MAX_HEIGHT
-              // so a portrait screenshot cannot take over the card. The frame
-              // clips the bottom while collapsed and reveals it when expanded,
-              // without ever rescaling the image.
+              // Natural size, capped at CONTENT_IMAGE_MAX_HEIGHT so a portrait
+              // screenshot cannot take over the card. The frame is `w-fit`, so
+              // it hugs the rendered cover instead of leaving empty space on
+              // either side. The frame clips the bottom while collapsed and
+              // reveals it when expanded, without ever rescaling the image.
               className="mx-auto block h-auto w-auto max-w-full transition duration-200 hover:scale-[1.02]"
               style={{ maxHeight: CONTENT_IMAGE_MAX_HEIGHT }}
             />

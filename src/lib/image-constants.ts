@@ -27,8 +27,9 @@ export const ALLOWED_IMAGE_TYPES = new Set([
 /**
  * Display height cap (px) for a content cover. The expanded list card and every
  * detail page share it so a cover reads identically in both places. The cover
- * is contained (aspect ratio preserved) and the box shrinks to the image when
- * the image is shorter than the cap.
+ * is contained (aspect ratio preserved), never upscaled past its own pixels,
+ * and its frame hugs the rendered image — so a cover narrower than the column
+ * shows no empty side padding.
  */
 export const CONTENT_IMAGE_MAX_HEIGHT = 300;
 

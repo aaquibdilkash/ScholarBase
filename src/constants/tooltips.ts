@@ -175,6 +175,7 @@ export const HELP_TITLE_TIP = "A clear, descriptive title for your request or is
 export const HELP_CATEGORY_TIP = "The type of feedback or issue you are reporting.";
 export const HELP_SUBJECT_TIP = "A brief summary of your requirement or concern.";
 export const HELP_MESSAGE_TIP = "Detailed description of the issue or feature request.";
+export const HELP_IMAGE_TIP = "Optional image shown on the suggestion card and detail page.";
 
 // -----------------------------------------------------------------------------
 // CONTRIBUTIONS MODULE

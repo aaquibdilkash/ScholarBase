@@ -15,6 +15,8 @@ import {
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import { FeedImage } from "@/components/feed/FeedImage";
+import { isValidImageUrl } from "@/lib/image-constants";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -204,6 +206,12 @@ export default async function HelpPostPage({
         </span>{" "}
         {post.subject}
       </p>
+
+      {isValidImageUrl(post.imageUrl) && (
+        <div className="mb-6">
+          <FeedImage src={post.imageUrl} alt={post.title} />
+        </div>
+      )}
 
       <RichContent
         content={post.message}

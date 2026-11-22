@@ -30,6 +30,7 @@ export default async function EditHelpPostPage({
       category: true,
       subject: true,
       message: true,
+      imageUrl: true,
       authorId: true,
     },
   });
@@ -58,6 +59,7 @@ export default async function EditHelpPostPage({
           category: post.category,
           subject: post.subject,
           message: post.message,
+          imageUrl: post.imageUrl ?? "",
         }}
       />
     </CreateOrEditPageShell>

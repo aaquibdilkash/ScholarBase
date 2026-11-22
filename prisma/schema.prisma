@@ -925,6 +925,7 @@ model HelpPost {
   subject         String
   category        String
   message         String
+  imageUrl        String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   editedAt        DateTime?

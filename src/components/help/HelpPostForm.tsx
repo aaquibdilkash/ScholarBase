@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { Select } from "@/components/ui/Select";
 
 import { createHelpPost, updateHelpPost } from "@/app/actions/help";
@@ -10,6 +11,7 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useToast } from "@/components/ui/Toast";
 import { CautionNote } from "@/components/ui/CautionNote";
+import { ContentImageUploadField } from "@/components/upload/ContentImageUploadField";
 import {
   MAX_HELP_POST_TITLE,
   MAX_HELP_POST_SUBJECT,
@@ -25,6 +27,7 @@ import {
   HELP_CATEGORY_TIP,
   HELP_SUBJECT_TIP,
   HELP_MESSAGE_TIP,
+  HELP_IMAGE_TIP,
 } from "@/constants/tooltips";
 
 export type HelpPostFormValues = {
@@ -32,6 +35,7 @@ export type HelpPostFormValues = {
   category: string;
   subject: string;
   message: string;
+  imageUrl: string;
 };
 
 export default function HelpPostForm({
@@ -51,6 +55,7 @@ export default function HelpPostForm({
     category: initialValues?.category ?? "",
     subject: initialValues?.subject ?? "",
     message: initialValues?.message ?? "",
+    imageUrl: initialValues?.imageUrl ?? "",
   };
 
   const draftKey = mode === "edit" ? null : "draft_helppost_create";
@@ -58,6 +63,7 @@ export default function HelpPostForm({
     draftKey,
     initial,
   );
+  const [imageBusy, setImageBusy] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: createHelpPost,
@@ -180,21 +186,41 @@ export default function HelpPostForm({
 
          <div>
            <label className="sb-label inline-flex items-center gap-1.5">
+             Image (Optional)
+             <InfoTooltip message={HELP_IMAGE_TIP} />
+           </label>
+           <ContentImageUploadField
+             kind="help-cover"
+             value={draftFields.imageUrl}
+             onChange={(url) => updateDraftField("imageUrl", url)}
+             onUploadingChange={setImageBusy}
+             buttonLabel="Add Image"
+             tooltip={HELP_IMAGE_TIP}
+           />
+           <input
+             type="hidden"
+             name="coverImageUrl"
+             value={draftFields.imageUrl}
+           />
+         </div>
+
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
              Message
              <InfoTooltip message={HELP_MESSAGE_TIP} />
            </label>
-          <Editor
-            value={draftFields.message}
-            onChange={(data) => updateDraftField("message", data)}
-            maxLength={MAX_HELP_POST_MESSAGE}
-          />
-          <input type="hidden" name="message" value={draftFields.message} />
-        </div>
+           <Editor
+             value={draftFields.message}
+             onChange={(data) => updateDraftField("message", data)}
+             maxLength={MAX_HELP_POST_MESSAGE}
+           />
+           <input type="hidden" name="message" value={draftFields.message} />
+         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
           <FormCancelButton />
           <SubmitBtnWithAuth
-            disabled={isPending || isFormOverLimit}
+            disabled={isPending || isFormOverLimit || imageBusy}
             loadingText={mode === "edit" ? "Saving..." : "Posting..."}
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"

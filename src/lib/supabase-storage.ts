@@ -22,8 +22,9 @@ export const CONTENT_IMAGE_BUCKET = "content-images";
  * kind, so a draft image that somehow reaches the body is promoted rather
  * than left pointing at a draft object that gets collected.
  *
- * Single-image modules (avatar, social post, contribution) use a cover-only
- * kind — no inline variant — since they store one image URL on the row.
+ * Single-image modules (avatar, social post, contribution, help post) use a
+ * cover-only kind — no inline variant — since they store one image URL on the
+ * row.
  */
 export type ContentImageKind =
   | "article-cover"
@@ -37,6 +38,7 @@ export type ContentImageKind =
   | "journal-cover"
   | "venue-cover"
   | "conference-cover"
+  | "help-cover"
   | "avatar"
   | "social"
   | "contribution";

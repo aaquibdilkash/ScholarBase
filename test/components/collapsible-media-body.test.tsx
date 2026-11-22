@@ -146,6 +146,18 @@ describe("CollapsibleMediaBody stacked image frame", () => {
     expect((img as HTMLImageElement).style.maxHeight).toBe("300px");
   });
 
+  it("hugs the rendered cover width instead of spanning the card", async () => {
+    await draw();
+
+    // The frame is `w-fit` (centred, capped at the column width) so a cover
+    // narrower than the card never sits inside empty side padding.
+    const classes = imageFrame()!.className.split(/\s+/);
+    expect(classes).toContain("w-fit");
+    expect(classes).toContain("max-w-full");
+    expect(classes).toContain("mx-auto");
+    expect(classes).not.toContain("w-full");
+  });
+
   it("shows only the top quarter of a short cover when collapsed", async () => {
     await draw();
 
