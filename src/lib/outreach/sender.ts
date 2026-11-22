@@ -162,11 +162,13 @@ const DOMAIN_TTL_SECONDS = 24 * 60 * 60;
  * dashboard silently disabling the caps). Change the value here and redeploy
  * when the policy changes.
  *
- * The defaults are deliberately conservative: ~17 sends/day expected at a 0.4
- * probability over a 14-hour window, hard-capped at 20.
+ * The scheduler already runs at a controlled cadence and the daily/domain
+ * caps provide the safety limits. A probability gate made a successful cron
+ * execution silently do nothing, leaving pending contacts indefinitely stuck;
+ * production therefore sends one eligible contact per scheduled run.
  */
 const DAILY_LIMIT = 20;
-const SEND_PROBABILITY = 0.4;
+const SEND_PROBABILITY = 1;
 const WINDOW_START_UTC = 7;
 const WINDOW_END_UTC = 21;
 const MIN_AGE_HOURS = 24;
@@ -328,8 +330,8 @@ async function claimDomainSlot(
  *
  * Timing is randomized by the *caller's schedule plus a probability roll*, not
  * by a long-running `sleep`: the task runs every 20 minutes, and each run sends
- * at most `limit` emails (normally 1) only when the roll passes. That produces
- * a human-looking gap distribution without pinning a container awake.
+ * at most `limit` emails (normally 1). The schedule itself provides the
+ * pacing; eligibility, Redis locking, and caps provide the safety controls.
  *
  * Guards, in order:
  *  1. UTC sending window.

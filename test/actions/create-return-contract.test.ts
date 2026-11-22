@@ -166,11 +166,17 @@ const SPECS = [
       positionType: "POSTDOC",
       employmentType: "PERMANENT",
       description: "<p>Role</p>",
+      contractDuration: "1 year, extendable by 2 more years",
       deadline: "2030-01-01",
       notificationLink: URL_FIELD.value,
       applyLink: URL_FIELD.value,
     },
-    expectRow: { title: "Postdoc open", positionType: "POSTDOC", employmentType: "PERMANENT" },
+    expectRow: {
+      title: "Postdoc open",
+      positionType: "POSTDOC",
+      employmentType: "PERMANENT",
+      contractDuration: "1 year, extendable by 2 more years",
+    },
   },
   {
     name: "Admission",

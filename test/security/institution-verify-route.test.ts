@@ -43,6 +43,12 @@ vi.mock("@/utils/supabase/server", () => ({
   }),
 }));
 
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: () => ({
+    auth: { getUser: async () => ({ data: { user: sessionUser } }) },
+  }),
+}));
+
 const OWNER = "u-owner";
 const STRANGER = "u-stranger";
 

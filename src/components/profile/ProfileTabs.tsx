@@ -781,7 +781,7 @@ const ACTIVITY_META: Record<
     href: (id) => `/research-tools/${id}`,
   },
   ADMISSION: { label: "Admission", href: (id) => `/admissions/${id}` },
-  CALL_FOR_PAPER: { label: "research event", href: (id) => `/call-for-papers/${id}` },
+  CALL_FOR_PAPER: { label: "call for papers", href: (id) => `/call-for-papers/${id}` },
   ACADEMIC_POSITION: { label: "academic position", href: (id) => `/academic-positions/${id}` },
   HELP_POST: { label: "help post", href: (id) => `/help/${id}` },
   RESULT: { label: "result", href: resultHref },
@@ -863,7 +863,10 @@ function commentHref(item: ActivityItem): string | undefined {
 
 export function ActivityItemCard({ item }: { item: ActivityItem }) {
   const meta = ACTIVITY_META[item.moduleType] ?? { label: "content" };
-  const label = meta.label;
+  const DELIM = "|||";
+  const parts = item.entityTitle.split(DELIM);
+  const resultKind = item.moduleType === "RESULT" ? parts[1] : undefined;
+  const label = resultKind === "EXAM_NOTIFICATION" ? "exam notification" : meta.label;
 
   // Comments/replies jump straight to the post's comment section. The base
   // href comes from ACTIVITY_META; we append the `#comments` anchor the post
@@ -889,8 +892,7 @@ export function ActivityItemCard({ item }: { item: ActivityItem }) {
   // Structured entityTitle delimiter used by formatCommentActivityTitle
   // (transactions.ts) and the recommendation activity builder
   // (actions/recommendations.ts). Keep in sync with those.
-  const DELIM = "|||";
-  const parts = item.entityTitle.split(DELIM);
+  const displayEntityTitle = item.moduleType === "RESULT" ? parts[0] : item.entityTitle;
 
   // Publish + Recommendation is rendered as "recommended ..." instead of "published".
   const actionText =
@@ -1066,14 +1068,14 @@ export function ActivityItemCard({ item }: { item: ActivityItem }) {
         return (
           <>
             {" "}the <span className={boldCls}>{label}</span>{" "}
-            {renderEntityTitle(item.entityTitle)}
+            {renderEntityTitle(displayEntityTitle)}
           </>
         );
       case "FOLLOWED":
         return (
           <>
             {" "}
-            {renderEntityTitle(item.entityTitle) ?? (
+            {renderEntityTitle(displayEntityTitle) ?? (
               <span className={plainCls}>a scholar</span>
             )}
           </>
@@ -1144,7 +1146,7 @@ export function ActivityItemCard({ item }: { item: ActivityItem }) {
             {" "}
             <span className={boldCls}>{label}</span>
             {" "}
-            {renderEntityTitle(item.entityTitle)}
+            {renderEntityTitle(displayEntityTitle)}
           </>
         );
       }
@@ -1152,7 +1154,7 @@ export function ActivityItemCard({ item }: { item: ActivityItem }) {
         return (
           <>
             {" "}
-            {renderEntityTitle(item.entityTitle)}
+            {renderEntityTitle(displayEntityTitle)}
           </>
         );
     }

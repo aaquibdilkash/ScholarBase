@@ -31,6 +31,7 @@ import { checkLocalModelCache, clearLocalModelCache, initializeLocalModel, isLoc
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { useToast } from "@/components/ui/Toast";
 import { recordShieldUse } from "@/app/actions/shield";
+import type { ReportProps } from "@/components/shield/pdf/AuditReportDocument";
 type ShieldTab = "detector" | "rewriter";
 type DetectionMode = "quick" | "deep";
 type RewriteProvider = "chrome" | "local-cpu" | "local-gpu" | "groq";
@@ -65,6 +66,44 @@ const copyAsTimesNewRoman = async (text: string) => {
 // differ on purpose. Keep in sync with MIN_REWRITE_WORDS in the rewrite API.
 const MIN_REWRITE_WORDS = 40;
 const formatBytes = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(0, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+function compilePdfInWorker(props: ReportProps): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      new URL("../../workers/shield-pdf.worker.tsx", import.meta.url),
+      { type: "module" },
+    );
+    const requestId = crypto.randomUUID();
+
+    const cleanup = () => {
+      worker.removeEventListener("message", onMessage);
+      worker.removeEventListener("error", onError);
+      worker.terminate();
+    };
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.requestId !== requestId) return;
+      cleanup();
+      if (event.data.status === "error") {
+        reject(new Error(event.data.error ?? "PDF compilation failed."));
+        return;
+      }
+      if (!(event.data.buffer instanceof ArrayBuffer)) {
+        reject(new Error("PDF compilation returned no data."));
+        return;
+      }
+      resolve(new Blob([event.data.buffer], { type: "application/pdf" }));
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error("The PDF worker could not start on this device."));
+    };
+
+    worker.addEventListener("message", onMessage);
+    worker.addEventListener("error", onError);
+    worker.postMessage({ requestId, props });
+  });
+}
+
 export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: ShieldTab }) {
   const { toast } = useToast();
   const { user } = useUser();
@@ -215,24 +254,20 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     if (!statReport || !inputText.trim() || isGeneratingPdf) return;
     setIsGeneratingPdf(true);
     try {
-      const { pdf } = await import("@react-pdf/renderer");
-      const { AuditReportDocument } = await import("@/components/shield/pdf/AuditReportDocument");
       const submissionId =
         detectorUsageId ??
         (await pendingUsageIdRef.current) ??
         crypto.randomUUID();
       const timestamp = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
-      const blob = await pdf(
-        <AuditReportDocument
-          title={documentTitle}
-          submissionId={submissionId}
-          timestamp={timestamp}
-          overallScore={ensemble()}
-          statProfile={statReport}
-          neuralScore={neuralScore}
-          fullText={inputText}
-        />,
-      ).toBlob();
+      const blob = await compilePdfInWorker({
+        title: documentTitle,
+        submissionId,
+        timestamp,
+        overallScore: ensemble(),
+        statProfile: statReport,
+        neuralScore,
+        fullText: inputText,
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

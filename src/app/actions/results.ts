@@ -237,7 +237,7 @@ export async function createResult(formData: FormData) {
         action: "PUBLISHED",
         moduleType: "RESULT",
         entityId: newResult.id,
-        entityTitle: newResult.title,
+        entityTitle: `${newResult.title}|||${kind}`,
       },
     });
     await tx.user.update({

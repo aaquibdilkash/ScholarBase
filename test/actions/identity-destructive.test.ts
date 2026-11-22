@@ -90,6 +90,7 @@ vi.mock("@/utils/supabase/server", () => ({
       getUser: async () => ({
         data: { user: session ? { ...session, identities } : null },
       }),
+      getUserIdentities: async () => ({ data: { identities }, error: null }),
       updateUser: async (_attrs: unknown, _opts: unknown) => updateUserResult,
       verifyOtp: async (_args: unknown) => verifyOtpResult,
       unlinkIdentity: (identity: FakeIdentity) => unlinkIdentity(identity),
@@ -241,6 +242,7 @@ describe("verifyEmailChangeOtp — old address must stop opening the account", (
     // "Continue with Google" using that old address still signed in. OAuth
     // identities are matched by the provider's user id, so an email change never
     // invalidates them — only unlinking does.
+    session = { id: USER, email: "old@gmail.com" };
     identities = [
       emailIdentity("new@mit.edu"),
       googleIdentity("g-old", "old@gmail.com"),
@@ -256,6 +258,7 @@ describe("verifyEmailChangeOtp — old address must stop opening the account", (
   });
 
   it("keeps a Google identity that already matches the new primary address", async () => {
+    session = { id: USER, email: "old@gmail.com" };
     identities = [
       emailIdentity("new@mit.edu"),
       googleIdentity("g-new", "new@mit.edu"),
@@ -272,19 +275,36 @@ describe("verifyEmailChangeOtp — old address must stop opening the account", (
     ]);
   });
 
-  it("never unlinks the account's only way in", async () => {
-    // A Google-only account: unlinking here would leave no credential at all.
-    // The email change still succeeds, the identity is simply kept.
-    identities = [googleIdentity("g-only", "old@gmail.com")];
+  it("releases an old institutional reservation with the primary email", async () => {
+    identities = [
+      emailIdentity("me@uni.edu"),
+      googleIdentity("g-old", "me@uni.edu"),
+    ];
 
     const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
     const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
 
     expect(result.success).toBe(true);
+    expect(row().email).toBe("new@mit.edu");
+    expect(row().institutionEmail).toBeNull();
+    expect(row().institutionDomain).toBeNull();
+    expect(row().institutionVerifiedAt).toBeNull();
+  });
+
+  it("refuses to release the account's only login method", async () => {
+    // A Google-only account: unlinking here would leave no credential at all,
+    // so the change must stop and ask the user to add another login method.
+    session = { id: USER, email: "old@gmail.com" };
+    identities = [googleIdentity("g-only", "old@gmail.com")];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(result.success).toBe(false);
     expect(unlinkIdentity).not.toHaveBeenCalled();
   });
 
-  it("still reports success when Supabase refuses the unlink", async () => {
+  it("does not report success when Supabase refuses the unlink", async () => {
     // "Manual linking" is a project setting; if it is off, unlinking fails. The
     // email change has already happened, so that must not surface as an error.
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -292,6 +312,7 @@ describe("verifyEmailChangeOtp — old address must stop opening the account", (
       data: null,
       error: { message: "Manual linking is disabled" },
     }));
+    session = { id: USER, email: "old@gmail.com" };
     identities = [
       emailIdentity("new@mit.edu"),
       googleIdentity("g-old", "old@gmail.com"),
@@ -300,7 +321,7 @@ describe("verifyEmailChangeOtp — old address must stop opening the account", (
     const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
     const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(consoleError).toHaveBeenCalled();
     consoleError.mockRestore();
   });

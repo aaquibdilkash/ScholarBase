@@ -9,6 +9,7 @@ import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 import { createJournalReview } from "@/app/actions/journalReviews";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
+import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -83,6 +84,7 @@ describe("createJournalReview follower notifications", () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error("expected the write to succeed");
     expect(fakeDb.rows("journalReview")).toHaveLength(1);
+    expect(revalidateProfileContent).toHaveBeenCalledWith(AUTHOR);
     const reviewId = String(fakeDb.rows("journalReview")[0]?.id);
     expect(notifyFollowersOfActivity).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -117,5 +119,6 @@ describe("createJournalReview follower notifications", () => {
     if (!result.success) throw new Error("expected the write to succeed");
     expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
     expect(notifyUserById).not.toHaveBeenCalled();
+    expect(revalidateProfileContent).not.toHaveBeenCalled();
   });
 });

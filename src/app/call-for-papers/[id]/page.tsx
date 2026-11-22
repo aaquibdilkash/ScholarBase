@@ -238,18 +238,18 @@ const EventDetailPage = async ({
       </h1>
 
       <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
-          <span className="font-semibold">Date:</span>
-          <span>
-            {event.eventDate ? new Date(event.eventDate).toLocaleDateString("en-US", {
+        {event.eventDate && (
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
+            <span className="font-semibold">Date:</span>
+            <span>{new Date(event.eventDate).toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
               day: "numeric",
               year: "numeric",
-            }) : "Date to be announced"}
-          </span>
-        </div>
+            })}</span>
+          </div>
+        )}
         {/* Journal and publisher are separate rows: they are different things,
             and a combined "journal · publisher" string reads as one value. */}
         {event.journal && (

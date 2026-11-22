@@ -87,6 +87,7 @@ export default function JournalReviewForm({
       errorMessage: "Failed to submit review.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          queryClient.invalidateQueries({ queryKey: ["profile-activity"] });
           upsertToList<JournalReviewWithAuthor>(
             queryClient,
             ["journalReviews", journalId],

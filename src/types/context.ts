@@ -10,6 +10,7 @@ export interface ToastOptions {
   variant?: ToastVariant;
   /** How long the toast remains visible, in milliseconds. */
   duration?: number;
+  href?: string;
 }
 
 export interface Toast {
@@ -17,6 +18,7 @@ export interface Toast {
   title: string;
   description?: string;
   variant: ToastVariant;
+  href?: string;
 }
 
 export interface ToastContextValue {

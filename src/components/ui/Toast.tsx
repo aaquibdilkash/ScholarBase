@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
+import Link from "next/link";
 import type { ToastOptions, Toast, ToastContextValue, ToastVariant } from "@/types/context";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -31,7 +32,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const resolvedVariant: ToastVariant = (normalized.variant as ToastVariant) ?? "default";
       setToasts((prev) => [
         ...prev,
-        { id, title: normalized.title ?? "", description: normalized.description, variant: resolvedVariant },
+        { id, title: normalized.title ?? "", description: normalized.description, variant: resolvedVariant, href: normalized.href },
       ]);
 
       setTimeout(() => {
@@ -56,22 +57,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 : "border-slate-200/70 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
             }`}
           >
-            <div className="flex items-start gap-2.5 text-left">
-              {t.variant === "destructive" ? (
-                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500 dark:text-red-300" />
-              ) : (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-500 dark:text-green-300" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold leading-snug">{t.title}</div>
-                {t.description && (
-                  <p className="mt-0.5 text-[13px] font-normal leading-snug opacity-80">{t.description}</p>
-                )}
-              </div>
-            </div>
+            {t.href ? (
+              <Link href={t.href} prefetch={false} className="block">
+                <ToastContent toast={t} />
+              </Link>
+            ) : (
+              <ToastContent toast={t} />
+            )}
           </div>
         ))}
       </div>
     </ToastContext.Provider>
+  );
+}
+
+function ToastContent({ toast: t }: { toast: Toast }) {
+  return (
+    <div className="flex items-start gap-2.5 text-left">
+      {t.variant === "destructive" ? (
+        <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500 dark:text-red-300" />
+      ) : (
+        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-500 dark:text-green-300" />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold leading-snug">{t.title}</div>
+        {t.description && (
+          <p className="mt-0.5 text-[13px] font-normal leading-snug opacity-80">
+            {t.description}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

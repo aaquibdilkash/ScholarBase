@@ -26,7 +26,6 @@ import {
 } from "@/lib/email-normalizer";
 import { isAllowedEmailDomainAsync } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
-import { staleOAuthIdentities } from "@/lib/auth-identities";
 import { updateNotificationActorSnapshots } from "@/lib/notifications";
 
 /**
@@ -392,17 +391,23 @@ export async function requestEmailChange(
 /**
  * Drops linked OAuth logins that still point at the previous address.
  *
- * Best effort on purpose: at this point the email change has already succeeded
- * in Supabase, so a failure here must never turn a completed change into an
- * error the user retries. Supabase also refuses to unlink the last identity,
- * and `staleOAuthIdentities` never proposes one, so nobody is locked out.
+ * Only identities carrying the previous primary address are candidates. The
+ * caller checks that another identity exists and treats an unlink failure as a
+ * partial failure instead of silently leaving the old login attached.
  */
 async function revokeStaleOAuthIdentities(
   supabase: Awaited<ReturnType<typeof createClient>>,
   identities: readonly UserIdentity[],
-  primaryEmail: string,
-) {
-  for (const identity of staleOAuthIdentities(identities, primaryEmail)) {
+  previousEmail: string,
+): Promise<boolean> {
+  const previous = normalizeEmail(previousEmail);
+  for (const identity of identities) {
+    const identityEmail = identity.identity_data?.email;
+    if (
+      identity.provider === "email" ||
+      typeof identityEmail !== "string" ||
+      normalizeEmail(identityEmail) !== previous
+    ) continue;
     try {
       const { error } = await supabase.auth.unlinkIdentity(identity);
       if (error) {
@@ -410,14 +415,17 @@ async function revokeStaleOAuthIdentities(
           `Could not unlink the ${identity.provider} identity after an email change:`,
           error.message,
         );
+        return false;
       }
     } catch (error) {
       console.error(
         `Could not unlink the ${identity.provider} identity after an email change:`,
         error,
       );
+      return false;
     }
   }
+  return true;
 }
 
 export async function verifyEmailChangeOtp(
@@ -436,6 +444,8 @@ export async function verifyEmailChangeOtp(
     return { success: false, error: "Session expired. Please sign in again." };
   }
 
+  const previousEmail = normalizeEmail(user.email ?? "");
+
   if (!/^\d{6}$/.test(cleanToken)) {
     return { success: false, error: "Please enter a complete 6-digit code." };
   }
@@ -450,18 +460,69 @@ export async function verifyEmailChangeOtp(
     return { success: false, error: "Invalid or expired code. Please try again." };
   }
 
-  // Sync the updated primary email into Prisma.
+  // OAuth identities are keyed by provider subject, not email. Release OAuth
+  // identities that still carry the old address so it cannot keep opening
+  // this profile after the address is reused by another account.
+  const { data: identityData } = await supabase.auth.getUserIdentities();
+  const identities = identityData?.identities ?? [];
+  const oldEmailIdentities = identities.filter((identity) => {
+    const identityEmail = identity.identity_data?.email;
+    return (
+      identity.provider !== "email" &&
+      typeof identityEmail === "string" &&
+      normalizeEmail(identityEmail) === previousEmail
+    );
+  });
+  if (oldEmailIdentities.length > 0) {
+    if (identities.length <= oldEmailIdentities.length) {
+      return {
+        success: false,
+        error: "Add a password or another login method before releasing this Google login.",
+      };
+    }
+    const released = await revokeStaleOAuthIdentities(
+      supabase,
+      oldEmailIdentities,
+      previousEmail,
+    );
+    if (!released) {
+      return {
+        success: false,
+        error: "Your email was confirmed, but the old Google login could not be released. Please contact support.",
+      };
+    }
+  }
+
+  // Sync the updated primary email into Prisma. A verified institutional email
+  // is also a unique reservation, so release it when it was the old address.
   const updatedEmail = cleanEmail;
   try {
     const currentProfile = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { email: true, name: true, handle: true },
+      select: {
+        email: true,
+        name: true,
+        handle: true,
+        institutionEmail: true,
+      },
     });
+    const releaseInstitutionEmail =
+      currentProfile?.institutionEmail &&
+      normalizeEmail(currentProfile.institutionEmail) === previousEmail;
 
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
-        data: { email: updatedEmail },
+        data: {
+          email: updatedEmail,
+          ...(releaseInstitutionEmail
+            ? {
+                institutionEmail: null,
+                institutionDomain: null,
+                institutionVerifiedAt: null,
+              }
+            : {}),
+        },
       });
 
       if (currentProfile) {
@@ -483,11 +544,6 @@ export async function verifyEmailChangeOtp(
   } catch {
     // Best-effort: auth email already changed; layout profile sync retries later.
   }
-
-  // Google (and any other OAuth) identities are matched by the provider's user
-  // id, not by email, so the old address keeps opening this account until the
-  // identity is unlinked — even though password sign-in already rejects it.
-  await revokeStaleOAuthIdentities(supabase, user.identities ?? [], cleanEmail);
 
   revalidatePath("/", "layout");
   return { success: true, message: "Primary email updated successfully." };

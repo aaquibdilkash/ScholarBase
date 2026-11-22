@@ -31,25 +31,15 @@ import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { promoteContentImages, findRemovedImagePaths } from "@/lib/content-images";
 import { extractCoverImagePath, deleteContentImagePaths } from "@/lib/supabase-storage";
-import {
-  formatDuration,
-  isPositionDurationUnit,
-  parseOptionalDecimal,
-} from "@/lib/compensation";
-
 function readCompensationFields(formData: FormData) {
-  const durationValue = parseOptionalDecimal(readFormValue(formData, "durationValue"), "Contract duration");
-  const durationUnit = durationValue == null ? null : readFormValue(formData, "durationUnit");
-  if (durationValue != null && (!durationUnit || !isPositionDurationUnit(durationUnit))) {
-    throw new Error("Choose a valid contract duration unit.");
-  }
-
   return {
-    durationValue,
-    durationUnit,
     salaryOrStipend: readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary"),
-    contractDuration: formatDuration(durationValue, durationUnit)
-      ?? readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration"),
+    contractDuration: readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration"),
+    // Keep the structured columns empty for new writes. They remain in the
+    // schema for existing rows, while contractDuration now accepts real-world
+    // descriptions such as "1 year, extendable by 2 more years".
+    durationValue: null,
+    durationUnit: null,
   };
 }
 

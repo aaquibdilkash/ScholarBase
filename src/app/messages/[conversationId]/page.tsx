@@ -262,14 +262,13 @@ export default function ConversationPage({
     [conversationId, triggerMarkRead, userId],
   );
 
-  // ⚡ Remote edit or tombstone. Skips the author's own devices, which already
-  // applied the change optimistically.
+  // Reconcile edits and tombstones on every connected device, including the
+  // author's own, so optimistic state always converges with the server.
   const handleBroadcastUpdate = useCallback(
     (message: SentMessage) => {
-      if (!userId || message.senderId === userId) return;
       updateMessageRef.current?.({ ...message, status: "sent" });
     },
-    [userId],
+    [],
   );
 
   // Initial fetch on mount only

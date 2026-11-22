@@ -275,6 +275,8 @@ export async function createJournalReview(
     throw error;
   }
 
+  if (!isAnonymous) revalidateProfileContent(user.id);
+
   // Anonymous reviews stay out of follower feeds, mirroring the
   // supervisor/journal contract.
   if (!isAnonymous) {

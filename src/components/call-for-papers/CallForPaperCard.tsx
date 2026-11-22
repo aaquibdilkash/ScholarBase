@@ -171,12 +171,12 @@ export function CallForPaperCard({
             </h2>
 
             <div className="mb-2 space-y-1">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
-                <span className="font-medium">
-                  {callForPaper.eventDate ? formatDate(callForPaper.eventDate) : "Date not specified"}
-                </span>
-              </div>
+              {callForPaper.eventDate && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="font-medium">{formatDate(callForPaper.eventDate)}</span>
+                </div>
+              )}
               {/* Journal and publisher are separate rows: they are different
                   things, and running them together reads as one string. */}
               {callForPaper.journal && (

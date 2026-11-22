@@ -18,13 +18,12 @@ import {
   MAX_POSITION_DEPARTMENT,
   MAX_POSITION_SUBJECT,
   MAX_POSITION_SALARY,
+  MAX_POSITION_DURATION,
   MAX_POSITION_LOCATION,
   MAX_POSITION_NOTIFICATION_LINK,
   MAX_POSITION_APPLY_LINK,
   MAX_POSITION_DESCRIPTION,
-  MAX_COMPENSATION_VALUE_LENGTH,
 } from "@/lib/constants";
-import { POSITION_DURATION_UNITS } from "@/lib/compensation";
 import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/academic-positions";
 import { getRichTextLength } from "@/lib/html";
 import { actionErrorMessage } from "@/lib/utils";
@@ -333,35 +332,18 @@ return (
             Contract Duration (Optional)
             <InfoTooltip message={POSITION_DURATION_TIP} />
           </label>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              name="durationValue"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              placeholder="e.g., 2"
-              className="sb-input min-w-0"
-              value={draftFields.durationValue}
-              onChange={(e) => updateDraftField("durationValue", e.target.value.slice(0, MAX_COMPENSATION_VALUE_LENGTH))}
-              disabled={isPending}
-            />
-            <Select
-              name="durationUnit"
-              value={draftFields.durationUnit}
-              containerClassName="w-full"
-              aria-label="Contract duration unit"
-              onChange={(e) => updateDraftField("durationUnit", e.target.value)}
-              disabled={isPending}
-            >
-              <option value="">Unit</option>
-              {POSITION_DURATION_UNITS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-            </Select>
-          </div>
+          <input
+            name="contractDuration"
+            placeholder="e.g., 1 year, extendable by 2 more years"
+            className="sb-input"
+            maxLength={MAX_POSITION_DURATION}
+            value={draftFields.contractDuration}
+            onChange={(e) => updateDraftField("contractDuration", e.target.value)}
+            disabled={isPending}
+          />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.durationValue.length}/{MAX_COMPENSATION_VALUE_LENGTH} characters
+            {draftFields.contractDuration.length}/{MAX_POSITION_DURATION} characters
           </div>
-          <input type="hidden" name="contractDuration" value={draftFields.contractDuration} />
         </div>
 
         <div>

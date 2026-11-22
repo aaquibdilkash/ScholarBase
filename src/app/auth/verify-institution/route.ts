@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import prisma from "@/lib/db";
 import { getBaseUrl } from "@/lib/url";
-import { createClient } from "@/utils/supabase/server";
 
 /**
  * Redirects must not be built from `request.url`.
@@ -14,15 +14,40 @@ import { createClient } from "@/utils/supabase/server";
  * updated, but the page they landed on was dead. `getBaseUrl` resolves the
  * public origin from the configured site URL or the forwarded host headers.
  */
-async function redirectToSettings(userId: string, result: string) {
+function redirectWithCookies(url: URL, response: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  response.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+  });
+  return redirectResponse;
+}
+
+async function redirectToSettings(userId: string, result: string, response: NextResponse) {
   const url = new URL(`/scholars/${userId}/settings`, await getBaseUrl());
   url.searchParams.set("tab", "security");
   url.searchParams.set("institution", result);
-  return NextResponse.redirect(url);
+  return redirectWithCookies(url, response);
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
+  // Preserve refreshed auth cookies on the redirect. Otherwise an expiring
+  // session can make the destination appear logged out until a manual refresh.
+  const response = NextResponse.next({ request });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    },
+  );
   const {
     data: { user: supabaseUser },
   } = await supabase.auth.getUser();
@@ -37,11 +62,11 @@ export async function GET(request: NextRequest) {
         `/auth/verify-institution?token=${encodeURIComponent(token)}`,
       );
     }
-    return NextResponse.redirect(loginUrl);
+    return redirectWithCookies(loginUrl, response);
   }
 
   if (!/^[a-f0-9]{64}$/.test(token)) {
-    return redirectToSettings(supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid", response);
   }
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
@@ -56,14 +81,14 @@ export async function GET(request: NextRequest) {
   });
 
   if (!pendingVerification || pendingVerification.id !== supabaseUser.id) {
-    return redirectToSettings(supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid", response);
   }
 
   if (
     !pendingVerification.institutionVerificationExpiresAt ||
     pendingVerification.institutionVerificationExpiresAt <= new Date()
   ) {
-    return redirectToSettings(supabaseUser.id, "expired");
+    return redirectToSettings(supabaseUser.id, "expired", response);
   }
 
   const verifiedAt = new Date();
@@ -105,11 +130,8 @@ export async function GET(request: NextRequest) {
   } catch {
     // Another account may have verified the same address after this request
     // was created. The unique institutionEmail constraint wins safely.
-    return redirectToSettings(supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid", response);
   }
 
-  return redirectToSettings(
-    supabaseUser.id,
-    result === 1 ? "verified" : "invalid",
-  );
+  return redirectToSettings(supabaseUser.id, result === 1 ? "verified" : "invalid", response);
 }

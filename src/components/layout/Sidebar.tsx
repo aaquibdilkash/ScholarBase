@@ -217,6 +217,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       toast({
         title: message.sender?.name || "New message",
         description: message.body || undefined,
+        href: `/messages/${encodeURIComponent(String(conversationId))}`,
       });
       setOptimisticUnreadMessages((count) => count + 1);
     };

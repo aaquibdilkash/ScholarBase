@@ -88,4 +88,22 @@ describe("ActivityItemCard headlines", () => {
     expect(text).toContain("published blog");
     expect(text).not.toContain("published article");
   });
+
+  it("uses specific labels for calls for papers and exam notifications", async () => {
+    await draw(item({
+      moduleType: "CALL_FOR_PAPER",
+      entityId: "cfp-1",
+      entityTitle: "Annual symposium",
+    }));
+    expect(container.textContent).toContain("published call for papers");
+
+    await draw(item({
+      moduleType: "RESULT",
+      entityId: "result-1",
+      entityTitle: "NET application window|||EXAM_NOTIFICATION",
+    }));
+    expect(container.textContent).toContain("published exam notification");
+    expect(container.textContent).toContain("NET application window");
+    expect(container.textContent).not.toContain("|||EXAM_NOTIFICATION");
+  });
 });
