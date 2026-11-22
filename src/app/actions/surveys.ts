@@ -14,7 +14,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma, SurveyQuestionType } from "@prisma/client";
-import type { SurveyQuestionInput } from "@/types/survey";
+import type { SurveyMatrixMode, SurveyQuestionInput } from "@/types/survey";
 import { getCurrentUser, getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, isUserAdmin } from "@/lib/auth";
 import {
   checkRateLimit,
@@ -110,18 +110,20 @@ function buildQuestionExtras(
     shuffleOptions?: boolean;
     skipLogic?: unknown;
     columnLabels?: unknown;
+    matrixMode?: SurveyMatrixMode;
     blockId?: string | null;
   },
   blockIdMap: Map<string, string>,
 ): Pick<
   Prisma.SurveyQuestionUncheckedCreateInput,
-  "shuffleOptions" | "skipLogic" | "columnLabels" | "blockId"
+  "shuffleOptions" | "skipLogic" | "columnLabels" | "matrixMode" | "blockId"
 > {
   const extras: Pick<
     Prisma.SurveyQuestionUncheckedCreateInput,
-    "shuffleOptions" | "skipLogic" | "columnLabels" | "blockId"
+    "shuffleOptions" | "skipLogic" | "columnLabels" | "matrixMode" | "blockId"
   > = {
     shuffleOptions: question.shuffleOptions === true,
+    matrixMode: question.matrixMode === "MULTIPLE" ? "MULTIPLE" : "SINGLE",
     blockId: question.blockId ? blockIdMap.get(question.blockId) : null,
   };
   const skipLogic = sanitizeSkipLogic(question.skipLogic);
@@ -463,6 +465,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         shuffleOptions: true,
         skipLogic: true,
         columnLabels: true,
+        matrixMode: true,
         blockId: true,
         clientKey: true,
         options: { where: { archivedAt: null } },
@@ -710,6 +713,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             minValue: q.minValue ?? null,
             maxValue: q.maxValue ?? null,
             shuffleOptions: q.shuffleOptions === true,
+            matrixMode: q.matrixMode,
             blockId: q.blockId ? (blockIdMap.get(q.blockId) ?? null) : null,
             skipLogic: stableJson(sanitizeSkipLogic(q.skipLogic)),
             columnLabels: stableJson(sanitizeColumnLabels(q.columnLabels)),
@@ -732,6 +736,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             minValue: q.minValue ?? null,
             maxValue: q.maxValue ?? null,
             shuffleOptions: q.shuffleOptions === true,
+            matrixMode: q.matrixMode,
             blockId: q.blockId ?? null,
             skipLogic: stableJson(sanitizeSkipLogic(q.skipLogic)),
             columnLabels: stableJson(sanitizeColumnLabels(q.columnLabels)),

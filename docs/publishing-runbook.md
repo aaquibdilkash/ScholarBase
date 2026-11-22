@@ -241,7 +241,7 @@ npm run storage:manuscripts
 
 The script (`scripts/setup-manuscripts-bucket.mjs`) is idempotent: it creates the private `manuscripts` bucket, or repairs its policy if it already exists. It reads `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SERVICE_KEY`) from the environment, then `.env.local`, then `.env`. Run it before the first submission; without it the upload ticket action returns "Manuscript uploads are not configured yet."
 
-Staging and production are **different Supabase projects**, so the script runs once per project. The repo's `.env` carries the staging URL but an **empty** `SUPABASE_SERVICE_ROLE_KEY`, so the default command cannot create a bucket. Source the environment snapshot instead:
+Staging and production are **different self-hosted Supabase instances**, so the script runs once per instance. The repo's `.env` carries the staging URL but an **empty** `SUPABASE_SERVICE_ROLE_KEY`, so the default command cannot create a bucket. Source the environment snapshot instead:
 
 ```bash
 # staging
@@ -371,7 +371,7 @@ production package containing the final non-anonymous PDF and a DOCX source.
 Those are stored as `CAMERA_READY` and `PRODUCTION_SOURCE`; publication is
 blocked until both exist. The final PDF is the public version of record, while
 the DOCX remains private and is never converted synchronously on the 2-CPU
-application server. Run `npm run storage:manuscripts` in each Supabase project
+application server. Run `npm run storage:manuscripts` in each Supabase instance
 after deployment so the private bucket accepts both PDF and DOCX MIME types.
 
 ### Structured author metadata

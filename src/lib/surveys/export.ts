@@ -20,6 +20,7 @@ export interface ExportQuestion {
   shuffleOptions: boolean;
   skipLogic: unknown;
   columnLabels: unknown;
+  matrixMode?: "SINGLE" | "MULTIPLE";
   options: Array<{ value: string; label: string; order: number }>;
 }
 
@@ -96,6 +97,7 @@ export function buildCodebook(survey: ExportSurvey): string[][] {
         : "";
 
     if (isMatrix) {
+      if (q.matrixMode === "MULTIPLE") notes.push("Multiple selections allowed per row");
       // One variable per matrix row; cell values are the column labels.
       matrixRows.forEach((row, r) => {
         rows.push([
@@ -163,10 +165,12 @@ export function buildRawData(
           render: (value) => {
             if (!value || typeof value !== "object") return "";
             const idx = (value as Record<string, unknown>)[row.value];
-            const n = Number(idx);
-            return Number.isInteger(n) && n >= 1 && n <= columns.length
-              ? columns[n - 1]
-              : "";
+            const indexes = Array.isArray(idx) ? idx : [idx];
+            return indexes
+              .map((candidate) => Number(candidate))
+              .filter((n) => Number.isInteger(n) && n >= 1 && n <= columns.length)
+              .map((n) => columns[n - 1])
+              .join(" | ");
           },
         });
       });

@@ -78,7 +78,7 @@ const supabase = createClient(url, serviceRoleKey, {
 
 // The URL is a public value (`NEXT_PUBLIC_*`), and printing it is the only way
 // to catch the expensive mistake of creating the bucket in the wrong project.
-console.log(`Target Supabase project: ${url}`);
+console.log(`Target self-hosted Supabase instance: ${url}`);
 
 const options = {
   public: false,

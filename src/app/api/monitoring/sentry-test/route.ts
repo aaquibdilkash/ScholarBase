@@ -41,7 +41,7 @@ export async function POST() {
   const eventId = Sentry.captureException(
     new Error(`Sentry verification event - ${new Date().toISOString()}`),
   );
-  // Serverless can freeze the process before the transport drains its queue;
+  // A short-lived request can end before the transport drains its queue;
   // flush explicitly so the event leaves before this response is returned.
   // The boolean matters: `true` means the transport drained, `false` means
   // the event was created locally (eventId exists, isInitialized is true)

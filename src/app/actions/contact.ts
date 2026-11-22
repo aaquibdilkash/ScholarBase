@@ -106,7 +106,7 @@ export async function sendContactMessage(
   // CAPTCHA: the two keys above are both fully attacker-controlled (the email
   // is self-reported, the IP fingerprint rides a spoofable header), so without
   // this they are the only thing standing between a script and Resend's
-  // 100-emails/day free-tier cap — which would take down password resets and
+  // Resend's current daily quota — which would take down password resets and
   // digests for every real user. Fails closed: a missing secret or token
   // rejects the submission.
   const turnstileToken = formData.get("turnstileToken");

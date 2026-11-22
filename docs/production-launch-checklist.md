@@ -1,6 +1,9 @@
 # Production launch checklist
 
-This checklist tracks the highest-priority production risks for ScholarBase before public launch on the free-tier stack: Vercel, Supabase, Cloudflare, QStash, and Redis.
+This checklist tracks the highest-priority production risks for ScholarBase on
+the current stack: Docker on Coolify hosted by Oracle Cloud Infrastructure A1
+Flex, self-hosted Supabase, Cloudflare where used for edge traffic, QStash,
+Upstash Redis, Resend, and Sentry.
 
 ## Priority order
 
@@ -19,8 +22,8 @@ This checklist tracks the highest-priority production risks for ScholarBase befo
 - [ ] Redis health alerting ~~and fail-closed policy for write endpoints~~ (fail-closed shipped with P1-1; alerting still open)
 - [ ] QStash idempotency and retry monitoring for notifications and digests
 - [ ] Supabase connection saturation and query budget review
-- [ ] Vercel free-tier limit monitoring and performance budget review
-- [ ] Cloudflare WAF / rate limits and bot mitigation review
+- [ ] Coolify container resources, restart policy, health checks, and deployment rollback review
+- [ ] Cloudflare/origin WAF, rate limits, and bot mitigation review
 
 ### P3 — Launch validation
 
@@ -82,7 +85,9 @@ The email unsubscribe and digest preference tokens were validated via a characte
 
 Status: fixed and documented.
 
-The production database connection uses TLS verification when a CA certificate is available, and warns loudly when the database is forced onto the weaker fallback path. We avoid a startup crash in cold serverless environments while keeping the secure config as the default.
+The production database connection uses TLS verification when a CA certificate
+is available. Coolify runtime containers must carry the self-hosted Supabase CA
+configuration; there is no cold-start fallback to rely on.
 
 ### CSP false positive: `eval` warning
 
@@ -137,16 +142,17 @@ WebSocket. `connect-src` now includes `wss://*.supabase.co`, pinned by a test.
 
 This is the concrete payoff of report-only: the outage was found before it shipped.
 
-## Free-tier limits to validate before launch
+## Production capacity limits to validate before launch
 
-### Vercel
+### Oracle A1 Flex and Coolify
 
-- Function execution time limits
-- Edge/runtime memory limits
-- Region cold starts and SSR concurrency
-- Request quota during peak traffic bursts
+- Container CPU and memory headroom
+- Restart and health-check behavior
+- Disk usage for logs, uploads, and temporary files
+- Reverse-proxy timeouts and concurrent request capacity
+- Scheduled-task overlap and deployment rollback behavior
 
-### Supabase
+### Self-hosted Supabase
 
 - Database connection limits
 - CPU and storage quotas
@@ -179,7 +185,8 @@ This is the concrete payoff of report-only: the outage was found before it shipp
 4. Simulate Redis outage and verify the app fails closed only where required.
 5. Replay QStash jobs with duplicate payloads to confirm idempotency.
 6. Run concurrent sign-ups, form submissions, and message sends behind Cloudflare-like request headers.
-7. Record max throughput and the exact breakpoints that trigger free-tier warnings.
+7. Record max throughput and the exact breakpoints that trigger Oracle/Coolify
+   resource pressure or external-provider quota warnings.
 
 ## Recommended next actions
 

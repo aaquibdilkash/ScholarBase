@@ -44,7 +44,7 @@ function clipNotificationTitle(value: string): string {
   return `${title.slice(0, 117).trimEnd()}…`
 }
 
-// Transaction options to avoid serverless latency timeouts
+// Transaction options to avoid request latency timeouts
 export const TRANSACTION_OPTIONS = {
   maxWait: 5000,
   timeout: 15000,

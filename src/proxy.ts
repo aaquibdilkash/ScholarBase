@@ -86,7 +86,7 @@ export async function proxy(request: NextRequest) {
     host.startsWith("staging.") ||
     host.startsWith("prod.") ||
     host.startsWith("dev.") ||
-    host.endsWith(".vercel.app");
+    host.startsWith("preview.");
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

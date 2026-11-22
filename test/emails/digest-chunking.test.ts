@@ -3,7 +3,7 @@
  *
  * Before this, `runDigest` fetched EVERY opted-in subscriber and emailed them one
  * at a time inside a single invocation. That is the thing that breaks: N
- * sequential Resend round-trips against a ~10s serverless timeout, so it died at
+ * sequential Resend round-trips against a bounded request budget, so it died at
  * roughly 25 subscribers and silently dropped everyone after the cut-off while
  * leaving their notifications unflagged.
  *

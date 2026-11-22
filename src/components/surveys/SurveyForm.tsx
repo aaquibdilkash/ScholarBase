@@ -25,7 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
-import type { Question, QuestionOption, BlockInput } from "@/types/survey";
+import type { Question, QuestionOption, BlockInput, SurveyMatrixMode } from "@/types/survey";
 import type { SurveyWithAuthor } from "@/types/cards";
 
 import {
@@ -83,6 +83,7 @@ export default function SurveyForm({
       shuffleOptions: q.shuffleOptions === true,
       skipLogic: q.skipLogic ?? null,
       columnLabels: q.columnLabels ?? null,
+      matrixMode: (q.matrixMode === "MULTIPLE" ? "MULTIPLE" : "SINGLE") as SurveyMatrixMode,
       blockId: q.blockId ?? null,
       options:
         q.options?.map((o: QuestionOption, oi: number) => ({
@@ -816,8 +817,8 @@ export default function SurveyForm({
             <Select
               value={selectedDemographic}
               onChange={(e) => setSelectedDemographic(e.target.value)}
-              containerClassName="min-w-0 w-full sm:max-w-56"
-              className="sb-select text-sm !pr-10"
+              containerClassName="min-w-0 w-full sm:min-w-[22rem] sm:flex-1"
+              className="sb-select h-10 min-h-10 text-sm !pr-10"
               aria-label="Insert a standard demographic block"
             >
               <option value="">+ Insert Demographics…</option>
@@ -831,7 +832,7 @@ export default function SurveyForm({
               value={demographicTargetBlock}
               onChange={(e) => setDemographicTargetBlock(e.target.value)}
               containerClassName="min-w-0 w-full sm:max-w-56"
-              className="sb-select text-sm !pr-10"
+              className="sb-select h-10 min-h-10 text-sm !pr-10"
               aria-label="Section to insert the demographic block into"
             >
               <option value="">Into: General questions</option>

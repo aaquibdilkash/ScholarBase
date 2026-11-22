@@ -1,7 +1,7 @@
 # Production Supabase — Realtime messaging setup
 
 Runbook for enabling the Broadcast-from-Database messaging transport on the
-**production** Supabase project. Verified working on the dev project; the steps
+**production** self-hosted Supabase instance. Verified working on the staging instance; the steps
 are identical.
 
 Everything below is in this repo:

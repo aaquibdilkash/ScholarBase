@@ -122,7 +122,7 @@ function groupByModule(rows: NotificationRow[]): DigestModuleGroup[] {
 /**
  * One batch of digest emails. 100 is Resend's per-batch maximum, and because a
  * batch is ONE API request this is also what keeps a chunk far inside a
- * serverless timeout — the old code made N sequential round-trips and died at
+ * request timeout — the old code made N sequential round-trips and died at
  * roughly 25 subscribers.
  */
 const DIGEST_CHUNK_SIZE = 100;

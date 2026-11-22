@@ -63,7 +63,7 @@ self.addEventListener("fetch", (event) => {
   //
   //   2. Re-issuing one from the worker runs it under the WORKER's OWN CSP,
   //      which by design does not enumerate every external host. A remote avatar
-  //      (lh3.googleusercontent.com, res.cloudinary.com) is then blocked by the
+  //      (lh3.googleusercontent.com or a remote Supabase Storage host) is then blocked by the
   //      worker's `connect-src`: the browser logs
   //        directive=connect-src blocked=https://lh3.googleusercontent.com/…
   //        page=http://localhost:3000/sw.js

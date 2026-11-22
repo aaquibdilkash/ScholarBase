@@ -3,6 +3,7 @@ import { Select } from "@/components/ui/Select";
 
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { createCourse, updateCourse } from "@/app/actions/courses";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -130,10 +131,21 @@ export default function CourseForm({
   // submit with an error the user cannot focus. Block here instead and let the
   // action reject a missing value as a second line of defence.
   const isPricingMissing = draftFields.pricing.length === 0;
+  const [showValidationError, setShowValidationError] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isFormOverLimit || isPricingMissing) return;
+    if (isFormOverLimit || isPricingMissing) {
+      setShowValidationError(true);
+      if (isPricingMissing) {
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLButtonElement>(
+            "[data-course-pricing] .sb-select-trigger",
+          )?.focus();
+        });
+      }
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     await submit(() =>
@@ -316,9 +328,13 @@ export default function CourseForm({
           </label>
           <Select
             name="pricing"
-            className="sb-input"
+            data-course-pricing
+            className={`sb-input ${showValidationError && isPricingMissing ? "border-red-500 ring-2 ring-red-500/20" : ""}`}
             value={draftFields.pricing}
-            onChange={(e) => updateDraftField("pricing", e.target.value)}
+            onChange={(e) => {
+              updateDraftField("pricing", e.target.value);
+              if (e.target.value) setShowValidationError(false);
+            }}
           >
             <option value="">Select pricing</option>
             {COURSE_PRICING_OPTIONS.map(({ value, label }) => (
@@ -327,6 +343,11 @@ export default function CourseForm({
               </option>
             ))}
           </Select>
+          {showValidationError && isPricingMissing && (
+            <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+              Select whether this course is free or paid.
+            </p>
+          )}
         </div>
         <div className="md:col-span-2">
           <label className="sb-label inline-flex items-center gap-1.5">
@@ -403,6 +424,11 @@ export default function CourseForm({
           onChange={(data) => updateDraftField("description", data)}
           maxLength={MAX_COURSE_DESCRIPTION}
         />
+        {showValidationError && isDescriptionOverLimit && (
+          <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+            Shorten the learning outcomes and notes to {MAX_COURSE_DESCRIPTION} characters.
+          </p>
+        )}
         <input
           type="hidden"
           name="description"
@@ -412,7 +438,7 @@ export default function CourseForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit || isPricingMissing}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Course"}
         </SubmitBtnWithAuth>
       </div>

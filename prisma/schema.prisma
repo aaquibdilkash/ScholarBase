@@ -124,6 +124,11 @@ enum SurveyQuestionType {
   MATRIX_LIKERT
 }
 
+enum SurveyMatrixMode {
+  SINGLE
+  MULTIPLE
+}
+
 enum SurveyPrivacy {
   ANONYMOUS
   NON_ANONYMOUS
@@ -1405,7 +1410,7 @@ model User {
   // Default is NEVER (opt-IN), deliberately. This was DAILY, which meant every
   // account was silently enrolled in a digest that the cron could not deliver:
   // `runDigest` fetched every subscriber and emailed them one at a time, so it
-  // hit Vercel's function timeout and Resend's 100/day wall together. Opt-in
+  // hit the application request timeout and Resend's daily quota together. Opt-in
   // makes the daily job's population something the user actually chose.
   //
   // The opt-IN surface is `/scholars/[id]/settings` (`DigestPreferenceForm` +
@@ -2321,8 +2326,10 @@ model SurveyQuestion {
   skipLogic Json?
 
   // MATRIX_LIKERT: column labels (array of strings); rows are the question
-  // options. Answers are stored as { [rowOptionValue]: columnIndex }.
+  // options. Answers are stored as { [rowOptionValue]: columnIndex } for
+  // SINGLE, or { [rowOptionValue]: columnIndex[] } for MULTIPLE.
   columnLabels Json?
+  matrixMode   SurveyMatrixMode @default(SINGLE)
 
   blockId String?
   block   SurveyBlock?           @relation(fields: [blockId], references: [id], onDelete: SetNull)

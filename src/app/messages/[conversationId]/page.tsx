@@ -372,7 +372,7 @@ export default function ConversationPage({
   //    exactly once. This replaces two unfiltered `postgres_changes`
   //    subscriptions plus a client-sent `message` broadcast, which between them
   //    delivered every message three times and re-fetched it via
-  //    `getMessageDetails` — one extra serverless invocation per receipt.
+  //    `getMessageDetails` — one extra application invocation per receipt.
   //  - Typing / read receipts / block state: client broadcasts, debounced and
   //    self-filtered.
   //  - Online status: global `presence:global` channel (PresenceProvider).

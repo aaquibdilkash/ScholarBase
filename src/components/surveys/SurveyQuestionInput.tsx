@@ -20,6 +20,7 @@ type QuestionShape = {
   minValue?: number | null;
   maxValue?: number | null;
   columnLabels?: string[] | null;
+  matrixMode?: "SINGLE" | "MULTIPLE";
   options: QuestionOption[];
 };
 
@@ -43,7 +44,7 @@ export function SurveyQuestionInput({
   namePrefix?: string;
   onChange: (value: string) => void;
   onCheckboxChange: (optionValue: string, checked: boolean) => void;
-  onMatrixChange: (rowValue: string, columnIndex: number) => void;
+  onMatrixChange: (rowValue: string, columnIndex: number, checked: boolean) => void;
 }) {
   const orderedOptions = options ?? question.options;
 
@@ -168,7 +169,15 @@ case "DROPDOWN":
 
     case "MATRIX_LIKERT": {
       const columns = question.columnLabels ?? [];
-      const current: Record<string, number> = value ? JSON.parse(value) : {};
+      let current: Record<string, number | number[]> = {};
+      if (value) {
+        try {
+          current = JSON.parse(value) as Record<string, number | number[]>;
+        } catch {
+          current = {};
+        }
+      }
+      const isMultiple = question.matrixMode === "MULTIPLE";
       return (
         <div className="min-w-0 overflow-x-auto">
           <table className="w-full min-w-[32rem] border-collapse text-sm">
@@ -197,10 +206,15 @@ case "DROPDOWN":
                   {columns.map((_, ci) => (
                     <td key={ci} className="px-1 py-2 text-center">
                       <input
-                        type="radio"
+                        type={isMultiple ? "checkbox" : "radio"}
                         name={`${namePrefix}_${question.id}_r_${row.id ?? row.value}`}
-                        checked={current[row.value] === ci + 1}
-                        onChange={() => onMatrixChange(row.value, ci + 1)}
+                        checked={isMultiple
+                          ? (Array.isArray(current[row.value])
+                              ? (current[row.value] as number[])
+                              : []
+                            ).includes(ci + 1)
+                          : current[row.value] === ci + 1}
+                        onChange={(event) => onMatrixChange(row.value, ci + 1, event.target.checked)}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                       />
                     </td>

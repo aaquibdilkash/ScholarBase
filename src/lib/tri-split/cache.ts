@@ -21,7 +21,7 @@ import { unstable_cache } from "next/cache";
  * disappears. It only bounds drift we deliberately refuse to invalidate on:
  *  - Materialized counters, which change on every vote/bookmark/comment.
  *    Invalidating per interaction would turn a vote burst into a cache
- *    stampede against a free-tier database.
+ *    stampede against the shared production database.
  *  - Embedded author fields, which drift on profile edits.
  *  - Rows mutated by background crons (e.g. trending score recalculation).
  *

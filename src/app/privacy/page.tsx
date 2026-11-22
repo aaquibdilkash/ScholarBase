@@ -201,11 +201,12 @@ export default function PrivacyPolicyPage() {
               help us operate the platform, including:
               <ul>
                 <li>
-                  <strong>Supabase</strong> &mdash; Authentication, database,
-                  and file storage
+                  <strong>ScholarBase infrastructure</strong> &mdash;
+                  self-hosted Supabase Authentication, PostgreSQL, Realtime, and
+                  file storage on our Oracle Cloud/Coolify environment
                 </li>
                 <li>
-                  <strong>Vercel</strong> &mdash; Hosting and infrastructure
+                  <strong>Resend</strong> &mdash; Transactional and outreach email
                 </li>
                 <li>
                   <strong>Google</strong> &mdash; OAuth authentication services
@@ -367,9 +368,10 @@ export default function PrivacyPolicyPage() {
           <h2>9. International Data Transfers</h2>
           <p>
             Your information may be transferred to and processed in countries
-            other than your own. Our infrastructure is hosted globally via
-            Vercel (US/EU regions) and data may be processed in the United
-            States, India, and European Union. We ensure appropriate safeguards
+            other than your own. Our application and self-hosted data services
+            run on Oracle Cloud Infrastructure through Coolify. Data may be
+            processed in India and other locations used by external processors
+            such as Google, Resend, and Sentry. We ensure appropriate safeguards
             are in place for international transfers, including Standard
             Contractual Clauses (SCCs) where required.
           </p>

@@ -3,9 +3,9 @@
 
 This is **Next.js 16.3.7**, not the Next.js from model training. Read the relevant guide under `node_modules/next/dist/docs/` before changing framework behavior. Next 16 uses `src/proxy.ts` as the middleware/proxy entrypoint; there is no `middleware.ts`.
 
-Stack: App Router + React 19 + strict TypeScript; Prisma 7.10 on PostgreSQL/Supabase; Upstash Redis/QStash; Cloudinary; Resend. CI and Docker use Node 22 and npm (`package-lock.json`).
+Stack: App Router + React 19 + strict TypeScript; Prisma 7.10 on PostgreSQL with self-hosted Supabase Auth/Storage/Realtime; Upstash Redis/QStash; Resend; Sentry. Production runs as an ARM64 Docker image on Coolify hosted by Oracle Cloud Infrastructure A1 Flex. CI and Docker use Node 22 and npm (`package-lock.json`).
 
-Operating assumptions: Supabase compute and connections are scarce, reads should be zero-compute, interactions should feel instant, and reputation is integrity-sensitive.
+Operating assumptions: the Oracle host and self-hosted Supabase services are shared infrastructure, reads should be zero-compute where possible, interactions should feel instant, and reputation is integrity-sensitive.
 
 ## Standing directive — lean, fast, secure
 
@@ -106,7 +106,7 @@ CI order is `lint -> typecheck -> test:coverage`, then a production build on pul
 
 ## Stale sources and historical labels
 
-- README has stale details (Prisma 7.9, `src/actions`, Vercel deployment). Trust `package.json`, `.github/workflows/ci.yml`, `Dockerfile`, `next.config.ts`, and this file.
+- README and operational docs must describe the current self-hosted Supabase, Oracle A1 Flex, and Coolify deployment. Trust `package.json`, `.github/workflows/ci.yml`, `Dockerfile`, `next.config.ts`, and this file for implementation details.
 - Code comments cite “RULE 1–7”; the numbering is historical and not aligned with the sections here. Follow the surrounding prose and the actual implementation.
 
 <!-- END:nextjs-agent-rules -->

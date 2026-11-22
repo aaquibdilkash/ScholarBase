@@ -41,7 +41,7 @@
 -- Two deliberate choices:
 --   a) The payload is CURATED, not the raw row. The client used to call the
 --      `getMessageDetails` server action on every received message just to fill in
---      `sender` and `replyTo`. Building it here removes one serverless invocation
+--      `sender` and `replyTo`. Building it here removes one application invocation
 --      and one DB round-trip per received message.
 --   b) A per-recipient `user:<id>` ping carries the unread badge: one tiny row
 --      per recipient instead of a table subscription every browser must be

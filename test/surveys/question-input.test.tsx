@@ -465,7 +465,7 @@ describe("SurveyQuestionInput — every question type", () => {
       act(() => {
         cells[2].click();
       });
-      expect(onMatrixChange).toHaveBeenCalledWith("row_research", 3);
+      expect(onMatrixChange).toHaveBeenCalledWith("row_research", 3, true);
     });
 
     it("restores a stored matrix answer as the right ticked cells", () => {
@@ -510,7 +510,21 @@ describe("SurveyQuestionInput — every question type", () => {
       act(() => {
         research.querySelectorAll("input")[3].click();
       });
-      expect(onMatrixChange).toHaveBeenCalledWith("row_research", 4);
+      expect(onMatrixChange).toHaveBeenCalledWith("row_research", 4, true);
+    });
+
+    it("renders checkboxes and reports checked state for multiple-choice matrices", () => {
+      const dom = drawCustom({
+        ...questionFor("MATRIX_LIKERT", false),
+        matrixMode: "MULTIPLE",
+      });
+      expect(dom.querySelectorAll('tbody input[type="checkbox"]')).toHaveLength(
+        MATRIX_ROWS.length * MATRIX_COLUMNS.length,
+      );
+      act(() => {
+        dom.querySelectorAll<HTMLInputElement>("tbody input")[1].click();
+      });
+      expect(onMatrixChange).toHaveBeenCalledWith("row_teaching", 2, true);
     });
 
     it("does not crash on a matrix question with no column labels", () => {

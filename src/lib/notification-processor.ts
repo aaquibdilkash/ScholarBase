@@ -10,7 +10,7 @@ import { formatPublishedContentTitle, formatRollupTitle } from "@/lib/notificati
  * `FAN_OUT_CHUNK_SIZE` is how many followers one `findMany` pulls;
  * `MAX_FAN_OUT_CHUNKS` caps how many chunks a single invocation may process
  * before it re-enqueues the remainder. 4 x 500 = 2000 recipients per
- * invocation, which stays comfortably inside a serverless timeout while still
+ * invocation, which stays comfortably inside the worker request budget while still
  * fanning out to a very large following in a handful of messages.
  */
 const FAN_OUT_CHUNK_SIZE = 500;
@@ -172,7 +172,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
   }
 
   if (payload.mode === "FAN_OUT") {
-    // Bounded work per invocation (RULE 3 / Vercel timeouts): walk at most
+    // Bounded work per invocation: walk at most
     // FAN_OUT_CHUNK_SIZE * MAX_CHUNKS_PER_INVOCATION followers, then hand the
     // remainder to a fresh message that carries its own cursor.
     let cursor: { followerId: string; followingId: string } | undefined =

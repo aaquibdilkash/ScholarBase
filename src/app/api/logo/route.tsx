@@ -4,7 +4,7 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
-// In-memory cache for warm serverless invocations
+// In-memory cache for warm application processes
 let cachedLogoFont: ArrayBuffer | null = null;
 
 async function loadLogoFont(): Promise<ArrayBuffer | null> {

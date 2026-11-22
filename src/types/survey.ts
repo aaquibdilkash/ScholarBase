@@ -3,6 +3,7 @@
  */
 
 export type SurveyPrivacy = "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
+export type SurveyMatrixMode = "SINGLE" | "MULTIPLE";
 
 /** Skip-logic rule stored on the trigger question (see lib/surveys/logic.ts). */
 export interface SkipRule {
@@ -45,6 +46,7 @@ export interface SurveyQuestion {
   shuffleOptions?: boolean;
   skipLogic?: SkipRule[] | null;
   columnLabels?: string[] | null;
+  matrixMode?: SurveyMatrixMode;
   blockId?: string | null;
   options: SurveyOption[];
 }
@@ -76,6 +78,7 @@ export interface Question {
   shuffleOptions?: boolean;
   skipLogic?: SkipRule[] | null;
   columnLabels?: string[] | null;
+  matrixMode?: SurveyMatrixMode;
   blockId?: string | null;
   options: QuestionOption[];
   /** Stores type-specific data keyed by question type to preserve work when switching types */
@@ -108,6 +111,7 @@ export interface SurveyQuestionInput {
   shuffleOptions?: boolean;
   skipLogic?: SkipRule[];
   columnLabels?: string[];
+  matrixMode?: SurveyMatrixMode;
   blockId?: string | null;
   options?: SurveyOptionInput[];
 }
@@ -160,6 +164,7 @@ export interface QuestionResult {
   maxValue?: number | null;
   archivedAt?: string | null;
   columnLabels?: string[] | null;
+  matrixMode?: SurveyMatrixMode;
   options: Array<{ id: string; value: string; label: string; order: number }>;
   answers: Array<{ value: unknown }>;
 }

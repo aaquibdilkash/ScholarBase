@@ -88,7 +88,7 @@ export async function notifyUserById(params: NotifyUserByIdParams) {
 
   try {
     // Await the enqueue. A fire-and-forget publish is dropped when the
-    // serverless function freezes the moment the action returns — which is
+    // request worker can stop as soon as the action returns — which is
     // exactly where the journal-review / recommendation author notices sit
     // (last statement before `return`). Fan-out already awaits its publish;
     // this helper must too, and an enqueue failure still must not roll back

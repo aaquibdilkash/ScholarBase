@@ -7,7 +7,7 @@ import type { Question } from "@/types/survey";
  * randomized order while the preview passes the authored order. */
 type QuestionShape = Pick<
   Question,
-  "id" | "type" | "title" | "required" | "options"
+  "id" | "type" | "title" | "required" | "options" | "matrixMode"
 >;
 
 /**
@@ -32,7 +32,7 @@ export function SurveyQuestionCard({
   namePrefix?: string;
   onChange: (value: string) => void;
   onCheckboxChange: (optionValue: string, checked: boolean) => void;
-  onMatrixChange: (rowValue: string, columnIndex: number) => void;
+  onMatrixChange: (rowValue: string, columnIndex: number, checked: boolean) => void;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 dark:border-slate-700 dark:bg-slate-800/30">

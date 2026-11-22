@@ -51,6 +51,18 @@ export const LIKERT_OPTIONS: Record<number, string[]> = {
   ],
 };
 
+const DEFAULT_MATRIX_COLUMNS = LIKERT_OPTIONS[3];
+
+function isDefaultMatrixColumns(labels: string[] | null | undefined) {
+  return Object.values(LIKERT_OPTIONS).some(
+    (defaults) => JSON.stringify(defaults) === JSON.stringify(labels ?? []),
+  );
+}
+
+function isDefaultCheckboxGridColumns(labels: string[] | null | undefined) {
+  return (labels ?? []).every((label, index) => label === `Option ${index + 1}`);
+}
+
 export function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
@@ -144,6 +156,23 @@ export function QuestionEditor({
     onChange({
       ...question,
       options: question.options.filter((_, i) => i !== optIndex),
+    });
+  };
+
+  const handleMatrixModeChange = (nextMode: "SINGLE" | "MULTIPLE") => {
+    const currentLabels = question.columnLabels ?? [];
+    const shouldReplace =
+      (nextMode === "MULTIPLE" && isDefaultMatrixColumns(currentLabels)) ||
+      (nextMode === "SINGLE" && isDefaultCheckboxGridColumns(currentLabels));
+
+    onChange({
+      ...question,
+      matrixMode: nextMode,
+      columnLabels: shouldReplace
+        ? nextMode === "MULTIPLE"
+          ? currentLabels.map((_, index) => `Option ${index + 1}`)
+          : DEFAULT_MATRIX_COLUMNS
+        : question.columnLabels,
     });
   };
 
@@ -320,11 +349,7 @@ export function QuestionEditor({
                   columnLabels:
                     savedData?.columnLabels ??
                     (newType === "MATRIX_LIKERT"
-                      ? question.columnLabels ?? [
-                          "Strongly Disagree",
-                          "Neutral",
-                          "Agree",
-                        ]
+                      ? question.columnLabels ?? DEFAULT_MATRIX_COLUMNS
                       : null),
                   minValue: savedData?.minValue ?? (newType === "LIKERT_SCALE" ? 1 : question.minValue),
                   maxValue: savedData?.maxValue ?? (newType === "LIKERT_SCALE" ? 5 : question.maxValue),
@@ -524,8 +549,28 @@ export function QuestionEditor({
 
         {isMatrix && (
           <div>
+            <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Selection mode
+            </label>
+            <Select
+              value={question.matrixMode ?? "SINGLE"}
+              onChange={(e) =>
+                handleMatrixModeChange(e.target.value as "SINGLE" | "MULTIPLE")
+              }
+              containerClassName="mb-3 w-full sm:max-w-md"
+              className="sb-select h-10 min-h-10 !pr-10"
+              aria-label="Matrix selection mode"
+            >
+              <option value="SINGLE">Single choice per row</option>
+              <option value="MULTIPLE">Checkbox grid — multiple per row</option>
+            </Select>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              Use single choice for Likert scales such as Agree / Neutral. Use
+              the checkbox grid only when several columns can apply to the same
+              row.
+            </p>
             <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Columns (Likert points)
+              {question.matrixMode === "MULTIPLE" ? "Grid columns" : "Columns (Likert points)"}
             </label>
             <p className="mb-2 text-xs text-slate-500">
               Each row above becomes a variable in the export; columns are the

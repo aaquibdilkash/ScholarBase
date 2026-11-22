@@ -47,7 +47,7 @@ the topic with `split_part(topic, ':', 2)`.
    Nothing subscribes to Postgres Changes for either of them any more: the thread
    arrives on `conversation:<id>`, and the unread badge/toast arrives on
    `user:<id>` - both Broadcast from Database. Replication of a table nobody reads
-   is pure cost against the free tier.
+   is pure load against the self-hosted realtime service.
 
    Note: this step previously read "do NOT drop `"Message"` - the badge is a
    `postgres_changes` subscription". That was true when the badge was a table
@@ -76,7 +76,7 @@ Two accounts, and one outsider:
     .subscribe()
   ```
   C must see **nothing**. C must also see nothing on `user:<A-id>`.
-- **Load** — no `tenant_events` disconnects under a burst (free tier: 100 msg/s).
+- **Load** — no `tenant_events` disconnects under a burst; measure message throughput against the current Oracle host budget.
 
 ## Rollback
 

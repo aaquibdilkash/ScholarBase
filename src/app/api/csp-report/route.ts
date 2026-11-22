@@ -14,7 +14,7 @@ import "server-only";
  * - **Never throws.** Malformed JSON is normal (truncated body, wrong
  *   content-type), not exceptional, so it is swallowed.
  * - **No auth and no DB.** Unauthenticated by design; writing to Postgres would
- *   trade free-tier space for a firehose we intend to delete.
+ *   trade database/storage space for a firehose we intend to delete.
  *
  * The payload is flattened to a single line. The raw `csp-report` JSON nests the
  * directive and blocked URI inconsistently (both are sometimes arrays), so one

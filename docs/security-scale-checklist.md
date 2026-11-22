@@ -2,7 +2,10 @@
 
 > Source: 3-pass audit, verified against codebase 2026-09-29 + current provider docs (re-check limits at build time).
 > Use: tick boxes as you go. Tell me which ID to do first and how.
-> Budgets: Vercel Hobby (10s default, `maxDuration` raisable; cron = hourly precision) · Supabase Free (500MB DB, 5GB egress, 7d auto-pause) · Redis Free (256MB/500K cmds/mo) · QStash Free (~500-1000 msgs/day, retries count) · Resend Free (100/day, 3000/mo, 10 req/sec).
+> Historical audit note: the original review targeted free hosted tiers. The
+> current application runs on Oracle A1 Flex through Coolify with self-hosted
+> Supabase. External quotas still apply only to providers we actively use, such
+> as Upstash, QStash, Resend, and Sentry; re-check their current dashboards.
 
 ## P0 — Breaks with ordinary growth
 
@@ -13,7 +16,7 @@
 
 - [x] **P0-2 Digest email wall (timeout + 100/day)** `Critical` ✅ DONE
   - Ticked 2026-10-02: the checkbox below had been left `[ ]` while the fix was already shipped and documented further down this file. **See the "P0-2 Digest email wall — the ACTUAL fix, batching" entry near the end of this file for the real implementation record.** The "Do/Verify" notes preserved below are the ORIGINAL pre-fix plan, retained as history — read them as the problem statement, not as current state.
-  - Files: `src/lib/emails/digest.ts` (`runDigest` L105-178), `src/app/api/cron/daily-digest/route.ts`, `src/app/api/cron/weekly-digest/route.ts`, `_vercel.json`, schema `digestPreference`
+  - Files: `src/lib/emails/digest.ts` (`runDigest` L105-178), `src/app/api/cron/daily-digest/route.ts`, `src/app/api/cron/weekly-digest/route.ts`, Coolify scheduled-task configuration, schema `digestPreference`
   - Do: (a) default pref to WEEKLY/opt-in; (b) kickoff enqueues batched QStash continuations (50-100 users/msg + cursor); (c) Resend Batch API; (d) throttle under 10 req/sec; (e) keep bulk `updateMany` per batch.
   - Verify: 200-user fixture finishes across invocations, no dupes, no 429, backlog drains.
   - Effort: 1-2d. Note: `maxDuration` alone is NOT enough (100/day wall behind it).
@@ -26,7 +29,7 @@
   - On throttle it returns an **empty page rather than throwing**: `fetchFeedPage` backs both a server component and the client's pagination loader, so an exception would tear down the whole feed to report a rate limit. The existing empty state reads as "nothing matched".
   - Fails open when Redis is degraded, consistent with the documented limiter behaviour.
   - Tests: 13 in `test/security/search-guardrails.test.ts` (floor boundaries, no-limit on browse/1-char/2-char, limit+keys on real search, empty-not-throw, fail-open, per-page limiting). Full suite **1123** passing.
-  - **Scope widened 2026-09-30 after review: the first pass guarded only the feed's rate limit.** The min-length floor did reach every module (it lives in the shared `createContentList` factory), but the *throttle* only ever reached `fetchFeedPage`, and three surfaces were missed entirely: the two raw-SQL pickers (`similarity()` trigram search — the priciest query shape on the free tier — which had only a local floor of 2 and no limit), the inbox search, and the scholar directory (its own hand-written `buildWhere`, so it skipped the floor too).
+  - **Scope widened 2026-09-30 after review: the first pass guarded only the feed's rate limit.** The min-length floor did reach every module (it lives in the shared `createContentList` factory), but the *throttle* only ever reached `fetchFeedPage`, and three surfaces were missed entirely: the two raw-SQL pickers (`similarity()` trigram search — the priciest query shape on the shared database — which had only a local floor of 2 and no limit), the inbox search, and the scholar directory (its own hand-written `buildWhere`, so it skipped the floor too).
   - Fixed by extracting `src/lib/search-rate-limit.ts` (`allowSearchRequest`) so one implementation serves every surface and the limit cannot drift, then wiring it at `loadContentPage` (the single chokepoint for all listings) and into both pickers and the inbox.
   - Tests: `test/security/search-surfaces.test.ts` covers every registry module, the scholar directory, both pickers and the inbox, so a future listing surface cannot be added without a guard.
 
@@ -41,7 +44,8 @@
   - No React bump needed: `next@16.3.7` peer is `react ^19.0.0`, already satisfied by 19.2.4. Engines `node >=20.9.0`; CI runs Node 22.
   - Verified: `npm audit` -> **next: no advisory**; `tsc --noEmit` clean; `eslint src test` 0 errors (same 2 pre-existing `MessageItem.tsx` warnings); `next build` exit 0; **1094/1094 tests** across 30 files.
   - Runtime smoke on a `next start` of the real build: all 4 `ImageResponse` routes returned HTTP 200 `image/png` with real bytes (1.2KB–26KB) — the patched surface actually renders, not just compiles. `/`, `/scholars`, `/login` all 200 HTML; `/api/cron/trim-maintenance` 401 JSON, so `CRON_SECRET` auth is intact. Server log clean — no errors or deprecation warnings.
-  - Not verified: the Cloudinary upload path (needs live credentials; no route exercises it without them).
+  - Storage verification: content and manuscript uploads now use self-hosted
+    Supabase Storage; verify bucket policies and cleanup jobs against staging.
   - Follow-up worth a look, out of scope here: the tree still carries 44 advisories (29 moderate / 12 high / 3 critical) from `@tiptap/core` (ReDoS + `mergeAttributes` prototype pollution) and `xlsx`. `next` is no longer among them.
 
 - [x] **P1-2 Creation-time +1 reputation** `Critical (trust inflation)` ✅ DONE
@@ -110,8 +114,8 @@
   - Effort: 2-3d
 
 - [ ] **P2-3 QStash cron migration (per-job split)** `Medium (arch)`
-  - Files: `src/app/api/cron/*` (6 routes), `src/lib/cron.ts`, `src/app/api/jobs/*`, `_vercel.json`
-  - Do: per job pick Vercel-stay vs QStash vs pg_cron; delete moved entries from `_vercel.json`; QStash schedules at route URLs; swap auth to Receiver.verify(); check idempotency first (trims/trending safe; audit `cleanup-deadlines` for additive effects).
+  - Files: `src/app/api/cron/*` (6 routes), `src/lib/cron.ts`, `src/app/api/jobs/*`, Coolify scheduled tasks
+  - Do: assign each job to Coolify scheduling, QStash, or pg_cron; remove obsolete scheduler entries; QStash schedules at route URLs; swap auth to Receiver.verify(); check idempotency first (trims/trending safe; audit `cleanup-deadlines` for additive effects).
   - Verify: no double-runs; DLQ visible; retries safe.
   - Effort: 2-3d (home for P0-2 + P2-1 fixes)
 
@@ -186,7 +190,7 @@
   - `updateProfile` had no test. It is the widest-blast-radius write in the app: the profile row feeds the scholar directory AND the author block denormalised into **every cached content list** (name / handle / avatar), plus the institution badge.
   - **The bug:** `readOptionalFormValue` returns `""` for a field that is present-but-blank, and `EditProfileForm` submits the whole form via `new FormData(form)`, so the `handle` input is always present. The old line was `handle: newHandle !== null ? normalizeHandle(newHandle) : user.handle`. For a blank field `newHandle === ""`, which is **not** `null`, so it ran `normalizeHandle("")` — and that returns `null` by design. The result was **`handle: null` written to the database**: simply clearing the handle input in the edit form silently destroyed the user's @handle, breaking their directory row and every link resolving it. The availability guard did not catch it either, because `if (newHandle)` is falsy for `""` and so the taken-handle check was skipped entirely.
   - Fixed so blank means "leave it alone", matching the absent-field semantics the other fields already use. Clearing a bio or a social link still works (blank-means-clear is correct for those; an empty handle is not a valid identity at all), and that distinction is pinned by its own test.
-  - `test/actions/profile-update.test.ts` — 13 tests: fields update and report success, **reputation and every materialized counter untouched** (a profile edit is not a community event, and if reputation moved here the vote-only model would be corrupted with no vote involved), the cached scholar directory is purged, handle normalisation, taken-handle refused, own-handle allowed, blank handle preserved, bio/links clearable, malicious URL rejected, replaced avatar deleted from Cloudinary, unchanged avatar not deleted, anonymous rejected, over-long bio rejected rather than truncated.
+  - `test/actions/profile-update.test.ts` — 13 tests: fields update and report success, **reputation and every materialized counter untouched** (a profile edit is not a community event, and if reputation moved here the vote-only model would be corrupted with no vote involved), the cached scholar directory is purged, handle normalisation, taken-handle refused, own-handle allowed, blank handle preserved, bio/links clearable, malicious URL rejected, replaced avatar deleted from self-hosted Supabase Storage, unchanged avatar not deleted, anonymous rejected, over-long bio rejected rather than truncated.
   - **The return shape here is `{ success, message }`, not `{ success, data }` — deliberately.** `EditProfileForm` toasts and then navigates to the profile route, which re-fetches from the server; there is no cached list to splice, so RULE 1's `setQueryData` contract does not apply. Recorded so it is not "fixed" into a needless cache write later.
   - **Also extended the shared fake:** `test/fake-prisma/match.ts` had no `not` operator, so `isHandleAvailable`'s `{ id: { not: <me> } }` threw *"unsupported nested filter"* and the action could not be tested at all. Added it, with a test for scalar negation and operator composition.
   - **One honest limitation, recorded rather than papered over:** because the fake cannot distinguish a scalar column from a relation, `{ author: { not: "x" } }` now evaluates instead of throwing, where real Prisma rejects it. I first wrote a test asserting it still threw, and that test was wrong. Only `not` is affected (every other operator pre-existed) and no production query uses `not` on a relation. Relation filters built from real columns (`{ author: { reputation: { gt: 1 } } }`) still throw as before.
@@ -196,12 +200,12 @@
   - **But the guard had no test at all.** The page's only defence is `if (user.id !== id) redirect(...)`, and without it `/scholars/<anyone-elses-id>/settings` would render their `profile.email` via `UpdateEmailForm` plus a live `DeleteAccountForm`. A whole account-takeover-shaped route reachable by guessing an id, untested.
   - Added `test/security/scholar-settings-ownership.test.ts` (6 tests): owner renders, a visitor is sent to **their own** settings (not Bob's — redirecting to `/scholars/BOB/settings` would loop), Bob's email is never served, anonymous goes to login for both a real and a guessed id, and an authed user whose ScholarBase row is missing also goes to login instead of dereferencing a null profile.
   - **Verified as a real regression test:** with the `user.id !== id` guard deleted, 2 of the 6 fail. Restored afterwards; `git status` confirms the page file is unmodified.
-  - Two test-harness gaps had to be closed to load a server component at all: `server-only` (a Next build-time marker, not a direct dependency) is now aliased to `test/stubs/server-only.ts` — this unblocks **any** server component reaching Cloudinary, not just this page — and `@/utils/supabase/client` is mocked, since it pulls `@supabase/ssr`, which validates the project URL at import time. Neither change touches production source.
+  - Two test-harness gaps had to be closed to load a server component at all: `server-only` (a Next build-time marker, not a direct dependency) is now aliased to `test/stubs/server-only.ts` — this unblocks **any** server component reaching server-side storage, not just this page — and `@/utils/supabase/client` is mocked, since it pulls `@supabase/ssr`, which validates the project URL at import time. Neither change touches production source.
 - [x] **Remaining lint warnings cleared** ✅ DONE
   - `MessageItem.tsx` carried the last two warnings: `const { isSidebarOpen } = useMessagesLayout()` and `const quote = message.replyTo`. Both were leftovers from a refactor — the component reads `message.replyTo` directly everywhere, and `isSidebarOpen` is only used by `MessagesClientLayout`. Removed the two lines and the now-unused import. **eslint now reports 0 problems.**
 - [x] **Remaining untested action/route surface: closed** ✅ DONE
   - Audit found **12 action modules and 13 route handlers with zero coverage**, and only **1 of the 5 forms** on `/scholars/[id]/settings` tested. `UpdateEmailForm`, `InstitutionVerificationForm`, `DeleteAccountForm` and `UpdatePasswordForm` were driven entirely by untested actions.
-  - Seven new suites, all data-driven where the modules share a path. `PENDING_ACTION_TESTS` shrank from 12 to **5** (`adminInvite`, `cloudinary`, `comments.clientWrappers`, `contact`, `notifications`); the manifest gate fails if any of them gains a test and is not removed, so the list cannot rot.
+  - Seven new suites, all data-driven where the modules share a path. `PENDING_ACTION_TESTS` shrank from 12 to **5** (`adminInvite`, `storage`, `comments.clientWrappers`, `contact`, `notifications`); the manifest gate fails if any of them gains a test and is not removed, so the list cannot rot.
     - `security/cron-secret.test.ts` (10) — the gate on all 7 cron/job routes. **Proven real:** flipping `verifyCronSecret` to fail open fails the test; it denies when `CRON_SECRET` is unset and uses `timingSafeEqual`.
     - `security/institution-verify-route.test.ts` (10) — the route that grants `institutionVerifiedAt`, i.e. the trust badge on every card. Replay, expiry, cross-account, malformed token, legacy rows, anonymous-with-callback.
     - `actions/bookmark-return-contract.test.ts` (104) — `toggleBookmark` across every bookmark-capable module: `{totalBookmarks, isBookmarked}`, the post-toggle state, no reputation movement, cache purge, frozen and rate-limited refusals.
@@ -218,12 +222,12 @@
   - The thresholds another process set (5/5/5, from a 3.21% era) were never re-measured. Measured today: **19.57% statements / 11.88% branches / 12.84% functions / 20.26% lines**. Set to 19/11/12/19 — a floor just under reality, so CI passes today and **fails on any regression**. Confirmed the gate passes.
   - Recorded in the config why the absolute numbers are low: the unit tier mocks DB and network, so the untested surface is concentrated in pages, cron routes and admin reads. Raising them is a deliberate act alongside new tests.
 - [x] **P0-2 Digest email wall — the ACTUAL fix, batching** ✅ DONE
-  - **What was wrong:** `runDigest` did one `findMany` over EVERY opted-in subscriber and then `await resend.emails.send()` once per user, sequentially, inside a single invocation. N round-trips against a ~10s serverless timeout — it died at roughly 25 subscribers and silently dropped everyone after the cut-off, leaving their notifications unflagged. The `@default(NEVER)` change reduces the population but does **not** touch this mechanism; it still fails identically at 25.
+  - **What was wrong:** `runDigest` did one `findMany` over EVERY opted-in subscriber and then `await resend.emails.send()` once per user, sequentially, inside a single invocation. N round-trips against a bounded request budget — it died at roughly 25 subscribers and silently dropped everyone after the cut-off, leaving their notifications unflagged. The `@default(NEVER)` change reduces the population but does **not** touch this mechanism; it still fails identically at 25.
   - **One API call per chunk.** `resend.batch.send()` (≤100 per call) replaces N sequential sends. `digest.ts` now exposes `sendDigestChunk(preference, afterUserId)`; the cron routes are kickoff-only (`kickoffDigest`) and the worker drains the rest via QStash, so no single invocation depends on subscriber count.
   - **Cursor in the payload**, mirroring the P2-1 fan-out: `mode: "DIGEST"` with `preference` + `afterUserId`, ordered by `User.id`, advancing only after Resend accepts. A whole-request failure returns `success: false` and does **not** advance, so QStash retries the identical chunk.
   - **No duplicate emails on retry.** `resend.batch.send` takes an `Idempotency-Key` (verified in the SDK: `CreateBatchRequestOptions extends PostOptions, IdempotentRequest`). The key is `digest:{preference}:{cursor}`, deterministic for a chunk. This replaced an earlier "claim the notifications before sending" idea, which would have avoided duplicates by instead **losing** a digest whenever it crashed between claim and send.
   - **`batchValidation: "permissive"` is required, not an optimisation.** Under the default `strict`, per Resend's docs, "the request will fail and return an error if any email in your payload is invalid" — one malformed address would reject the whole batch and silently cost 99 other people their digest. Permissive also returns `errors[].index`, which is what lets the worker flag **only** the emails actually accepted; a rejected user's notifications stay unflagged and roll into the next run instead of vanishing.
-  - **What is NOT fixed, stated plainly:** batching reduces N requests to 1, but a batch of 100 is still **100 emails** against Resend's quota. This fixes the Vercel timeout and the 10 req/sec limit; it does **not** raise the 100 emails/day ceiling. Past ~100 daily opt-ins that needs a plan upgrade — which is the remaining argument for steering opt-ins toward WEEKLY.
+  - **What is NOT fixed, stated plainly:** batching reduces N requests to 1, but a batch of 100 is still **100 emails** against Resend's quota. This fixes the request-timeout and 10 req/sec limit; it does **not** raise the 100 emails/day ceiling. Past ~100 daily opt-ins that needs a plan upgrade — which is the remaining argument for steering opt-ins toward WEEKLY.
   - **Two test-harness gaps closed**, both real Prisma surface the digest depends on: `some` relation filters (`notificationsReceived: { some: { isEmailed: false } }`) were unsupported, and `project` silently dropped nested relation `select`s (`{ where, orderBy, take, select }`). Both now implemented, with the nested case documented as reading children off the parent row rather than resolving relations by FK.
   - Tests: `test/emails/digest-chunking.test.ts` (14) — one batched call per chunk, permissive + idempotency key always set, only the requested cadence, cursor resumes strictly after the last id, continuation enqueued only on a full chunk, per-index failures leave that user unflagged, a whole-request failure flags nothing and enqueues nothing, and a 150-subscriber drain emails everyone **exactly once**. Plus `test/actions/digest-preference.test.ts` (10) and `test/components/settings-tabs.test.tsx` (5).
   - Verified: tsc clean · eslint **0 problems** · **1544 tests / 40 files** (was 1530) · `next build` exit 0 · runtime smoke green including all three settings tabs and a bogus `?tab=bogus` falling back · both cron routes still return **401** unauthenticated.
@@ -233,8 +237,8 @@
   - **Device scope is stated in the copy** — "on this device" — because a user who disables on their laptop will still get pings on their phone, and that is correct behaviour, not a bug.
   - Tests: `test/components/enable-push-button.test.tsx` (7) — off state + toggle fires, on state, all four variants read the one shared state, disabled while a toggle is in flight, renders nothing while `checking`/`unsupported`, and the row is text-labelled rather than a bare icon. Written with raw `createRoot` + `act` and the `@vitest-environment jsdom` docblock, matching the existing DOM tests; **no new test dependency was added** (this repo has no Testing Library).
   - Verified: tsc clean · eslint 0 · **1551 tests / 52 files** (was 1544) · `next build` exit 0 · runtime smoke 200 on all three tabs + `?tab=bogus` fallback, zero server errors.
-- [ ] **P3-5 Minor hygiene** — `cloudinary.ts` file.type (backstopped, ok); AGENTS.md stale `/api/outbound` doc vs `SafeExternalLink.tsx` (fix doc); widen `test/security/no-client-identity.test.ts` (ownerId/targetUserId, arrow exports); secrets already clean.
-- [ ] **P3-6 Storage/egress watch** — 105 models + GIN vs 500MB; Cloudinary bypasses 5GB egress; confirm staging project (`src/proxy.ts`) not auto-paused.
+- [ ] **P3-5 Minor hygiene** — storage file-type checks (backstopped, ok); widen `test/security/no-client-identity.test.ts` (ownerId/targetUserId, arrow exports); secrets already clean.
+- [ ] **P3-6 Storage/egress watch** — monitor self-hosted Supabase volume, object-storage growth, database indexes, and Oracle disk headroom; confirm staging services remain healthy.
 
 ## Decisions recorded (agreed 2026-09-30)
 
@@ -243,9 +247,9 @@
 - Historical reputation is **grandfathered** — no backfill/recompute across the 105 models.
 - Self-vote block applies to **comments and replies** as well as all 17 top-level modules.
 - Pre-existing self-vote rows (if any) stay in the DB and keep counting toward `totalVotes`; their owner can no longer toggle them off. Harmless, and avoids a destructive migration.
-- Cron state resolved 2026-09-30: `_vercel.json` lists exactly the four routes that exist on disk (`trim-maintenance`, `trim-soft-deleted-posts`, `daily-digest`, `weekly-digest`). `cleanup-deadlines/route.ts` and `update-trending/route.ts` are gone (trending moved to pg_cron via `update-trending.md`), and no `_vercel.json` entry points at a missing route.
+- Cron state resolved 2026-09-30: Coolify scheduled tasks cover the four app routes that exist on disk (`trim-maintenance`, `trim-soft-deleted-posts`, `daily-digest`, `weekly-digest`). `cleanup-deadlines/route.ts` and `update-trending/route.ts` are gone (trending moved to pg_cron via `update-trending.md`), and no obsolete scheduler entry points at a missing route.
 - Next.js lands on **16.3.7, not the 16.3.6 first written here** — `npm audit` resolved the fix to the newest 16.3.x patch, and the vulnerable range (`9.3.4-canary.0 - 16.3.2`) means stopping one patch short buys nothing. Real exposure, not theoretical: 4 files call `ImageResponse`.
-- `xlsx` was replaced by **exceljs**, not merely upgraded. SheetJS froze its npm release at 0.18.5, so the two advisories had no in-registry fix; the SheetJS CDN tarball was rejected as a supply-chain cost on every CI/Vercel build. exceljs keeps the export auditable on npm.
+- `xlsx` was replaced by **exceljs**, not merely upgraded. SheetJS froze its npm release at 0.18.5, so the two advisories had no in-registry fix; the SheetJS CDN tarball was rejected as a supply-chain cost on every CI build. exceljs keeps the export auditable on npm.
 - P3-4 was resolved by **auditing rather than copying the CSV escape**: XLSX cells are typed strings, so the `'` prefix would have shown a stray apostrophe to researchers. A regression test now enforces the no-formula-cell invariant.
 - Remaining audit findings are **documented, not suppressed**: the Prisma CLI chain (3 high, dev-only, npm's fix is a major *downgrade*) and `uuid` via exceljs (2 moderate, path unreachable in the installed version). Neither justifies the risk of forcing a major into pinned transitive tooling.
 - A dependency upgrade **surfaced a latent test bug rather than causing one**: `supabase-jwt.test.ts` had been malformed since 2026-09-26 and 7 tests silently never ran. Worth remembering when a major test-runner bump fails on "clean" code.
@@ -271,9 +275,9 @@ Already done: **P0-1, P0-3, P1-1, P1-1b, P1-2, P1-2b, P2-1, P3-3, P3-4** + the l
 - **⚠️ Coverage thresholds were lowered in `vitest.config.ts` (statements 3→5, functions 12→5, branches 39→5) outside this work.** That ratchet was described in-file as "measured Phase 0 numbers", and the numbers look like they were taken under **vitest 2**, before the upgrade to vitest 4.1.11. `npm run test:coverage` will produce different figures now. Worth re-measuring and restoring the floor — otherwise the gate silently permits large regressions. Not reverted here because it was someone else's deliberate edit.
 - **Deploy step needed:** the P2-1 migration (`20260930120000_notification_dedupe_partial_index`) must reach production via `prisma migrate deploy`. It was validated against a real Postgres 17 with seeded duplicate data, but it has never run against the actual Supabase database. It is non-destructive and a no-op on clean data.
 
-## When to upgrade free tiers
+## When to scale infrastructure or external providers
 
 - Resend: digest demand > ~80/day sustained (headroom under 100).
-- Supabase: indexes+tables > ~400MB or CPU throttles feed.
-- Vercel: need maxDuration > 60s or daily precise timing+retries.
+- Self-hosted Supabase: database/storage volume, connection saturation, or realtime memory pressure exceeds the Oracle host budget.
+- Coolify/Oracle: container CPU, memory, disk, or restart pressure exceeds the A1 Flex budget.
 - Redis: `degraded:true` in logs or ~400K cmds/mo.

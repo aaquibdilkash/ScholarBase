@@ -46,8 +46,8 @@ export const CSP_HEADER = "Content-Security-Policy";
  * negligible.
  *
  * It remains log-only and not backed by the database: CSP reports are a
- * high-volume, low-value firehose, and a table for this would cost schema and
- * free-tier space (AGENTS.md Rule 1).
+ * high-volume, low-value firehose, and a table for this would add schema and
+ * storage pressure without operational value (AGENTS.md Rule 1).
  */
 export const CSP_REPORT_URI = "/api/csp-report";
 

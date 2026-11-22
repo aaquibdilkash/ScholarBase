@@ -54,7 +54,7 @@ const fanOutCursorSchema = z
  *
  * Same reasoning as `fanOutCursorSchema`, and it prevents the same failure: the
  * cron used to fetch EVERY opted-in subscriber and email them one at a time in
- * a single invocation, which dies on the serverless timeout long before the
+ * a single invocation, which dies on the request budget long before the
  * backlog clears. The cursor travels in the payload so a retry resumes at the
  * boundary instead of restarting at user #1.
  *

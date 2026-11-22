@@ -16,7 +16,7 @@ if (dsn) {
     // instrumentation-client.ts). `tracesSampleRate: 0` disables performance
     // spans on the server too; a Server Action that throws is still captured
     // as an ERROR via instrumentation.ts `onRequestError`. The route is
-    // serverless - there is no long-lived process profiling anything - so the
+    // worker process - there is no long-lived process profiling anything - so the
     // only thing 0.1 sampling would buy here is quota burn.
     tracesSampleRate: 0,
   });

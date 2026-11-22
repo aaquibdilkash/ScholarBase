@@ -62,13 +62,22 @@ export function SurveyPreview({
     setAnswers((prev) => ({ ...prev, [id]: JSON.stringify(next) }));
   };
 
-  const handleMatrix = (id: string, rowValue: string, columnIndex: number) => {
+  const handleMatrix = (id: string, rowValue: string, columnIndex: number, checked: boolean) => {
     const current = answers[id]
-      ? (JSON.parse(answers[id]) as Record<string, number>)
+      ? (JSON.parse(answers[id]) as Record<string, number | number[]>)
       : {};
+    const question = questions.find((item) => item.id === id);
+    const nextValue = question?.matrixMode === "MULTIPLE"
+      ? (() => {
+          const selected = Array.isArray(current[rowValue]) ? current[rowValue] : [];
+          return checked
+            ? [...selected, columnIndex].sort((a, b) => a - b)
+            : selected.filter((index) => index !== columnIndex);
+        })()
+      : columnIndex;
     setAnswers((prev) => ({
       ...prev,
-      [id]: JSON.stringify({ ...current, [rowValue]: columnIndex }),
+      [id]: JSON.stringify({ ...current, [rowValue]: nextValue }),
     }));
   };
 
@@ -116,7 +125,9 @@ export function SurveyPreview({
       if (!q.required) return true;
       if (q.type === "MATRIX_LIKERT") {
         const filled = answers[q.id]
-          ? Object.keys(JSON.parse(answers[q.id]) as Record<string, number>).length
+          ? Object.values(JSON.parse(answers[q.id]) as Record<string, number | number[]>).filter((answer) =>
+              Array.isArray(answer) ? answer.length > 0 : Number.isInteger(answer),
+            ).length
           : 0;
         return filled >= q.options.length;
       }
@@ -284,8 +295,8 @@ const progressPct =
           onCheckboxChange={(optionValue, checked) =>
             handleCheckbox(q.id, optionValue, checked)
           }
-          onMatrixChange={(rowValue, columnIndex) =>
-            handleMatrix(q.id, rowValue, columnIndex)
+          onMatrixChange={(rowValue, columnIndex, checked) =>
+            handleMatrix(q.id, rowValue, columnIndex, checked)
           }
         />
       ))}

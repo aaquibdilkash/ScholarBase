@@ -9,10 +9,9 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       // `server-only` is a Next build-time marker package, not a direct
-      // dependency, so Vitest cannot resolve it. Two modules import it
-      // (`lib/cloudinary.ts`, the trim-maintenance cron route), which means any
-      // server component that transitively reaches Cloudinary fails to load in
-      // the unit tier. The stub keeps the import in the source untouched.
+      // dependency, so Vitest cannot resolve it. Server-side storage and cron
+      // modules import it, so any server component that reaches those modules
+      // fails to load in the unit tier without this stub.
       "server-only": fileURLToPath(
         new URL("./test/stubs/server-only.ts", import.meta.url),
       ),

@@ -1,8 +1,6 @@
 // Single source of truth for the deployment environment.
-// VERCEL_ENV remains a transitional fallback for existing Vercel deployments.
 const raw =
   process.env.APP_ENV ??
-  process.env.VERCEL_ENV ??
   process.env.NODE_ENV ??
   "development";
 

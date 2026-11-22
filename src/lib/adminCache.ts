@@ -8,7 +8,7 @@ import type {
 /**
  * RULE 1 helper: surgically patch every cached admin content list that
  * contains the given row, instead of invalidating + refetching from the
- * database (free-tier friendly — zero extra queries after an action).
+ * database (zero extra queries after an action).
  */
 export function patchAdminContentCache(
   queryClient: QueryClient,

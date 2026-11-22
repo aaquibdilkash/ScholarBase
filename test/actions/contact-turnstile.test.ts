@@ -1,6 +1,6 @@
 /**
  * H3 of the launch-readiness audit — the public contact form could burn the
- * entire Resend free-tier daily cap in under a minute.
+ * entire Resend daily quota in under a minute.
  *
  * Three things used to stack: both rate-limit keys were fully
  * attacker-controlled (self-reported email, spoofable IP fingerprint), the

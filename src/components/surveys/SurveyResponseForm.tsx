@@ -42,6 +42,7 @@ type Question = {
   shuffleOptions?: boolean;
   skipLogic?: SkipRule[] | null;
   columnLabels?: string[] | null;
+  matrixMode?: "SINGLE" | "MULTIPLE";
   blockId?: string | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
 };
@@ -214,7 +215,9 @@ export function SurveyResponseForm({
       if (!q.required) return true;
       if (q.type === "MATRIX_LIKERT") {
         const filled = answers[q.id]
-          ? Object.keys(JSON.parse(answers[q.id]) as Record<string, number>).length
+          ? Object.values(JSON.parse(answers[q.id]) as Record<string, number | number[]>).filter((answer) =>
+              Array.isArray(answer) ? answer.length > 0 : Number.isInteger(answer),
+            ).length
           : 0;
         return filled >= q.options.length;
       }
@@ -332,13 +335,23 @@ export function SurveyResponseForm({
     questionId: string,
     rowValue: string,
     columnIndex: number,
+    checked: boolean,
   ) => {
     const current = answers[questionId]
-      ? (JSON.parse(answers[questionId]) as Record<string, number>)
+      ? (JSON.parse(answers[questionId]) as Record<string, number | number[]>)
       : {};
+    const question = questions.find((item) => item.id === questionId);
+    const nextValue = question?.matrixMode === "MULTIPLE"
+      ? (() => {
+          const selected = Array.isArray(current[rowValue]) ? current[rowValue] : [];
+          return checked
+            ? [...selected, columnIndex].sort((a, b) => a - b)
+            : selected.filter((index) => index !== columnIndex);
+        })()
+      : columnIndex;
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: JSON.stringify({ ...current, [rowValue]: columnIndex }),
+      [questionId]: JSON.stringify({ ...current, [rowValue]: nextValue }),
     }));
   };
 
@@ -356,7 +369,9 @@ export function SurveyResponseForm({
       if (!q.required) continue;
       if (q.type === "MATRIX_LIKERT") {
         const filled = answers[q.id]
-          ? Object.keys(JSON.parse(answers[q.id]) as Record<string, number>).length
+          ? Object.values(JSON.parse(answers[q.id]) as Record<string, number | number[]>).filter((answer) =>
+              Array.isArray(answer) ? answer.length > 0 : Number.isInteger(answer),
+            ).length
           : 0;
         if (filled < q.options.length) {
           toast(`Please answer all rows of: "${q.title}"`, "error");
@@ -573,8 +588,8 @@ export function SurveyResponseForm({
           onCheckboxChange={(optionValue, checked) =>
             handleCheckboxChange(q.id, optionValue, checked)
           }
-          onMatrixChange={(rowValue, columnIndex) =>
-            handleMatrixChange(q.id, rowValue, columnIndex)
+          onMatrixChange={(rowValue, columnIndex, checked) =>
+            handleMatrixChange(q.id, rowValue, columnIndex, checked)
           }
         />
       ))}

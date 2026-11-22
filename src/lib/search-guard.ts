@@ -2,8 +2,8 @@
  * Search guardrails (P0-3).
  *
  * Search is the one read path a stranger can call as fast as they like, and on
- * the Supabase free tier every query spends the connection pool that the whole
- * app shares (AGENTS.md Rule 1). Two independent brakes:
+ * the self-hosted Supabase connection pool is shared by the whole app
+ * (AGENTS.md Rule 1). Two independent brakes:
  *
  * 1. A **minimum length**, applied where the `where` clause is built. A 1-2
  *    character term matches a large slice of the table, so it is both useless

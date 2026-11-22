@@ -667,7 +667,7 @@ export async function sendMessage(
 
   // ⚡ `after()`: mirrors `startConversation`. Only the *other* participant is
   // notified, and only after the transaction above committed. Runs after the
-  // response, so the send stays instant, and survives serverless freeze.
+  // response, so the send stays instant even when the request worker exits.
   if (otherParticipant) {
     after(() =>
       queueMessagePush({

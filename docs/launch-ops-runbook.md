@@ -8,28 +8,29 @@ the corresponding code reaches production.
 
 | Variable | Where | Required? | What happens if missing |
 |---|---|---|---|
-| `EMAIL_UNSUBSCRIBE_SECRET` | Vercel (Production + Preview) | **YES — deploy-breaking by design** | Outreach email signing/verification throws at first use instead of silently borrowing `CRON_SECRET`. Set it to any long random value (`openssl rand -hex 32`). Existing links signed under the old fallback stop verifying; they are outreach one-click-unsubscribe links only, so the blast radius is old marketing emails. |
-| `SUPABASE_CA_CERT_BASE64` | Vercel (Production) | **YES — cold-start failing by design** | `src/lib/db.ts` now **throws at import** in production when the CA is absent (verification would otherwise be disabled). `next build` is exempt via `NEXT_PHASE`. **Preview deployments must have it too** (Vercel previews run `NODE_ENV=production`). |
-| `NEXT_PUBLIC_SENTRY_DSN` | Vercel + Sentry project | Recommended | Sentry initialises disabled; the app runs but you are back to finding out from user complaints. |
-| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | Build environment only | Recommended | Enables source-map upload during the image build. Never expose `SENTRY_AUTH_TOKEN` to the browser or runtime container. |
-| `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Vercel (already used by institution form) | Already required | Contact form now fails closed without them (same as the institution form). |
+| `EMAIL_UNSUBSCRIBE_SECRET` | Coolify staging + production environment | **YES — deploy-breaking by design** | Outreach email signing/verification throws at first use instead of silently borrowing `CRON_SECRET`. Set it to any long random value (`openssl rand -hex 32`). Existing links signed under the old fallback stop verifying; they are outreach one-click-unsubscribe links only, so the blast radius is old marketing emails. |
+| `SUPABASE_CA_CERT_BASE64` | Coolify application environment | **YES — startup failing by design** | `src/lib/db.ts` throws at import in production when the CA is absent. `next build` is exempt via `NEXT_PHASE`; the running Coolify container must have the certificate. |
+| `NEXT_PUBLIC_SENTRY_DSN` | Coolify build environment + Sentry project | Recommended | Sentry initialises disabled; the app runs but you are back to finding out from user complaints. |
+| `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` | Coolify/CI build environment only | Recommended | Enables source-map upload during the image build. Never expose `SENTRY_AUTH_TOKEN` to the browser or runtime container. |
+| `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Coolify application environment | Already required | Contact form now fails closed without them (same as the institution form). |
 
 ## 2. Lock origin traffic to Cloudflare (rate-limit bypass)
 
-`getClientIp()` trusts `cf-connecting-ip` unconditionally. If the Vercel
+`getClientIp()` trusts `cf-connecting-ip` unconditionally. If the Coolify
 deployment URL is directly reachable, anyone can spoof that header and walk
 around IP-keyed rate limits (login attempts, contact form, search). The code
 cannot fix this — it is an edge configuration:
 
-1. **Vercel firewall rule (recommended):** WAF → create rule matching all
-   traffic where `ip.src` is NOT in Cloudflare’s published IP ranges → **Deny**.
+1. **Origin firewall rule (recommended):** at the reverse proxy/firewall, allow
+   only traffic from Cloudflare’s published IP ranges and trusted operations
+   networks.
    (Cloudflare publishes these at
    <https://www.cloudflare.com/ips/>; refresh them periodically or use an
    Upstash/CDN-maintained list.)
-2. **Alternative — Authenticated Origin Pulls:** enable in Cloudflare (SSL/TLS
-   → Origin Server) and require the Cloudflare client certificate on Vercel’s
-   side if the plan supports it.
-3. **Verify:** `curl -H "cf-connecting-ip: 1.2.3.4" https://<your-vercel-url>/`
+2. **Alternative — Authenticated Origin Pulls:** enable this in Cloudflare (SSL/TLS
+   → Origin Server) and require the Cloudflare client certificate at Coolify’s
+   side at the Coolify origin if the plan supports it.
+3. **Verify:** `curl -H "cf-connecting-ip: 1.2.3.4" https://<origin-host>/`
    from a non-Cloudflare network must fail (403) once rule 1 is active; the
    same request via `https://scholarbase.app` (through Cloudflare) works.
 
@@ -39,7 +40,7 @@ origin trust decision is spoofable by definition.
 ## 3. Supabase dashboard (go/no-go, from the launch audit)
 
 1. Run `supabase/realtime/broadcast-messages.sql` against the **production**
-   Supabase project (the repo runbook only verified it on dev). Manual test:
+   self-hosted production Supabase instance (the repo runbook only verified it on staging). Manual test:
    Account B tries to subscribe to Account A’s conversation → must receive
    nothing.
 2. Auth → enable **“Secure email change”** (dual-confirmation) so a stolen
@@ -55,7 +56,7 @@ failed Server Actions / routes / renders), and `src/sentry.server.config.ts`
 `sentry.client.config.ts` / `sentry.edge.config.ts` + wraps `next.config.ts`,
 duplicating and conflicting with the tested wiring above.
 
-Free-tier safety (facts, not vibes):
+Sentry quota safety and deployment notes:
 
 - The Developer plan has **no payment method by construction**, and Sentry's
   own docs state quota-exhausted data **is dropped, not charged**. Charging
@@ -85,9 +86,9 @@ Deliberate scope cuts, revisit post-launch:
   caught by the App Router boundaries, including errors that do not reach the
   browser's global handlers.
 
-Setup steps: create the project at sentry.io, set `NEXT_PUBLIC_SENTRY_DSN`
-in Vercel (Production + Preview), redeploy (NEXT_PUBLIC_ vars bake at build
-time). CSP already allows `https://*.ingest.sentry.io`,
+Setup steps: create the project at sentry.io, set `NEXT_PUBLIC_SENTRY_DSN` in
+the Coolify build environment, then rebuild the image (NEXT_PUBLIC_ vars bake
+at build time). CSP already allows `https://*.ingest.sentry.io`,
 `https://*.ingest.us.sentry.io`, and `https://*.ingest.de.sentry.io` under
 `connect-src` — the last one matters because this org lives in the EU region;
 asserted region-aware by `test/security/sentry-wiring.test.ts`.
@@ -105,14 +106,13 @@ await (await fetch("/api/monitoring/sentry-test", { method: "POST" })).json()
   appear under Issues within seconds, and DevTools Network should show an
   envelope POST to `o*.ingest*.sentry.io` (proves the CSP allowlist works).
 - `{ success: false, initialized: false }` → the SDK never initialised in
-  that server instance: restart the dev server locally (or redeploy on
-  Vercel — NEXT_PUBLIC_ vars bake at build time) so `register()` picks up
-  the DSN, then retry.
+  that server instance: restart the dev server locally or rebuild/redeploy the
+  Coolify image so `register()` picks up the DSN, then retry.
 - `{ success: false, initialized: true, flushed: false, eventId }` →
   captured locally but the transport never drained: check the server
   terminal for Sentry transport errors, `curl -I https://<dsn-host>` for
   egress, and confirm the DSN key/project in Sentry Settings > Projects >
   Client Keys.
 - `{ configured: false }` → the deployment lacks the DSN: set the env var
-  in Vercel and **redeploy** (NEXT_PUBLIC_ vars are inlined at build time).
+  in Coolify and **rebuild/redeploy** (NEXT_PUBLIC_ vars are inlined at build time).
 - `403` → you are not admin-logged-in on that tab.

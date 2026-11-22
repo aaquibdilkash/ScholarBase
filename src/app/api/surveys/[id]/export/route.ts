@@ -153,6 +153,7 @@ export async function GET(
       shuffleOptions: q.shuffleOptions,
       skipLogic: q.skipLogic,
       columnLabels: q.columnLabels,
+      matrixMode: q.matrixMode,
       options: q.options.map((o) => ({
         value: o.value,
         label: o.label,

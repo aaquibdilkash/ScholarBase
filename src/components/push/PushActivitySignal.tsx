@@ -25,7 +25,7 @@ const TAB_ID_STORAGE_KEY = "sb-push-tab-id";
  * Dedupe window for beacons. `visibilitychange` and `pageshow` can both fire on
  * a single tab restore, and the user may flick between tabs quickly — there is
  * no value in posting the same state twice. Also keeps Redis + Supabase Auth
- * round-trips to the minimum the free tier allows.
+ * round-trips to the minimum the shared infrastructure allows.
  */
 const MIN_REPEAT_INTERVAL_MS = 5_000;
 

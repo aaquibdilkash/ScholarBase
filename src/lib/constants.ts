@@ -108,7 +108,7 @@ export const MAX_MATRIX_COLUMNS = 10;
  * cost is linear in responses and there is no streaming path. Measured on this
  * codebase: 5,000 responses is ~86MB of heap and ~385ms of exceljs work, which
  * extrapolates to roughly 1.7GB at 100,000. That is an out-of-memory crash on a
- * serverless function, not a slow request — and because the endpoint had no
+ * short-lived request, not a slow request — and because the endpoint had no
  * rate limit, any authenticated user could trigger it repeatedly on a shared
  * survey. See `docs/security-scale-checklist.md`.
  *

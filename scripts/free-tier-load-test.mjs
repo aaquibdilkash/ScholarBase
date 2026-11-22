@@ -41,7 +41,7 @@ const postRoutes = [
     form: {
       name: "Load Test",
       email: "loadtest@example.com",
-      subject: "Free-tier capacity test",
+      subject: "Production capacity test",
       message: "This is a staged local production load test trigger.",
     },
   },
@@ -113,8 +113,8 @@ async function doRequest(kind, path, options = {}) {
 
   try {
     const headers = {
-      "x-free-tier-load-test": "1",
-      "user-agent": "scholarbase-free-tier-load-test/1.1",
+      "x-capacity-load-test": "1",
+      "user-agent": "scholarbase-capacity-load-test/1.1",
       ...(authCookie ? { cookie: authCookie } : {}),
       ...(options.headers || {}),
     };
@@ -260,7 +260,7 @@ async function runPhase(name, concurrency, durationMs) {
 }
 
 async function main() {
-  console.log("=== ScholarBase Free-Tier Production Capacity Test ===");
+  console.log("=== ScholarBase Production Capacity Test ===");
   console.log({
     baseUrl,
     mode,
@@ -347,10 +347,10 @@ async function main() {
 
   const risk = failRate > 5 || p95 > 3500 || avgLatency > 1800;
 
-  console.log("\n=== Free-tier launch read ===");
+  console.log("\n=== Production capacity launch read ===");
   console.log(
     risk
-      ? "RISK: this app is likely not production-safe on a free-tier stack under these traffic conditions."
+      ? "RISK: this app is likely not production-safe on the current infrastructure under these traffic conditions."
       : "OK: this app stayed within a safe local capacity envelope under the test profile.",
   );
 

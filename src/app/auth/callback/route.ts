@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
 
-  // Determine the correct public origin behind reverse proxies (Vercel)
+  // Determine the correct public origin behind the Coolify reverse proxy.
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
   const isLocal = process.env.NODE_ENV === "development";

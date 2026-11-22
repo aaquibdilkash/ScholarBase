@@ -188,7 +188,7 @@ export function ArticleComposer({
         <div className="flex min-h-0 min-w-0 flex-col gap-6">
           <div>
             <label className="sb-label inline-flex items-center gap-1.5">
-              Article Title
+              Blog Title
               <InfoTooltip message={ARTICLE_TITLE_TIP} />
             </label>
             <input

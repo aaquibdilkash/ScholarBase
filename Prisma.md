@@ -205,4 +205,4 @@ npx prisma generate
 ```
 
 
-4. **Deploy Application Code:** Deploy the corresponding application code to Vercel production.
+4. **Deploy Application Code:** Deploy the corresponding application image through Coolify to the production Oracle A1 Flex host.

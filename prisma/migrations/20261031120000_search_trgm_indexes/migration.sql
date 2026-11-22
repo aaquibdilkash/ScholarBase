@@ -14,7 +14,7 @@
 -- the query shape (a generated consolidated `search_text` column is the next
 -- step, not more per-column indexes).
 --
--- `IF NOT EXISTS` matters: the previous Vercel + Supabase deployment may have
+-- `IF NOT EXISTS` matters: a previous hosted deployment may have
 -- created the picker indexes by hand (the referenced
 -- `20260924110000_optimize_picker_search` migration is not in this repo), and
 -- this migration must not fail on an existing index name.

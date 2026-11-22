@@ -1,6 +1,6 @@
 # ScholarBase
 
-A high-performance academic networking platform built with Next.js 16, TypeScript, Prisma, and PostgreSQL (Supabase).
+A high-performance academic networking platform built with Next.js 16, TypeScript, Prisma, and PostgreSQL. Production runs in Docker on Coolify hosted on Oracle Cloud Infrastructure A1 Flex. Authentication, PostgreSQL, Storage, and Realtime are provided by our self-hosted Supabase instance.
 
 ## Architecture
 
@@ -15,13 +15,13 @@ ScholarBase is a research-community platform combining social feed functionality
 
 - **Frontend**: Next.js 16.3.7 (App Router), React 19.2.4, TypeScript 5
 - **Backend**: Server Actions, API Routes
-- **Database**: PostgreSQL via Prisma 7.9, Supabase
+- **Database**: PostgreSQL via Prisma 7.10 and self-hosted Supabase
 - **Caching/Rate Limiting**: Upstash Redis
 - **Queue/Async**: Upstash QStash
-- **Media**: Cloudinary
+- **Media**: self-hosted Supabase Storage
 - **Email**: Resend
 - **Push Notifications**: Web Push API
-- **Analytics**: Vercel Analytics & Speed Insights
+- **Monitoring**: Sentry
 - **Validation**: Zod
 
 ### Performance Architecture
@@ -37,13 +37,13 @@ Key performance optimizations implemented:
 
 ### Database Connection Strategy
 
-- **Production**: Single connection per serverless instance to protect Supabase pool
+- **Production**: One bounded application pool per container, with Coolify-managed services and Supabase connection limits monitored directly
 - **Connection pooling**: `pg` pool with 20s idle timeout, 10s connection timeout
 - **SSL**: Configured for production (see `src/lib/db.ts`)
 
 ### Background Processing
 
-- **Cron Jobs**: Vercel Serverless Cron with `CRON_SECRET` protection
+- **Cron Jobs**: Coolify scheduled tasks and QStash jobs with `CRON_SECRET` protection
   - `update-trending`: Recalculate trending scores
   - `trim-maintenance`: Clean up old conversations
   - `cleanup-deadlines`: Remove expired deadlines
@@ -55,7 +55,7 @@ Key performance optimizations implemented:
 
 ### Security Features
 
-- **Authentication**: Supabase Auth + Google OAuth
+- **Authentication**: self-hosted Supabase Auth + Google OAuth
 - **Authorization**: Server-side checks for ownership, admin, frozen/deleted accounts
 - **Rate Limiting**: Upstash Redis sliding window (with graceful degradation)
 - **Input Validation**: Zod schemas on all server actions and API routes
@@ -66,8 +66,8 @@ Key performance optimizations implemented:
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL database (Supabase recommended)
+- Node.js 22+
+- PostgreSQL database and self-hosted Supabase configuration
 - Environment variables (see `.env.example`)
 
 ### Setup
@@ -127,13 +127,14 @@ See `.env.example` for all required variables.
 
 ## Deployment
 
-### Vercel (Recommended)
+### Coolify on Oracle A1 Flex
 
-1. Connect repository to Vercel
-2. Add all environment variables in Vercel dashboard
-3. Deploy
+CI builds the ARM64 Docker image, pushes it to GHCR, and triggers the matching
+Coolify application for staging or production. The Docker migration stage runs
+`prisma migrate deploy`. Review the Coolify and Prisma runbooks before changing
+the database or deployment environment.
 
-### Manual
+### Local/manual
 
 ```bash
 npm run build
@@ -171,7 +172,7 @@ src/
 │   ├── db.ts            # Prisma client setup
 │   ├── transactions.ts  # Vote/comment transaction logic
 │   └── ...
-├── actions/             # Server Actions
+├── app/actions/         # Server Actions
 └── types/              # TypeScript types
 ```
 
