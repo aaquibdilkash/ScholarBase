@@ -10,6 +10,7 @@ import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox, getConversationPreview } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { MessagesActionsDropdown } from "@/components/messages/MessagesActionsDropdown";
+import { PendingGroupInvitesCard } from "@/components/messages/PendingGroupInvitesCard";
 import { MessagesLayoutContext } from "./messages-context";
 import { Check, CheckCheck, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 import useMediaQuery from "@/hooks/useMediaQuery";
@@ -435,6 +436,8 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
           </form>
         </div>
       )}
+
+      {showExpanded && <PendingGroupInvitesCard />}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {user ? (

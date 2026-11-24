@@ -58,6 +58,9 @@ interface ReportModalProps {
   entityId: string;
   entityType: ReportEntityType;
   module: ReportModule;
+  /** Fired after the report is persisted. Lets a caller chain a follow-up
+   *  (e.g. leaving a reported group) without duplicating the submit logic. */
+  onReported?: () => void;
 }
 
 export function ReportModal({
@@ -66,6 +69,7 @@ export function ReportModal({
   entityId,
   entityType,
   module,
+  onReported,
 }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<ReportReason>("SPAM");
   const [details, setDetails] = useState("");
@@ -97,6 +101,7 @@ export function ReportModal({
             title: "Report Submitted",
             description: "Thank you for helping keep ScholarBase safe.",
           });
+          onReported?.();
           handleClose();
         } else {
           toast({

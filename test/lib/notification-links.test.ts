@@ -118,6 +118,45 @@ describe("target links", () => {
     ).toBe("/messages/conversation-1");
   });
 
+  it("routes a group invite to the inbox and a conversation notice to the thread", () => {
+    // The invitee is not a participant yet, so the thread URL would 404; the
+    // inbox is where the pending invite card lives.
+    expect(
+      getNotificationLink(
+        notification({
+          type: "group-invite",
+          targetType: "conversation",
+          targetId: "c-group",
+        }),
+      ),
+    ).toBe("/messages");
+    // Every other conversation notice (freeze, unfreeze) opens the thread.
+    expect(
+      getNotificationLink(
+        notification({
+          type: "CONTENT_FROZEN",
+          targetType: "conversation",
+          targetId: "c-group",
+        }),
+      ),
+    ).toBe("/messages/c-group");
+    // Legacy rows used the `group` spelling.
+    expect(
+      getNotificationLink(
+        notification({
+          type: "CONTENT_FROZEN",
+          targetType: "group",
+          targetId: "c-group",
+        }),
+      ),
+    ).toBe("/messages/c-group");
+  });
+
+  it("names a conversation target a group", () => {
+    expect(getModuleNoun("conversation")).toBe("group");
+    expect(getModuleNoun("group")).toBe("group");
+  });
+
   it("routes a manuscript notice to the author's submission", () => {
     expect(
       getNotificationLink(

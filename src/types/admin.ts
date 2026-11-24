@@ -231,6 +231,11 @@ export type ReportWithReporter = {
     name: string | null;
     email: string | null;
   } | null;
+  /** MESSAGES only: the reported group's current moderation state, so the
+   *  reports panel can render freeze/unfreeze without a per-row query. */
+  entityTitle?: string | null;
+  entityIsFrozen?: boolean;
+  entityHasActiveAppeal?: boolean;
 };
 
 /** One page of reports for the admin inspection drawer (cursor pagination). */

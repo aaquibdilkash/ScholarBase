@@ -28,6 +28,7 @@ import { AdminStatsCards } from "@/components/admin/AdminStatsCards";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { AdminReportsPanel } from "@/components/admin/AdminReportsPanel";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { InstitutionDomainAdminPanel } from "@/components/admin/InstitutionDomainAdminPanel";
 import { OutreachPanel } from "@/components/admin/OutreachPanel";
@@ -103,6 +104,7 @@ export function AdminDashboard({
   const isShieldTab = activeTab === "shield";
   const isSupervisorsTab = activeTab === "supervisors";
   const isJournalsTab = activeTab === "journals";
+  const isReportsTab = activeTab === "reports";
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionState(activeTab, patch);
@@ -434,6 +436,10 @@ export function AdminDashboard({
           ) : isShieldTab ? (
             <div ref={tableRef} className="scroll-mt-20">
               <ShieldUsagePanel />
+            </div>
+          ) : isReportsTab ? (
+            <div ref={tableRef} className="scroll-mt-20">
+              <AdminReportsPanel module="MESSAGES" initialTitle="Group Conversation Reports" />
             </div>
           ) : (
             <div

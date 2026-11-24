@@ -79,4 +79,75 @@ describe("submitReport duplicate-report wording", () => {
     expect(result.success).toBe(false);
     expect(result.message).toBe("You have already reported this comment.");
   });
+
+  it("says 'conversation' when a group is re-reported", async () => {
+    // Conversations have no `isDeleted` column; selecting it would make Prisma
+    // reject the report instead of returning the duplicate wording.
+    fakeDb.seed("conversation", {
+      id: ENTITY_ID,
+      type: "GROUP",
+      isFrozen: false,
+      reportCount: 0,
+    });
+    vi.spyOn(fakeDb.client.report, "create").mockRejectedValue(p2002());
+
+    const result = await submitReport(
+      ENTITY_ID,
+      "POST" as ReportEntityType,
+      "MESSAGES" as ReportModule,
+      "SPAM",
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe("You have already reported this conversation.");
+  });
+});
+
+describe("submitReport for a group conversation", () => {
+  it("persists the report and bumps the conversation report count", async () => {
+    fakeDb.seed("conversation", {
+      id: ENTITY_ID,
+      type: "GROUP",
+      isFrozen: false,
+      reportCount: 0,
+    });
+
+    const result = await submitReport(
+      ENTITY_ID,
+      "POST" as ReportEntityType,
+      "MESSAGES" as ReportModule,
+      "HARASSMENT",
+      "Repeated slurs in the group",
+    );
+
+    expect(result.success).toBe(true);
+    expect(fakeDb.rows("report")[0]).toMatchObject({
+      entityId: ENTITY_ID,
+      module: "MESSAGES",
+      category: "HARASSMENT",
+    });
+    expect(fakeDb.rows("conversation")[0].reportCount).toBe(1);
+  });
+
+  it("refuses a second report while the group is frozen", async () => {
+    fakeDb.seed("conversation", {
+      id: ENTITY_ID,
+      type: "GROUP",
+      isFrozen: true,
+      reportCount: 1,
+    });
+
+    const result = await submitReport(
+      ENTITY_ID,
+      "POST" as ReportEntityType,
+      "MESSAGES" as ReportModule,
+      "SPAM",
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error: "Reporting is disabled for frozen or deleted content.",
+      message: "Reporting is disabled for frozen or deleted content.",
+    });
+  });
 });

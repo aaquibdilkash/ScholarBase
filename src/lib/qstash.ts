@@ -149,6 +149,8 @@ export const groupMessagePushPayloadSchema = z.object({
   senderName: z.string().min(1).max(120),
   body: z.string().min(1).max(2000),
   recipientIds: z.array(z.string().min(1)).min(1).max(7),
+  // Optional so payloads already queued before this field existed still parse.
+  conversationTitle: z.string().max(64).nullable().optional(),
 });
 
 export type GroupMessagePushPayload = z.infer<typeof groupMessagePushPayloadSchema>;

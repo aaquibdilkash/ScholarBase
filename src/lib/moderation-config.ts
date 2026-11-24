@@ -63,6 +63,18 @@ export const COMMENT_MODEL_MAP: Record<string, { model: string }> = {
 };
 
 /**
+ * Content types moderated through a dedicated FREEZE-ONLY branch.
+ *
+ * A group conversation has no `authorId`, no `isDeleted` column and no cached
+ * public list, so it cannot use the generic DELETE/RECOVER/counter machinery.
+ * It is still a moderation target: reports on a group freeze it read-only and
+ * notify its creator. Living in its own registry keeps the generic maps honest
+ * (`test/security/admin-moderation-maps` checks the separation) while still
+ * letting `SECTION_CONTENT_TYPES` point the admin UI at a real handler.
+ */
+export const FREEZE_ONLY_CONTENT_TYPES = new Set(["MESSAGES"]);
+
+/**
  * Columns the comment DELETE / RECOVER branches read. Comment tables only carry
  * vote counters (`totalVotes`) — unlike top-level content they have no bookmark
  * counter — so selecting `totalBookmarks` here makes Prisma reject the whole
@@ -199,6 +211,8 @@ export const CONTENT_TARGET_TYPE: Record<string, string> = {
   survey: "survey",
   journalReview: "journalReview",
   SCHOLAR_PROFILE: "profile",
+  // Freeze-only group conversations (`FREEZE_ONLY_CONTENT_TYPES`).
+  MESSAGES: "conversation",
   // Nested comments -> resource they belong to
   socialComment: "post",
   articleComment: "article",

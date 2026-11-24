@@ -65,6 +65,9 @@ type RealtimeMessageRow = {
   senderId: string;
   senderName: string | null;
   createdAt: string;
+  /** Present once the trigger is updated; absent on an older deployment. */
+  conversationType?: "DIRECT" | "GROUP" | null;
+  conversationTitle?: string | null;
 };
 
 export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
@@ -199,7 +202,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
     };
 
     const handleMessageReceived = (event: CustomEvent) => {
-      const { conversationId, message } = event.detail ?? {};
+      const { conversationId, message, conversationType, conversationTitle } = event.detail ?? {};
       if (!conversationId || !message?.id || !markSeen(message.id)) return;
       if (message.senderId === user.id) return;
 
@@ -214,10 +217,21 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       // even while a conversation page is open.
       if (isActiveConversation) return;
 
+      const senderName = message.sender?.name || "New message";
+      // Without the group name a group message was indistinguishable from a
+      // direct one — the reader had no idea which thread had spoken.
+      const title =
+        conversationType === "GROUP" && conversationTitle
+          ? `${senderName} · ${conversationTitle}`
+          : senderName;
+
       toast({
-        title: message.sender?.name || "New message",
+        title,
         description: message.body || undefined,
         href: `/messages/${encodeURIComponent(String(conversationId))}`,
+        // Message toasts carry a name, a body and (for a group) the group it
+        // came from; 2.2s was gone before it could be read.
+        duration: 6000,
       });
       setOptimisticUnreadMessages((count) => count + 1);
     };
@@ -230,6 +244,8 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
         new CustomEvent("message-received", {
           detail: {
             conversationId: raw.conversationId,
+            conversationType: raw.conversationType ?? null,
+            conversationTitle: raw.conversationTitle ?? null,
             message: {
               id: raw.id,
               body: raw.body,

@@ -45,6 +45,7 @@ export async function getMyContentFreezeContext(
     RESEARCH_GRANT: "researchGrant",
     COURSE: "course",
     RESULT: "examsAndResults",
+    MESSAGES: "conversation",
     CONTRIBUTION: "contribution",
     HELP_POST: "helpPost",
     CALL_FOR_PAPER: "callForPaper",
@@ -79,6 +80,7 @@ export async function getMyContentFreezeContext(
           select: Record<string, boolean>;
         }) => Promise<{
           authorId?: string | null;
+          createdById?: string;
           isFrozen: boolean;
           hasActiveAppeal: boolean;
           reportCount: number;
@@ -86,19 +88,26 @@ export async function getMyContentFreezeContext(
       }
     | undefined;
   if (!delegate) throw new Error("Content not found.");
-  // `user` rows carry no `authorId` — the row IS the owner.
+  // `user` rows carry no `authorId` — the row IS the owner. Group
+  // conversations name their owner `createdById`.
   const isProfile = modelKey === "user";
+  const isConversation = modelKey === "conversation";
   const entity = await delegate.findUnique({
     where: { id: entityId },
     select: {
-      ...(isProfile ? {} : { authorId: true }),
+      ...(isProfile || isConversation ? {} : { authorId: true }),
+      ...(isConversation ? { createdById: true } : {}),
       isFrozen: true,
       hasActiveAppeal: true,
       reportCount: true,
     },
   });
   if (!entity) throw new Error("Content not found.");
-  const ownerId = isProfile ? entityId : (entity.authorId ?? null);
+  const ownerId = isProfile
+    ? entityId
+    : isConversation
+      ? (entity.createdById ?? null)
+      : (entity.authorId ?? null);
 
   const isOwner = ownerId != null && ownerId === userId;
   if (!isOwner && !admin) {

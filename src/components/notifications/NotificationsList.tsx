@@ -51,6 +51,8 @@ function typeLabel(type: string) {
       return "Survey response";
     case "message-received":
       return "New message";
+    case "group-invite":
+      return "Group invite";
     case "contribution-approved":
       return "Contribution approved";
     case "contribution-rejected":

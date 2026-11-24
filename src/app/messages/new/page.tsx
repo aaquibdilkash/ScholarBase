@@ -74,7 +74,7 @@ function NewConversationPageContent() {
   return (
     <CreateOrEditPageShell
       title={isGroup ? "New Group" : "New Message"}
-      description={isGroup ? "Create a private discussion group with up to eight scholars." : "Start a new conversation with another scholar."}
+      description={isGroup ? "Create a private group and invite up to seven scholars. They join once they accept." : "Start a new conversation with another scholar."}
       backHref="/messages"
       backLabel="Back to Messages"
       maxWidth="md"

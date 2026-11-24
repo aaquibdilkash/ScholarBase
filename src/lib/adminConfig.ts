@@ -15,6 +15,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "institutionDomains", title: "Institution Domains", href: "#" },
   { id: "invites", title: "Email Outreach", href: "#" },
   { id: "appeals", title: "Appeals", href: "#" },
+  { id: "reports", title: "Reports", href: "/admin/reports" },
   { id: "feed", title: "Feed", href: "/feed" },
   { id: "blog", title: "Blog", href: "/blog" },
   { id: "publications", title: "Publications", href: "/publications" },
@@ -40,6 +41,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
 export const SECTION_CONTENT_TYPES: Record<string, string> = {
   feed: "feed",
   blog: "blog",
+  reports: "MESSAGES",
   publications: "publication",
   journals: "journal",
   journalReviews: "journalReview",

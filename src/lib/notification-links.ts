@@ -89,6 +89,10 @@ const TARGETS = {
     label: "Editorial",
     noun: "submission",
   },
+  // A private group conversation. The invite itself lands on the inbox (the
+  // invitee is not a member yet, so the thread URL would 404); every other
+  // conversation notice opens the thread.
+  conversation: { link: (t: string) => `/messages/${t}`, label: "Messages", noun: "group" },
 } satisfies Record<string, TargetDef>;
 
 type CanonicalTarget = keyof typeof TARGETS;
@@ -129,6 +133,8 @@ const targetTypeAliases: Record<string, CanonicalTarget> = {
   manuscript: "manuscript",
   editorial: "editorial",
   editorialmanuscript: "editorialManuscript",
+  conversation: "conversation",
+  group: "conversation",
 };
 
 function normalizeTargetType(targetType: string) {
@@ -169,6 +175,10 @@ export function getNotificationLink(notification: Notification) {
       return discussionPath();
     case "message-received":
       return `/messages/${notification.targetId}`;
+    case "group-invite":
+      // The invitee is not a participant yet, so the thread itself is not
+      // readable. The inbox surfaces the pending invite card.
+      return `/messages`;
     default:
       return pathFor(notification.targetId);
   }

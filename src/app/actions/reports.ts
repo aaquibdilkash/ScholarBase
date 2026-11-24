@@ -119,6 +119,12 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "course",
     reportCountField: "reportCount",
   },
+  // --- Group conversation reported through the MESSAGES module.
+  MESSAGES: {
+    delegate: prisma.conversation as unknown as ModuleConfig["delegate"],
+    model: "conversation",
+    reportCountField: "reportCount",
+  },
   RESULT: {
     delegate: prisma.examsAndResults as unknown as ModuleConfig["delegate"],
     model: "examsAndResults",
@@ -249,6 +255,7 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
  */
 function reportSubject(entityType: ReportEntityType, module: ReportModule): string {
   if (module === "SCHOLAR_PROFILE") return "user";
+  if (module === "MESSAGES") return "conversation";
   if (entityType === "COMMENT") return "comment";
   return "content";
 }
@@ -280,9 +287,16 @@ export async function submitReport(
     }
 
   // Verify the target entity actually exists before creating a report.
+  // Group conversations have no `isDeleted` column (they are removable, not
+  // soft-deleted), so only select it for the content models that own it.
+  const isConversation = mod === "MESSAGES";
     const entity = (await config.delegate.findUnique({
       where: { id: entityId },
-      select: { id: true, isFrozen: true, isDeleted: true },
+      select: {
+        id: true,
+        isFrozen: true,
+        ...(isConversation ? {} : { isDeleted: true }),
+      },
     })) as { id: string; isFrozen?: boolean; isDeleted?: boolean } | null;
 
     if (!entity) {
@@ -377,6 +391,7 @@ import {
   AUTHOR_COUNT_FIELD,
   CONTENT_TARGET_TYPE,
   MODERATION_LIST_KEY,
+  FREEZE_ONLY_CONTENT_TYPES,
 } from "@/lib/moderation-config";
 
 // -----------------------------------------------------------------------------
@@ -630,10 +645,130 @@ async function notifyModerationTarget(
   });
 }
 
+/**
+ * Freeze-only moderation for group conversations.
+ *
+ * Groups deliberately live outside the generic moderation matrix: there is no
+ * `authorId` (the creator is `createdById`), no `isDeleted` column and no
+ * cached list to purge. Deletion is never offered — a reported group is made
+ * read-only until a moderator unfreezes it.
+ */
+async function moderateConversation(
+  action: ModerationAction,
+  contentId: string,
+  actorId: string,
+) {
+  if (action === "DELETE" || action === "RECOVER") {
+    return {
+      success: false as const,
+      message:
+        "Group conversations cannot be deleted or recovered. Freeze the group instead.",
+    };
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const conversation = await tx.conversation.findUnique({
+      where: { id: contentId },
+      select: {
+        id: true,
+        isFrozen: true,
+        hasActiveAppeal: true,
+        reportCount: true,
+        createdById: true,
+      },
+    });
+    if (!conversation) throw new Error("Content not found");
+
+    // The creator owns the group for notification purposes; participants are
+    // not notified individually so a busy group cannot fan out one freeze into
+    // dozens of jobs.
+    const target = {
+      recipientId: conversation.createdById,
+      targetType: "conversation",
+      targetId: contentId,
+      isComment: false,
+      isProfile: false,
+    };
+
+    switch (action) {
+      case "FREEZE": {
+        const updated = await tx.conversation.update({
+          where: { id: contentId },
+          data: { isFrozen: true },
+          select: { id: true, isFrozen: true },
+        });
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          target,
+          actorId,
+          buildModerationNotice(action, false, false),
+        );
+        return { action, success: true as const, data: updated };
+      }
+
+      case "UNFREEZE": {
+        const updated = await tx.conversation.update({
+          where: { id: contentId },
+          data: { isFrozen: false },
+          select: { id: true, isFrozen: true },
+        });
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          target,
+          actorId,
+          buildModerationNotice(action, false, false),
+        );
+        await tx.appeal.updateMany({
+          where: { entityId: contentId, status: "PENDING" },
+          data: {
+            status: "ACTIONED",
+            reviewedById: actorId,
+            reviewedAt: new Date(),
+          },
+        });
+        return { action, success: true as const, data: updated };
+      }
+
+      case "DISMISS_REPORTS": {
+        await tx.conversation.update({
+          where: { id: contentId },
+          data: { reportCount: 0 },
+        });
+        await tx.report.updateMany({
+          where: { entityId: contentId, status: "PENDING" },
+          data: { status: "DISMISSED" },
+        });
+        return { action, success: true as const, data: { id: contentId } };
+      }
+
+      case "DISMISS_APPEAL": {
+        const updated = await tx.conversation.update({
+          where: { id: contentId },
+          data: { hasActiveAppeal: false },
+          select: { id: true, hasActiveAppeal: true },
+        });
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          target,
+          actorId,
+          {
+            type: "APPEAL_REJECTED",
+            title: "Your appeal was reviewed",
+            body: "Moderators reviewed your appeal and decided to keep the group frozen.",
+          },
+        );
+        return { action, success: true as const, data: updated };
+      }
+
+      default:
+        throw new Error(`Unknown moderation action: ${action}`);
+    }
+  });
+}
+
 // -----------------------------------------------------------------------------
 // moderateContent — admin-facing server action dispatching to freeze, delete,
 // or dismiss reports inside a single atomic transaction (RULE 3).
-// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 export async function moderateContent(
   action: ModerationAction,
@@ -659,6 +794,11 @@ export async function moderateContent(
   let recoveredProfile = false;
 
   try {
+    // Freeze-only entities have their own lifecycle and no cached list tag.
+    if (FREEZE_ONLY_CONTENT_TYPES.has(contentType)) {
+      return await moderateConversation(action, contentId, user.id);
+    }
+
     const isCommentType = Object.prototype.hasOwnProperty.call(
       commentModelMap,
       contentType,

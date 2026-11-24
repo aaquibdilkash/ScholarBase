@@ -1167,3 +1167,67 @@ export async function getReportsForEntity(
     nextCursor: hasMore && last ? last.id : null,
   };
 }
+
+
+/**
+ * Fetch PENDING reports filtered by module (e.g. "MESSAGES") so admins can
+ * inspect report metadata across many entities at once. Cursor-paginated
+ * (RULE 2 — Zero-Compute): only `limit` rows (default 10) are read per call,
+ * keyed off `createdAt DESC`. Pass the previous page's `nextCursor` to fetch
+ * the following page; `nextCursor: null` means done.
+ */
+export async function getReportsByModule(
+  module: string,
+  cursor?: string | null,
+  limit: number = 10,
+): Promise<ReportsPage> {
+  const user = await requireCurrentUser("Log in to access admin.");
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const reports = (await prisma.report.findMany({
+    where: { module, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    // Fetch one extra row so we can detect whether a next page exists
+    // without issuing a separate count query.
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    include: {
+      reporter: { select: { id: true, name: true, email: true } },
+    },
+  })) as unknown as ReportWithReporter[];
+
+  const hasMore = reports.length > limit;
+  const pageReports = hasMore ? reports.slice(0, limit) : reports;
+  const last = pageReports[pageReports.length - 1];
+
+  // Group conversations are moderated on the conversation row, not on the
+  // report row, so attach the group's current state once per page instead of
+  // letting the panel issue a query per card.
+  if (module === "MESSAGES" && pageReports.length > 0) {
+    const entityIds = [...new Set(pageReports.map((report) => report.entityId))];
+    const conversations = await prisma.conversation.findMany({
+      where: { id: { in: entityIds } },
+      select: {
+        id: true,
+        title: true,
+        isFrozen: true,
+        hasActiveAppeal: true,
+      },
+    });
+    const byId = new Map(conversations.map((row) => [row.id, row]));
+    for (const report of pageReports) {
+      const conversation = byId.get(report.entityId);
+      if (!conversation) continue;
+      report.entityTitle = conversation.title;
+      report.entityIsFrozen = conversation.isFrozen;
+      report.entityHasActiveAppeal = conversation.hasActiveAppeal;
+    }
+  }
+
+  return {
+    reports: pageReports,
+    nextCursor: hasMore && last ? last.id : null,
+  };
+}

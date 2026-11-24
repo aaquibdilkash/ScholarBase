@@ -15,7 +15,9 @@ import {
   blockUser,
   unblockUser,
   markConversationAsRead,
+  removeGroupParticipant,
 } from "@/app/actions/messages";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
@@ -29,11 +31,15 @@ import {
   Flag,
   ChevronsLeft,
   ChevronsRight,
+  LogOut,
+  Users,
 } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { ReportModal } from "@/components/cards/ReportModal";
+import { GroupInfoPanel } from "@/components/messages/GroupInfoPanel";
+import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import type { User, RealtimeChannel } from "@supabase/supabase-js";
 import type { SentMessage } from "@/components/messages/MessageInputForm";
 import type { MessageFailureCode } from "@/app/actions/messages";
@@ -51,6 +57,7 @@ type ReadReceiptPayload = {
 
 type Participant = {
   lastReadAt: string | Date | null;
+  role: "OWNER" | "MEMBER";
   user: {
     id: string;
     name: string | null;
@@ -70,6 +77,10 @@ type Conversation = {
   messages: SentMessage[];
   blockedByMe?: boolean;
   blockedMe?: boolean;
+  /** Group moderation state — a frozen group is read-only. */
+  isFrozen?: boolean;
+  hasActiveAppeal?: boolean;
+  createdById?: string;
 };
 
 export default function ConversationPage({
@@ -92,6 +103,11 @@ export default function ConversationPage({
     blockedMe: false,
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
+  const [groupReportOpen, setGroupReportOpen] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   // ⚡ QUOTE REPLY: The message currently being replied to (WhatsApp-style).
@@ -629,6 +645,7 @@ export default function ConversationPage({
     const closeOnOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest("[data-block-menu]")) setMenuOpen(false);
+      if (!target.closest("[data-group-menu]")) setGroupMenuOpen(false);
     };
     document.addEventListener("mousedown", closeOnOutside);
     return () => document.removeEventListener("mousedown", closeOnOutside);
@@ -702,13 +719,89 @@ export default function ConversationPage({
     }
   };
 
+  const handleLeaveGroup = async () => {
+    if (!userId || isLeaving) return;
+    setIsLeaving(true);
+    try {
+      const result = await removeGroupParticipant(conversationId, userId);
+      if (!result.success) {
+        toast(actionErrorMessage(result, "Failed to leave group."), "error");
+        return;
+      }
+      toast("You left the group.", "default");
+      router.replace("/messages");
+    } finally {
+      setIsLeaving(false);
+      setLeaveConfirmOpen(false);
+    }
+  };
+
+  // Re-read the thread after the group-info panel changes membership. If the
+  // viewer is gone (left, or was removed while the panel was open), the action
+  // returns null and the route has to leave the thread.
+  const refreshAfterMembershipChange = () => {
+    void getConversation(conversationId)
+      .then((fresh) => {
+        if (!fresh) {
+          toast("You are no longer a participant of this group.", "error");
+          router.replace("/messages");
+          return;
+        }
+        setConversation(fresh as unknown as Conversation);
+      })
+      .catch((error) => {
+        console.error("Failed to refresh conversation after membership change:", error);
+      });
+  };
+
   // ⚡ ISSUE 5: A block in either direction disables the composer.
   const isPeerFrozen = !isGroup && Boolean(otherParticipant?.isFrozen);
   const isChatDisabled =
     isCurrentUserFrozen ||
     isPeerFrozen ||
+    Boolean(isGroup && conversation?.isFrozen) ||
     blockState.blockedByMe ||
     blockState.blockedMe;
+
+  const headerIdentity = (
+    <>
+      <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
+        {isGroup ? (
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">G</div>
+        ) : otherParticipant?.avatarUrl ? (
+          <UserAvatar
+            src={otherParticipant.avatarUrl}
+            name={otherParticipant?.name}
+            imageClassName="rounded-full"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+            {otherParticipant?.name?.charAt(0).toUpperCase() || "@"}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0">
+        <h1 className="truncate font-semibold text-slate-900 dark:text-slate-100">
+          {isGroup ? conversation?.title || "Group discussion" : otherParticipant?.name || "Scholar"}
+        </h1>
+        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+          {isTyping ? (
+            <span className="text-blue-500 font-medium italic">
+              {isGroup ? `${typingNames.slice(0, 2).join(", ") || "Someone"}${typingNames.length > 2 ? " and others" : ""} typing…` : "typing..."}
+            </span>
+          ) : isGroup ? (
+            <span>{onlineGroupCount > 0 ? `${onlineGroupCount} online` : `${conversation?.participants.length ?? 0} participants`}</span>
+          ) : isOtherOnline ? (
+            <span className="text-green-500 font-medium">Online</span>
+          ) : !isGroup && otherParticipant?.handle ? (
+            `@${otherParticipant.handle}`
+          ) : (
+            "scholar"
+          )}
+        </p>
+      </div>
+    </>
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -722,91 +815,128 @@ export default function ConversationPage({
           {isSidebarOpen ? <ChevronsLeft className="h-6 w-6" /> : <ChevronsRight className="h-6 w-6" />}
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            prefetch={false}
-            href={!isGroup && otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
-            className="flex shrink-0 items-center gap-3"
-          >
-            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
-              {isGroup ? (
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">G</div>
-              ) : otherParticipant?.avatarUrl ? (
-                <UserAvatar
-                  src={otherParticipant.avatarUrl}
-                  name={otherParticipant?.name}
-                  imageClassName="rounded-full"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                  {otherParticipant?.name?.charAt(0).toUpperCase() || "@"}
+          {isGroup ? (
+            // WhatsApp-style: tapping the group header opens the info panel.
+            <button
+              type="button"
+              onClick={() => setIsGroupInfoOpen(true)}
+              className="flex min-w-0 items-center gap-3 rounded-xl text-left transition hover:opacity-80"
+              aria-label="Open group info"
+            >
+              {headerIdentity}
+            </button>
+          ) : (
+            <Link
+              prefetch={false}
+              href={otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
+              className="flex shrink-0 items-center gap-3"
+            >
+              {headerIdentity}
+            </Link>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {isGroup ? (
+            <div className="relative" data-group-menu>
+              <button
+                onClick={() => setGroupMenuOpen((o) => !o)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                aria-label="Group actions"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+              {groupMenuOpen && (
+                <div className="absolute right-0 top-12 z-menu w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
+                  <button
+                    onClick={() => {
+                      setGroupMenuOpen(false);
+                      setIsGroupInfoOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Users className="h-4 w-4" />
+                    Group info
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGroupMenuOpen(false);
+                      setGroupReportOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Report group
+                  </button>
+                  <button
+                    onClick={() => {
+                      setGroupMenuOpen(false);
+                      setLeaveConfirmOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Leave group
+                  </button>
                 </div>
               )}
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate font-semibold text-slate-900 dark:text-slate-100">
-                {isGroup ? conversation?.title || "Group discussion" : otherParticipant?.name || "Scholar"}
-              </h1>
-              <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                {isTyping ? (
-                  <span className="text-blue-500 font-medium italic">
-                    {isGroup ? `${typingNames.slice(0, 2).join(", ") || "Someone"}${typingNames.length > 2 ? " and others" : ""} typing…` : "typing..."}
-                  </span>
-                ) : isGroup ? (
-                  <span>{onlineGroupCount > 0 ? `${onlineGroupCount} online` : `${conversation?.participants.length ?? 0} participants`}</span>
-                ) : isOtherOnline ? (
-                  <span className="text-green-500 font-medium">Online</span>
-                ) : !isGroup && otherParticipant?.handle ? (
-                  `@${otherParticipant.handle}`
-                ) : (
-                  "scholar"
-                )}
-              </p>
-            </div>
-          </Link>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {!isGroup && <div className="relative" data-block-menu>
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-          >
-            <MoreVertical className="h-5 w-5" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-12 z-menu w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
+          ) : (
+            <div className="relative" data-block-menu>
               <button
-                onClick={handleToggleBlock}
-                disabled={isBlocking}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
               >
-                {isBlocking ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : blockState.blockedByMe ? (
-                  <UserCheck className="h-4 w-4" />
-                ) : (
-                  <Ban className="h-4 w-4" />
-                )}
-                {isBlocking
-                  ? "Processing..."
-                  : blockState.blockedByMe
-                    ? "Unblock scholar"
-                    : "Block scholar"}
+                <MoreVertical className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setIsReportOpen(true);
-                }}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                <Flag className="h-4 w-4" />
-                Report User
-              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-12 z-menu w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
+                  <button
+                    onClick={handleToggleBlock}
+                    disabled={isBlocking}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    {isBlocking ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : blockState.blockedByMe ? (
+                      <UserCheck className="h-4 w-4" />
+                    ) : (
+                      <Ban className="h-4 w-4" />
+                    )}
+                    {isBlocking
+                      ? "Processing..."
+                      : blockState.blockedByMe
+                        ? "Unblock scholar"
+                        : "Block scholar"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setIsReportOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Flag className="h-4 w-4" />
+                    Report User
+                  </button>
+                </div>
+              )}
             </div>
           )}
-          </div>}
         </div>
       </div>
+
+      {isGroup && conversation.isFrozen && (
+        <div className="shrink-0 px-3 pt-3 sm:px-4">
+          <FrozenContentBanner
+            entityId={conversation.id}
+            module="MESSAGES"
+            entityType="POST"
+            ownerId={conversation.createdById}
+            currentUserId={user.id}
+            hasActiveAppeal={conversation.hasActiveAppeal}
+          />
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-6">
         <div className="px-2 sm:px-4">
@@ -891,6 +1021,44 @@ export default function ConversationPage({
           module="SCHOLAR_PROFILE"
         />
       )}
+
+      {isGroup && (
+        <GroupInfoPanel
+          conversationId={conversation.id}
+          open={isGroupInfoOpen}
+          onClose={() => setIsGroupInfoOpen(false)}
+          onLeft={() => router.replace("/messages")}
+          onMembershipChanged={refreshAfterMembershipChange}
+        />
+      )}
+
+      {isGroup && (
+        <ReportModal
+          isOpen={groupReportOpen}
+          onClose={() => setGroupReportOpen(false)}
+          entityId={conversation.id}
+          entityType="POST"
+          module="MESSAGES"
+          onReported={async () => {
+            setGroupReportOpen(false);
+            if (userId) {
+              await removeGroupParticipant(conversation.id, userId);
+              router.replace("/messages");
+            }
+          }}
+        />
+      )}
+
+      <ConfirmationModal
+        isOpen={leaveConfirmOpen}
+        onClose={() => setLeaveConfirmOpen(false)}
+        onConfirm={handleLeaveGroup}
+        title="Leave group"
+        message="You will stop receiving messages from this group. This cannot be undone without a new invitation."
+        confirmLabel="Leave"
+        confirmingLabel="Leaving..."
+        isConfirming={isLeaving}
+      />
     </div>
   );
 }

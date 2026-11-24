@@ -72,6 +72,7 @@ const CALLS: { name: string; invoke: () => Promise<unknown> }[] = [
   { name: "updateContributionStatus", invoke: () => admin.updateContributionStatus("k1", "APPROVED") },
   { name: "getAdminContent", invoke: () => admin.getAdminContent() },
   { name: "getReportsForEntity", invoke: () => admin.getReportsForEntity("article", "c1") },
+  { name: "getReportsByModule", invoke: () => admin.getReportsByModule("MESSAGES") },
 ];
 
 beforeEach(() => {

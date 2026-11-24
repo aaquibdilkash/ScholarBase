@@ -49,6 +49,7 @@ export type ReportModule =
   | "CONTRIBUTION"
   | "HELP_POST"
   | "CALL_FOR_PAPER"
+  | "MESSAGES"
   | "ADMISSION"
   | "ACADEMIC_POSITION"
   | "RESEARCH_SURVEY";

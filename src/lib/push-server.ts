@@ -17,6 +17,8 @@ export type MessagePushInput = {
   conversationId: string;
   senderName: string;
   body: string;
+  /** Set for group messages so the OS notification names the thread. */
+  conversationTitle?: string | null;
 };
 
 export type MessagePushResult = {
@@ -82,7 +84,9 @@ export async function sendMessagePush(
 
   const payload = JSON.stringify({
     messageId: input.messageId,
-    title: input.senderName,
+    title: input.conversationTitle
+      ? `${input.senderName} · ${input.conversationTitle}`
+      : input.senderName,
     body: truncatePushBody(input.body),
     url: `/messages/${input.conversationId}`,
     tag: `${MESSAGE_PUSH_TAG_PREFIX}${input.conversationId}`,

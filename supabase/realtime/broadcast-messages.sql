@@ -110,6 +110,11 @@ begin
         'senderId',       NEW."senderId",
         'senderName',     (select u.name from "User" u where u.id = NEW."senderId"),
         'body',           NEW.body,
+        -- The client's notification toast names the thread. Without these a
+        -- group message was indistinguishable from a direct one. Resolved
+        -- here so the client never needs a per-message lookup.
+        'conversationType', (select c.type::text from "Conversation" c where c.id = NEW."conversationId"),
+        'conversationTitle', (select c.title from "Conversation" c where c.id = NEW."conversationId"),
         'createdAt',      to_char(NEW."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
       ),
       TG_OP, 'user:' || recipient."userId", true

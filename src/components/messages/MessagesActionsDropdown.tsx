@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { ChevronDown, MessageCircle, Users } from "lucide-react";
+import { Plus, MessageCircle, Users } from "lucide-react";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
 
 export function MessagesActionsDropdown({ onNavigate }: { onNavigate?: () => void }) {
@@ -107,13 +107,13 @@ export function MessagesActionsDropdown({ onNavigate }: { onNavigate?: () => voi
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Message actions"
+        aria-label="New conversation"
         onPointerDown={handlePointerDown}
         onClick={handleClick}
         onTouchStart={(event) => event.stopPropagation()}
         className="sb-menu-trigger relative z-10 h-8 w-8 shrink-0 sm:h-9 sm:w-9"
       >
-        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
+        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
       {open && menuPosition && typeof document !== "undefined" && createPortal(
         <div

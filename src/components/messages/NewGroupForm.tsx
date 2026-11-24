@@ -7,9 +7,12 @@ import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
-import { MAX_GROUP_PARTICIPANTS } from "@/constants/messages";
+import { MAX_GROUP_NAME, MAX_GROUP_PARTICIPANTS } from "@/constants/messages";
 import { ScholarSuggestionDropdown } from "@/components/interactions/ScholarSuggestionDropdown";
 import { MIN_SEARCH_LENGTH } from "@/lib/search-guard";
+import { TextField } from "@/components/ui/TextField";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { X } from "lucide-react";
 
 type Member = { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
 const GROUP_DRAFT_KEY = "sb_new_group_draft";
@@ -43,7 +46,7 @@ export function NewGroupForm({ contextType, contextId, initialTitle }: { context
     }
   };
   const { submitting, submit } = useFormSubmit(clearDraft, {
-    successMessage: "Group created successfully!",
+    successMessage: "Group created. Invitations sent!",
     onSuccess: (result) => {
       const conversationId = result.data && typeof result.data === "object" && "id" in result.data
         ? result.data.id
@@ -100,29 +103,61 @@ export function NewGroupForm({ contextType, contextId, initialTitle }: { context
 
   return (
     <form onSubmit={handleSubmit} className="sb-surface-strong flex flex-col gap-5 p-4 sm:p-6 md:p-10">
+      <TextField
+        id="title"
+        name="title"
+        label="Group name"
+        tip={`Shown at the top of the conversation and in every member's inbox. ${MAX_GROUP_NAME} characters maximum.`}
+        maxLength={MAX_GROUP_NAME}
+        className="sb-input"
+        placeholder="e.g. Paper 3 review squad"
+        value={title}
+        onValueChange={setTitle}
+        required
+      />
       <div>
-        <label className="sb-label" htmlFor="title">Group name</label>
-        <input id="title" name="title" className="sb-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required />
-        <div className="mt-1 text-xs text-slate-500">{title.length}/120 characters</div>
-      </div>
-      <div>
-        <label className="sb-label" htmlFor="memberSearch">Participants</label>
+        <label className="sb-label inline-flex items-center gap-1.5" htmlFor="memberSearch">
+          Participants
+          <InfoTooltip message="Invitations are sent right away. A scholar joins the group after accepting, and the group holds up to eight participants including you." />
+        </label>
         <div className="mb-2 flex flex-wrap gap-2">
           {members.map((member) => (
-            <button key={member.id} type="button" onClick={() => setMembers((current) => current.filter((item) => item.id !== member.id))} className="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-              {member.name || member.handle || "Scholar"} ×
-            </button>
+            <span key={member.id} className="inline-flex items-center gap-1 rounded-full bg-blue-100 py-1 pl-3 pr-1.5 text-sm text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+              {member.name || member.handle || "Scholar"}
+              <button
+                type="button"
+                onClick={() => setMembers((current) => current.filter((item) => item.id !== member.id))}
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-blue-200 dark:hover:bg-blue-900"
+                aria-label={`Remove ${member.name || member.handle || "scholar"}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
           ))}
         </div>
-        <input id="memberSearch" value={search} onChange={(event) => setSearch(event.target.value)} className="sb-input" placeholder="Search scholars to add..." />
-        <ScholarSuggestionDropdown
-          suggestions={results}
-          loading={isSearching}
-          loadingMessage="Searching scholars…"
-          onSelect={addMember}
-          emptyMessage={search.trim().length >= MIN_SEARCH_LENGTH ? "No matching scholars." : undefined}
-        />
-        <p className="mt-1 text-xs text-slate-500">You are included automatically. {members.length + 1}/{MAX_GROUP_PARTICIPANTS} participants.</p>
+        {/* `relative` anchors the absolutely-positioned suggestion list to this
+            input. Without it the dropdown sized itself against a distant
+            ancestor and spilled outside the card. */}
+        <div className="relative">
+          <input
+            id="memberSearch"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="sb-input"
+            placeholder="Search scholars to invite…"
+            autoComplete="off"
+          />
+          <ScholarSuggestionDropdown
+            suggestions={results}
+            loading={isSearching}
+            loadingMessage="Searching scholars…"
+            onSelect={addMember}
+            emptyMessage={search.trim().length >= MIN_SEARCH_LENGTH ? "No matching scholars." : undefined}
+          />
+        </div>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          You are included automatically. {members.length + 1}/{MAX_GROUP_PARTICIPANTS} seats reserved, pending invites included.
+        </p>
       </div>
       {contextType && contextId && <><input type="hidden" name="contextType" value={contextType} /><input type="hidden" name="contextId" value={contextId} /></>}
       {members.map((member) => <input key={member.id} type="hidden" name="memberIds" value={member.id} />)}

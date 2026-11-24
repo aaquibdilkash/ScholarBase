@@ -13,9 +13,10 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { queueGroupMessagePush, queueMessagePush } from "@/lib/qstash";
+import { notifyUserById } from "@/lib/notifications";
 import { after } from "next/server";
 import { Prisma } from "@prisma/client";
-import { MAX_GROUP_PARTICIPANTS, MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
+import { MAX_GROUP_NAME, MAX_GROUP_PARTICIPANTS, MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 
 const sidebarUserSelect = {
@@ -177,7 +178,11 @@ export async function searchInbox(userId: string, query: string, limit = 30) {
   const conversations = await prisma.conversation.findMany({
     where: {
       participants: { some: { userId } },
-      AND: [
+      // A group is searched by its own title as well as by its members. Before
+      // this, a group whose members were not the term ("papite log") was
+      // invisible to the very search box that lists it.
+      OR: [
+        { type: "GROUP", title: { contains: q, mode: "insensitive" } },
         {
           participants: {
             some: {
@@ -271,8 +276,13 @@ export async function findDirectConversation(otherUserId: string) {
   return conversation?.id ?? null;
 }
 
-/** Create a bounded private group. The hard cap is intentionally centralized so
- * the database write, UI and future scale-up all share one limit. */
+/** Create a bounded private group.
+ *
+ * Members are INVITED, not added: the invitee decides, and only then does the
+ * participant row exist (see `ConversationInvite`). The owner is the only
+ * participant at creation time; pending invites still reserve seats so a group
+ * cannot be over-invited.
+ */
 export async function createGroupConversation(formData: FormData): Promise<SubmitResult> {
   const auth = await getActiveUser("Please log in to create a group.");
   if (auth.frozen) return { success: false, error: auth.message };
@@ -293,8 +303,8 @@ export async function createGroupConversation(formData: FormData): Promise<Submi
   const contextType = readOptionalFormValue(formData, "contextType") as GroupContextType | null;
   const contextId = readOptionalFormValue(formData, "contextId");
 
-  if (!title || title.length > 120) return { success: false, error: "A group name between 1 and 120 characters is required." };
-  if (memberIds.length === 0) return { success: false, error: "Add at least one other scholar to the group." };
+  if (!title || title.length > MAX_GROUP_NAME) return { success: false, error: `A group name between 1 and ${MAX_GROUP_NAME} characters is required.` };
+  if (memberIds.length === 0) return { success: false, error: "Invite at least one other scholar to the group." };
   if (memberIds.length + 1 > MAX_GROUP_PARTICIPANTS) {
     return { success: false, error: `Groups can have up to ${MAX_GROUP_PARTICIPANTS} participants.` };
   }
@@ -302,20 +312,8 @@ export async function createGroupConversation(formData: FormData): Promise<Submi
     return { success: false, error: "The group context is invalid." };
   }
 
-  const members = await prisma.user.findMany({
-    where: { id: { in: memberIds }, isDeleted: false, isFrozen: false },
-    select: { id: true },
-  });
-  if (members.length !== memberIds.length) return { success: false, error: "One or more selected scholars are unavailable." };
-
-  const blocked = await prisma.block.findFirst({
-    where: { OR: memberIds.flatMap((memberId) => [
-      { blockerId: auth.user.id, blockedId: memberId },
-      { blockerId: memberId, blockedId: auth.user.id },
-    ]) },
-    select: { id: true },
-  });
-  if (blocked) return { success: false, error: "Remove blocked scholars before creating this group." };
+  const invitees = await validateGroupInvitees(auth.user.id, memberIds);
+  if ("error" in invitees) return { success: false, error: invitees.error };
 
   if (contextType === "CALL_FOR_PAPER") {
     const paper = await prisma.callForPaper.findUnique({ where: { id: contextId! }, select: { id: true, isDeleted: true } });
@@ -330,17 +328,479 @@ export async function createGroupConversation(formData: FormData): Promise<Submi
       contextId: contextId ?? null,
       createdById: auth.user.id,
       participants: {
-        create: [
-          { userId: auth.user.id, role: "OWNER", lastReadAt: new Date() },
-          ...memberIds.map((userId) => ({ userId, role: "MEMBER" as const })),
-        ],
+        create: [{ userId: auth.user.id, role: "OWNER", lastReadAt: new Date() }],
+      },
+      invites: {
+        create: invitees.inviteeIds.map((inviteeId) => ({
+          inviteeId,
+          inviterId: auth.user.id,
+          status: "PENDING" as const,
+        })),
       },
     },
     select: { id: true },
   });
 
+  const actor = await prisma.user.findUnique({
+    where: { id: auth.user.id },
+    select: { name: true },
+  });
+  notifyGroupInvites({
+    actorId: auth.user.id,
+    actorName: actorDisplayName(actor?.name),
+    conversationId: conversation.id,
+    title,
+    inviteeIds: invitees.inviteeIds,
+  });
+
   return { success: true, redirect: `/messages/${conversation.id}`, data: { id: conversation.id } };
 }
+
+function actorDisplayName(name: string | null | undefined) {
+  return (name?.trim() || "A scholar").slice(0, 120);
+}
+
+/**
+ * One QStash-targeted notification per invitee, after the response. The invitee
+ * is not a participant yet, so this is the only signal they get — without it a
+ * group could be created with no trace on the other side.
+ */
+function notifyGroupInvites(params: {
+  actorId: string;
+  actorName: string;
+  conversationId: string;
+  title: string;
+  inviteeIds: string[];
+}) {
+  const inviteeIds = [...new Set(params.inviteeIds)];
+  if (inviteeIds.length === 0) return;
+  after(() =>
+    Promise.all(
+      inviteeIds.map((recipientId) =>
+        notifyUserById({
+          recipientId,
+          actorId: params.actorId,
+          type: "group-invite",
+          targetType: "conversation",
+          targetId: params.conversationId,
+          title: `Invitation to "${params.title}"`,
+          body: `${params.actorName} invited you to this group. Open Messages to accept or decline.`,
+        }),
+      ),
+    ).catch((error) => console.error("Group invite notification error:", error)),
+  );
+}
+
+/** Shared invitee guards: everyone must exist, be active, and not be blocked. */
+async function validateGroupInvitees(
+  inviterId: string,
+  inviteeIds: string[],
+): Promise<{ inviteeIds: string[] } | { error: string }> {
+  if (inviteeIds.length === 0) return { error: "Select at least one scholar to invite." };
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: inviteeIds }, isDeleted: false, isFrozen: false },
+    select: { id: true },
+  });
+  if (users.length !== inviteeIds.length) return { error: "One or more selected scholars are unavailable." };
+
+  const blocked = await prisma.block.findFirst({
+    where: {
+      OR: inviteeIds.flatMap((inviteeId) => [
+        { blockerId: inviterId, blockedId: inviteeId },
+        { blockerId: inviteeId, blockedId: inviterId },
+      ]),
+    },
+    select: { id: true },
+  });
+  if (blocked) return { error: "Remove blocked scholars before inviting them." };
+
+  return { inviteeIds };
+}
+
+/** Invite scholars to an existing group. Owner only; seats count pending invites. */
+export async function inviteGroupMembers(
+  conversationId: string,
+  userIds: string[],
+): Promise<SubmitResult> {
+  const auth = await getActiveUser("Please log in to invite scholars.");
+  if (auth.frozen) return { success: false, error: auth.message };
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:group-invite",
+    key: auth.user.id,
+    limit: 20,
+    window: "1 m",
+    onDegraded: "closed",
+  });
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
+  }
+
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      id: conversationId,
+      type: "GROUP",
+      participants: { some: { userId: auth.user.id, role: "OWNER" } },
+    },
+    select: {
+      id: true,
+      title: true,
+      isFrozen: true,
+      participants: { select: { userId: true } },
+      invites: { where: { status: "PENDING" }, select: { inviteeId: true } },
+    },
+  });
+  if (!conversation) {
+    return { success: false, error: "Only the group owner can invite scholars." };
+  }
+  if (conversation.isFrozen) {
+    return { success: false, error: "This group is frozen by moderators and cannot change membership." };
+  }
+
+  const memberIds = new Set(conversation.participants.map((participant) => participant.userId));
+  const pendingIds = new Set(conversation.invites.map((invite) => invite.inviteeId));
+  const freshIds = [...new Set(userIds)]
+    .filter((id) => typeof id === "string" && id.trim())
+    .map((id) => id.trim())
+    .filter((id) => id !== auth.user.id && !memberIds.has(id) && !pendingIds.has(id));
+
+  if (freshIds.length === 0) {
+    return { success: false, error: "Everyone selected is already in the group or invited." };
+  }
+  if (memberIds.size + pendingIds.size + freshIds.length > MAX_GROUP_PARTICIPANTS) {
+    return {
+      success: false,
+      error: `Groups can have up to ${MAX_GROUP_PARTICIPANTS} participants, including pending invitations.`,
+    };
+  }
+
+  const invitees = await validateGroupInvitees(auth.user.id, freshIds);
+  if ("error" in invitees) return { success: false, error: invitees.error };
+
+  const now = new Date();
+  await prisma.$transaction(
+    invitees.inviteeIds.map((inviteeId) =>
+      prisma.conversationInvite.upsert({
+        where: { conversationId_inviteeId: { conversationId, inviteeId } },
+        create: {
+          conversationId,
+          inviteeId,
+          inviterId: auth.user.id,
+          status: "PENDING",
+        },
+        // A declined invite can be reissued; reset the response.
+        update: { status: "PENDING", inviterId: auth.user.id, respondedAt: null, createdAt: now },
+      }),
+    ),
+  );
+
+  const actor = await prisma.user.findUnique({
+    where: { id: auth.user.id },
+    select: { name: true },
+  });
+  notifyGroupInvites({
+    actorId: auth.user.id,
+    actorName: actorDisplayName(actor?.name),
+    conversationId: conversation.id,
+    title: conversation.title?.trim() || "Group discussion",
+    inviteeIds: invitees.inviteeIds,
+  });
+
+  return { success: true, data: { invited: invitees.inviteeIds } };
+}
+
+/**
+ * Accept or decline an invitation. Accepting re-checks the seat count *inside*
+ * the transaction (two people accepting concurrently must not create a ninth
+ * participant) and seeds `lastReadAt` so existing history is not dumped into the
+ * new member's unread badge.
+ */
+export async function respondToGroupInvite(
+  conversationId: string,
+  accept: boolean,
+): Promise<SubmitResult> {
+  const auth = await getActiveUser("Please log in to respond to this invitation.");
+  if (auth.frozen) return { success: false, error: auth.message };
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:group-respond",
+    key: auth.user.id,
+    limit: 30,
+    window: "1 m",
+    onDegraded: "closed",
+  });
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
+  }
+
+  const invite = await prisma.conversationInvite.findUnique({
+    where: { conversationId_inviteeId: { conversationId, inviteeId: auth.user.id } },
+    select: { status: true, inviterId: true, conversation: { select: { type: true } } },
+  });
+  if (!invite || invite.conversation.type !== "GROUP") {
+    return { success: false, error: "This invitation is no longer available." };
+  }
+
+  if (!accept) {
+    await prisma.conversationInvite.update({
+      where: { conversationId_inviteeId: { conversationId, inviteeId: auth.user.id } },
+      data: { status: "DECLINED", respondedAt: new Date() },
+    });
+    return { success: true, data: { conversationId, accepted: false } };
+  }
+
+  if (invite.status === "ACCEPTED") {
+    return { success: true, data: { conversationId, accepted: true } };
+  }
+
+  const block = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: invite.inviterId, blockedId: auth.user.id },
+        { blockerId: auth.user.id, blockedId: invite.inviterId },
+      ],
+    },
+    select: { id: true },
+  });
+  if (block) return { success: false, error: "This invitation is no longer available." };
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    const conversation = await tx.conversation.findUnique({
+      where: { id: conversationId },
+      select: {
+        isFrozen: true,
+        participants: { select: { userId: true } },
+      },
+    });
+    if (!conversation) return "GONE" as const;
+    if (conversation.isFrozen) return "FROZEN" as const;
+
+    const alreadyMember = conversation.participants.some(
+      (participant) => participant.userId === auth.user.id,
+    );
+    if (!alreadyMember) {
+      if (conversation.participants.length + 1 > MAX_GROUP_PARTICIPANTS) return "FULL" as const;
+      await tx.conversationParticipant.create({
+        data: { conversationId, userId: auth.user.id, lastReadAt: new Date() },
+      });
+    }
+    await tx.conversationInvite.update({
+      where: { conversationId_inviteeId: { conversationId, inviteeId: auth.user.id } },
+      data: { status: "ACCEPTED", respondedAt: new Date() },
+    });
+    return "OK" as const;
+  });
+
+  if (outcome === "GONE") return { success: false, error: "This invitation is no longer available." };
+  if (outcome === "FROZEN") return { success: false, error: "This group is frozen and cannot accept new members." };
+  if (outcome === "FULL") return { success: false, error: `This group already has ${MAX_GROUP_PARTICIPANTS} participants.` };
+
+  return { success: true, data: { conversationId, accepted: true } };
+}
+
+/** Pending invites for the signed-in scholar — one indexed read for the inbox card. */
+export async function getPendingGroupInvites() {
+  const currentUser = await requireCurrentUser("Please log in to view invitations.");
+  return prisma.conversationInvite.findMany({
+    where: {
+      inviteeId: currentUser.id,
+      status: "PENDING",
+      conversation: { isFrozen: false },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: {
+      conversationId: true,
+      createdAt: true,
+      inviter: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+      conversation: { select: { title: true } },
+    },
+  });
+}
+
+/**
+ * Everything the group-info panel renders, in one action: members with roles,
+ * pending invites (owner only), frozen state and the join date. Re-read after
+ * every mutation instead of patching local state, so the seat counter and the
+ * role badges can never drift from the server.
+ */
+export async function getGroupDetails(conversationId: string) {
+  const currentUser = await requireCurrentUser("Please log in to view this group.");
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      id: conversationId,
+      type: "GROUP",
+      participants: { some: { userId: currentUser.id } },
+    },
+    select: {
+      id: true,
+      title: true,
+      isFrozen: true,
+      createdAt: true,
+      createdById: true,
+      participants: {
+        select: {
+          user: { select: sidebarUserSelect },
+          role: true,
+          joinedAt: true,
+        },
+      },
+      invites: {
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          invitee: { select: sidebarUserSelect },
+          createdAt: true,
+        },
+      },
+    },
+  });
+  if (!conversation) return null;
+
+  const me = conversation.participants.find(
+    (participant) => participant.user.id === currentUser.id,
+  );
+  const isOwner = me?.role === "OWNER";
+
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    isFrozen: conversation.isFrozen,
+    createdAt: conversation.createdAt,
+    createdById: conversation.createdById,
+    viewerId: currentUser.id,
+    isOwner,
+    participants: conversation.participants.map((participant) => ({
+      ...participant.user,
+      role: participant.role,
+      joinedAt: participant.joinedAt,
+    })),
+    // Invitee identities are the owner's business; members see members only.
+    pendingInvites: isOwner
+      ? conversation.invites.map((invite) => ({
+          ...invite.invitee,
+          invitedAt: invite.createdAt,
+        }))
+      : [],
+  };
+}
+
+/**
+ * Remove a member (owner) or leave the group (self). An owner who leaves hands
+ * OWNER to the earliest-joined remaining member; the last member leaving
+ * deletes the conversation and its history.
+ */
+export async function removeGroupParticipant(
+  conversationId: string,
+  memberId: string,
+): Promise<SubmitResult> {
+  const auth = await getActiveUser("Please log in to update this group.");
+  if (auth.frozen) return { success: false, error: auth.message };
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:group-member-remove",
+    key: auth.user.id,
+    limit: 20,
+    window: "1 m",
+    onDegraded: "closed",
+  });
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
+  }
+
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      id: conversationId,
+      type: "GROUP",
+      participants: { some: { userId: auth.user.id } },
+    },
+    select: {
+      isFrozen: true,
+      participants: { select: { userId: true, role: true, joinedAt: true } },
+    },
+  });
+  if (!conversation) return { success: false, error: "Group not found." };
+
+  const me = conversation.participants.find((participant) => participant.userId === auth.user.id);
+  const target = conversation.participants.find((participant) => participant.userId === memberId);
+  if (!target) return { success: true };
+
+  const isSelf = memberId === auth.user.id;
+  if (!isSelf && me?.role !== "OWNER") {
+    return { success: false, error: "Only the group owner can remove members." };
+  }
+  // A frozen group is read-only, but anyone may still walk away from it.
+  if (!isSelf && conversation.isFrozen) {
+    return { success: false, error: "This group is frozen by moderators and cannot change membership." };
+  }
+
+  const remaining = conversation.participants.filter(
+    (participant) => participant.userId !== memberId,
+  );
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.conversationParticipant.delete({
+      where: { conversationId_userId: { conversationId, userId: memberId } },
+    });
+    // A stale invite must never let the removed member walk back in.
+    await tx.conversationInvite.deleteMany({ where: { conversationId, inviteeId: memberId } });
+
+    if (remaining.length === 0) {
+      await tx.conversation.delete({ where: { id: conversationId } });
+      return { conversationDeleted: true };
+    }
+
+    if (target.role === "OWNER") {
+      const nextOwner = [...remaining].sort(
+        (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
+      )[0];
+      await tx.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId, userId: nextOwner.userId } },
+        data: { role: "OWNER" },
+      });
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: { createdById: nextOwner.userId },
+      });
+    }
+
+    return { conversationDeleted: false };
+  });
+
+  return {
+    success: true,
+    data: {
+      ...result,
+      removedSelf: isSelf,
+      newOwnerId: target.role === "OWNER" && remaining.length > 0
+        ? remaining.sort(
+            (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
+          )[0].userId
+        : null,
+    },
+  };
+}
+
+/** Cancel a pending invitation. Owner only; the invitee is told nothing. */
+export async function revokeGroupInvite(
+  conversationId: string,
+  inviteeId: string,
+): Promise<SubmitResult> {
+  const auth = await requireCurrentUser("Please log in to update this group.");
+
+  const owner = await prisma.conversationParticipant.findUnique({
+    where: { conversationId_userId: { conversationId, userId: auth.id } },
+    select: { role: true },
+  });
+  if (owner?.role !== "OWNER") {
+    return { success: false, error: "Only the group owner can revoke invitations." };
+  }
+
+  await prisma.conversationInvite.deleteMany({ where: { conversationId, inviteeId } });
+  return { success: true };
+}
+
 
 export async function getConversation(conversationId: string) {
   const currentUser = await requireCurrentUser("Please log in to view messages.");
@@ -358,8 +818,12 @@ export async function getConversation(conversationId: string) {
       contextType: true,
       contextId: true,
       lastMessageAt: true,
+      isFrozen: true,
+      hasActiveAppeal: true,
+      createdById: true,
       participants: {
         select: {
+          role: true,
           user: { select: sidebarUserSelect },
           lastReadAt: true,
         },
@@ -680,6 +1144,8 @@ export async function sendMessage(
     select: {
       id: true,
       type: true,
+      title: true,
+      isFrozen: true,
       participants: {
         select: {
           userId: true,
@@ -691,6 +1157,15 @@ export async function sendMessage(
 
   if (!conversation)
     return { success: false, error: "Conversation not found.", code: "CONVERSATION_DELETED" };
+
+  // A frozen group is read-only for everyone until a moderator unfreezes it.
+  if (conversation.type === "GROUP" && conversation.isFrozen) {
+    return {
+      success: false,
+      error: "This group has been frozen by moderators. Messaging is disabled.",
+      code: "UNKNOWN",
+    };
+  }
 
   const otherParticipant = conversation.type === "DIRECT"
     ? conversation.participants.find((p) => p.userId !== user.id)
@@ -769,6 +1244,7 @@ export async function sendMessage(
         recipientIds,
         senderName: (createdMessage.sender.name?.trim() || "A researcher").slice(0, 120),
         body: createdMessage.body,
+        conversationTitle: conversation.title ?? null,
       }).catch((error) => console.error("Group message push enqueue error:", error)));
     }
   } else if (otherParticipant) {
@@ -859,7 +1335,7 @@ export async function editMessage(
       conversationId: true,
       isDeleted: true,
       conversation: {
-        select: { type: true, participants: { select: { userId: true } } },
+        select: { type: true, isFrozen: true, participants: { select: { userId: true } } },
       },
     },
   });
@@ -879,6 +1355,9 @@ export async function editMessage(
     "edit",
   );
   if (blocked) return { success: false, error: blocked };
+  if (message.conversation.isFrozen) {
+    return { success: false, error: "This group is frozen by moderators. Messages cannot be changed." };
+  }
 
   const updated = await prisma.message.update({
     where: { id: messageId },
@@ -940,7 +1419,7 @@ export async function deleteMessage(
       senderId: true,
       isDeleted: true,
       conversation: {
-        select: { type: true, participants: { select: { userId: true } } },
+        select: { type: true, isFrozen: true, participants: { select: { userId: true } } },
       },
     },
   });
@@ -960,6 +1439,9 @@ export async function deleteMessage(
     "delete",
   );
   if (blocked) return { success: false, error: blocked };
+  if (message.conversation.isFrozen) {
+    return { success: false, error: "This group is frozen by moderators. Messages cannot be changed." };
+  }
 
   // ⚡ TOMBSTONE (RULE 4): Soft delete — blank the body for privacy and flag
   // the row so both clients render "This message was deleted".

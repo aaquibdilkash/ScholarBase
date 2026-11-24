@@ -10,6 +10,7 @@ import {
   CONTENT_TARGET_TYPE,
   ANONYMOUS_CONTENT_TYPES,
   MODERATION_LIST_KEY,
+  FREEZE_ONLY_CONTENT_TYPES,
 } from "@/lib/moderation-config";
 import { CONTENT_LIST_CONFIGS } from "@/lib/tri-split/modules/registry";
 import { SECTION_CONTENT_TYPES } from "@/lib/adminConfig";
@@ -33,6 +34,7 @@ import { MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
 const KNOWN_CONTENT_TYPES = new Set([
   ...Object.keys(MODEL_MAP),
   ...Object.keys(COMMENT_MODEL_MAP),
+  ...FREEZE_ONLY_CONTENT_TYPES,
 ]);
 
 /** Field names declared on a Prisma model, keyed case-insensitively. */
@@ -125,6 +127,18 @@ describe("admin moderation registry: key sets stay in lockstep", () => {
       unknown,
       "appeals carry a report module; an unknown value throws in moderateContent",
     ).toEqual([]);
+  });
+
+  it("freeze-only content types stay out of the delete/recover matrix", () => {
+    for (const type of FREEZE_ONLY_CONTENT_TYPES) {
+      // Group conversations have no authorId, no isDeleted column and no
+      // cached public list. Routing them through the generic maps would make
+      // the DELETE/RECOVER branches select or write columns that don't exist.
+      expect(MODEL_MAP[type], type).toBeUndefined();
+      expect(AUTHOR_COUNT_FIELD[type], type).toBeUndefined();
+      expect(MODERATION_LIST_KEY[type], type).toBeUndefined();
+      expect(CONTENT_TARGET_TYPE[type], type).toBeDefined();
+    }
   });
 
   it("anonymous content types are real content types with a counter", () => {

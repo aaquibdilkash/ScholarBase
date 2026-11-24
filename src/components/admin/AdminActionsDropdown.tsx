@@ -68,6 +68,12 @@ interface AdminActionsDropdownProps {
     isDeleted?: boolean;
     reportCount?: number;
   }) => void;
+  /** Show DELETE and RECOVER options. Set false for group conversations
+   *  (DELETE/RECOVER are rejected for groups — only freeze/unfreeze is
+   *  permitted). */
+  showDelete?: boolean;
+  /** Show RECOVER option. Set false for group conversations. */
+  showRecover?: boolean;
 }
 
 export function AdminActionsDropdown({
@@ -79,6 +85,8 @@ export function AdminActionsDropdown({
   entityLabel = "Content",
   isFrozen = false,
   isDeleted = false,
+  showDelete = true,
+  showRecover = false,
   hasActiveAppeal = false,
   onMutated,
 }: AdminActionsDropdownProps) {
@@ -398,7 +406,7 @@ export function AdminActionsDropdown({
                       <span>Dismiss Appeal</span>
                     </button>
                   )}
-                  {isDeleted && (
+                  {showRecover && isDeleted && (
                     <button
                       type="button"
                       role="menuitem"
@@ -409,7 +417,7 @@ export function AdminActionsDropdown({
                       <span>Recover {entityLabel}</span>
                     </button>
                   )}
-                  {!isDeleted && (
+                  {showDelete && !isDeleted && (
                     <button
                       type="button"
                       role="menuitem"
