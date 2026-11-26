@@ -145,10 +145,10 @@ export default function DetailPageCardShell({
   return (
     <main
       className={clsx(
-        // The main column keeps its original `max-w-3xl` width at every
-        // breakpoint. On desktop the page grows so the related sidebar can use
-        // the leftover space instead of squeezing the card and the discussion.
-        "mx-auto w-full max-w-3xl px-0 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10 xl:max-w-6xl",
+        // The app's permanent navigation consumes substantial width. Keep the
+        // related rail below the card until 2xl, when there is enough room for
+        // both columns without squeezing the detail content.
+        "mx-auto w-full max-w-3xl px-0 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10 2xl:max-w-6xl",
         className,
       )}
     >
@@ -163,7 +163,7 @@ export default function DetailPageCardShell({
         {backLabel}
       </Link>
 
-      <div className="xl:grid xl:grid-cols-[minmax(0,44rem)_minmax(0,1fr)] xl:items-start xl:gap-8">
+      <div className="2xl:grid 2xl:grid-cols-[minmax(0,44rem)_minmax(0,1fr)] 2xl:items-start 2xl:gap-8">
         {/* Left: main card + discussion, both capped at the original width */}
         <div className="min-w-0">
           <div
@@ -330,16 +330,16 @@ export default function DetailPageCardShell({
             </div>
           </div>
 
-          {/* Mobile/tablet: related content below the card, above the discussion */}
+          {/* Narrow layouts: related content below the card, above the discussion */}
           {relatedContent && (
-            <div className="mt-6 xl:hidden">{relatedContent}</div>
+            <div className="mt-6 2xl:hidden">{relatedContent}</div>
           )}
 
           {discussion}
         </div>
 
         {/* Desktop: related content fills the leftover space to the right */}
-        <aside className="hidden xl:block xl:sticky xl:top-6">
+        <aside className="hidden 2xl:sticky 2xl:top-6 2xl:block">
           {relatedContent}
         </aside>
       </div>

@@ -76,7 +76,7 @@ export default async function HomePage() {
     {
       title: "Journals",
       description:
-        "Explore journals, connect publications, and read scholar reviews.",
+        "Explore journals and read scholar reviews.",
       href: "/journals",
       icon: <BookCopy className="h-8 w-8" />,
     },
@@ -116,12 +116,6 @@ export default async function HomePage() {
       description: "Participate in or create academic surveys.",
       href: "/surveys",
       icon: <ClipboardList className="h-8 w-8" />,
-    },
-    {
-      title: "Publications",
-      description: "Share and discover academic publications.",
-      href: "/publications",
-      icon: <BookMarked className="h-8 w-8" />,
     },
     {
       title: "Exams & Results",

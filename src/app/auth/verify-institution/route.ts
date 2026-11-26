@@ -16,11 +16,17 @@ import { getBaseUrl } from "@/lib/url";
  */
 function redirectWithCookies(url: URL, response: NextResponse) {
   const redirectResponse = NextResponse.redirect(url);
+  // Verification changes private account state. Do not let the browser or a
+  // proxy reuse the redirect response and leave the destination on an old
+  // server-rendered state.
+  redirectResponse.headers.set("Cache-Control", "no-store, max-age=0");
   response.cookies.getAll().forEach((cookie) => {
     redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
   });
   return redirectResponse;
 }
+
+export const dynamic = "force-dynamic";
 
 async function redirectToSettings(userId: string, result: string, response: NextResponse) {
   const url = new URL(`/scholars/${userId}/settings`, await getBaseUrl());

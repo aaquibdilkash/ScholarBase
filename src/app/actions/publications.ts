@@ -417,49 +417,6 @@ export async function getProfilePublicationCount(profileId: string) {
   });
 }
 
-/**
- * Loads one page of publication rows for the
- * *current* viewer (used by the old /publications list page).
- *
- * Identity comes from the session, server-side — never from a client argument.
- * (This loader used to accept `userId` from the browser, so any caller could
- * read another user's vote / bookmark / follow state.)
- *
- * The cached viewer-agnostic batch plus the single-statement live overlay live
- * in `@/lib/tri-split/modules/registry`.
- *
- * NOTE: This loader is kept for backward compat if any code still references it,
- * but the `/publications` list page has been removed. New code should use
- * `getProfilePublications` / `getProfilePublicationPage` instead.
- */
-export async function getPublications(
-  q?: string,
-  limit = 10,
-  _cursor?: string,
-) {
-  return prisma.publication.findMany({
-    where: {
-      isDeleted: false,
-      OR: [
-        { title: { contains: q ?? "", mode: "insensitive" } },
-        { abstract: { contains: q ?? "", mode: "insensitive" } },
-        { keywords: { contains: q ?? "", mode: "insensitive" } },
-      ],
-    },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      title: true,
-      authors: true,
-      publicationType: true,
-      year: true,
-      authorId: true,
-      journal: { select: { id: true, title: true } },
-    },
-  }) as unknown as PublicationWithAuthor[];
-}
-
 export const getPublicationById = async (publicationId: string, userId?: string) => {
   return prisma.publication.findUnique({
     where: {

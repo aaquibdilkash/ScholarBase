@@ -92,7 +92,12 @@ const run = async (
   if (token !== null) url.searchParams.set("token", token);
   const res = await GET(new NextRequest(url));
   const location = res.headers.get("location") ?? "";
-  return { status: res.status, location, result: new URL(location).searchParams.get("institution") };
+  return {
+    status: res.status,
+    location,
+    cacheControl: res.headers.get("cache-control"),
+    result: new URL(location).searchParams.get("institution"),
+  };
 };
 
 const row = (id = OWNER) => fakeDb.rows("user").find((u) => u.id === id)!;
@@ -105,9 +110,11 @@ beforeEach(() => {
 
 describe("GET /auth/verify-institution", () => {
   it("verifies a valid token and records the institution", async () => {
-    const { result, location } = await run(RAW_TOKEN);
+    const { result, location, status, cacheControl } = await run(RAW_TOKEN);
 
     expect(result).toBe("verified");
+    expect(status).toBe(307);
+    expect(cacheControl).toBe("no-store, max-age=0");
     // Redirects to the OWNER's settings, never anyone else's.
     expect(location).toContain(`/scholars/${OWNER}/settings`);
 

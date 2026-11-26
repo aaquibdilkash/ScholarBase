@@ -25,6 +25,11 @@ export const metadata: Metadata = buildNoindexMetadata(
   "Account Settings - ScholarBase",
 );
 
+// The verification email redirects here immediately after mutating the
+// account. Always render the current profile row rather than allowing a
+// previously rendered settings response to mask the new verification state.
+export const dynamic = "force-dynamic";
+
 export default async function ScholarSettingsPage({
   params,
   searchParams,

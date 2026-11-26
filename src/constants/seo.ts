@@ -191,13 +191,6 @@ export const SEO_PAGES = {
         path: "/help",
         section: "Help & Support",
     },
-    publications: {
-        title: "Academic Publications | ScholarBase",
-        description:
-            "Browse research papers, preprints, conference work, and academic publications on ScholarBase.",
-        path: "/publications",
-        section: "Publications",
-    },
     admissions: {
         title: "Admissions | ScholarBase",
         description:
@@ -512,11 +505,6 @@ export const LIST_PAGE_TEXT = {
         description:
             "Create and participate in research surveys. Better than Google Forms — built for the academic community.",
     },
-    publications: {
-        title: "Publications",
-        description:
-            "Browse and discover academic publications — research papers, conference proceedings, books, and more.",
-    },
     academicPositions: {
         title: "Academic Positions",
         description:
@@ -540,7 +528,7 @@ export const LIST_PAGE_TEXT = {
     help: {
         title: "Scholar Suggest",
         description:
-            "Share posts, suggestions, bug reports, or new feature ideas with the community.",
+            "Share suggestions, bug reports, or new feature ideas with the community.",
     },
     feed: {
         title: "Research Feed",
