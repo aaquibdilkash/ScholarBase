@@ -22,6 +22,7 @@ import {
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SurveyResponseForm } from "@/components/surveys/SurveyResponseForm";
 import { SurveyOwnerControls } from "@/components/surveys/SurveyOwnerControls";
+import { SurveyQrCode } from "@/components/surveys/SurveyQrCode";
 import { parseSkipLogic, parseColumnLabels } from "@/lib/surveys/logic";
 
 const PRIVACY_LABELS: Record<string, string> = {
@@ -289,6 +290,14 @@ const SurveyDetailPage = async ({
           initialShareData={Boolean(survey.shareData)}
         />
       )}
+
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
+        <div>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Invite respondents</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">Scan or share the ScholarBase survey link.</p>
+        </div>
+        <SurveyQrCode surveyId={survey.id} surveyTitle={survey.title} />
+      </div>
 
       {/* Survey Response Form */}
       {isOpen && (
