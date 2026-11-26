@@ -46,7 +46,6 @@ import {
   PUBLICATION_KEYWORDS_TIP,
   PUBLICATION_DOMAIN_TIP,
   PUBLICATION_ABSTRACT_TIP,
-  PUBLICATION_IS_USER_AUTHOR_TIP,
 } from "@/constants/tooltips";
 
 export type PublicationFormValues = {
@@ -65,7 +64,6 @@ export type PublicationFormValues = {
   keywords: string;
   domain: string;
   abstract: string;
-  isUserAuthor: string;
   journalId: string;
   authorIds: string[];
 };
@@ -107,7 +105,6 @@ export default function PublicationForm({
     keywords: initialValues?.keywords ?? "",
     domain: initialValues?.domain ?? "",
     abstract: initialValues?.abstract ?? "",
-    isUserAuthor: initialValues?.isUserAuthor === "true" ? "true" : "false",
     journalId: initialValues?.journalId ?? "",
     authorIds: initialValues?.authorIds ?? [],
   };
@@ -460,30 +457,6 @@ export default function PublicationForm({
           </p>
         )}
         <input type="hidden" name="abstract" value={draftFields.abstract} />
-      </div>
-
-      {/* I am an author checkbox */}
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          name="isUserAuthor"
-          id="isUserAuthor"
-          className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          checked={draftFields.isUserAuthor === "true"}
-          onChange={(e) =>
-            updateDraftField(
-              "isUserAuthor",
-              e.target.checked ? "true" : "false",
-            )
-          }
-        />
-        <label
-          htmlFor="isUserAuthor"
-          className="text-sm font-medium text-slate-700 inline-flex items-center gap-1.5"
-        >
-          I am an author / co-author of this publication
-          <InfoTooltip message={PUBLICATION_IS_USER_AUTHOR_TIP} />
-        </label>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

@@ -72,7 +72,6 @@ export const PUBLICATION_URL_TIP = "A direct link to the publication (DOI link p
 export const PUBLICATION_KEYWORDS_TIP = `Add up to ${MAX_PUBLICATION_KEYWORD_COUNT} keywords (max ${MAX_PUBLICATION_KEYWORD_LENGTH} chars each). Press Enter to add, X to remove.`;
 export const PUBLICATION_DOMAIN_TIP = "The broad research domain or field of study.";
 export const PUBLICATION_ABSTRACT_TIP = "A concise summary of the research methodology and findings.";
-export const PUBLICATION_IS_USER_AUTHOR_TIP = "Check this if you are an author or co-author of this work.";
 
 // -----------------------------------------------------------------------------
 // EVENTS MODULE
