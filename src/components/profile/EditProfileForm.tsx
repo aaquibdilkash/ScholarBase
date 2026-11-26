@@ -236,14 +236,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
            <InfoTooltip message={PROFILE_HANDLE_TIP} />
          </label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-slate-400">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-medium text-slate-400">
             @
           </span>
           <input
             name="handle"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
-            className={`sb-input px-3 py-2 !pl-9 sm:px-3 sm:py-2 ${
+            className={`sb-input px-3 py-2 !pl-7 sm:px-3 sm:py-2 ${
               !isHandleValid
                 ? "border-red-500"
                 : isHandleAvailable === true

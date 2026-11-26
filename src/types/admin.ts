@@ -20,7 +20,6 @@ import {
   SocialComment,
   HelpPostComment,
   ContributionComment,
-  PublicationComment,
   ResearchToolComment,
   ResearchGrantComment,
   CourseComment,
@@ -59,7 +58,6 @@ export type CommentItem =
   | ArticleComment
   | HelpPostComment
   | ContributionComment
-  | PublicationComment
   | ResearchToolComment
   | ResearchGrantComment
   | CourseComment

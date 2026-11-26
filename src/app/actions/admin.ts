@@ -151,7 +151,6 @@ export async function getAdminStats() {
         'Appeal',
         'SocialPost',
         'Article',
-        'Publication',
         'Journal',
         'ResearchTool',
         'ResearchGrant',
@@ -182,7 +181,6 @@ export async function getAdminStats() {
     appeals: estimate("Appeal"),
     feed: estimate("SocialPost"),
     blog: estimate("Article"),
-    publications: estimate("Publication"),
     journals: estimate("Journal"),
     researchTools: estimate("ResearchTool"),
     researchGrants: estimate("ResearchGrant"),
@@ -554,7 +552,6 @@ export async function getAdminAppeals(
     articleComment: prisma.articleComment,
     helpComment: prisma.helpPostComment,
     contributionComment: prisma.contributionComment,
-    publicationComment: prisma.publicationComment,
     researchToolComment: prisma.researchToolComment,
     researchGrantComment: prisma.researchGrantComment,
     courseComment: prisma.courseComment,
@@ -575,7 +572,6 @@ export async function getAdminAppeals(
     articleComment: { fk: "articleId", parentCt: "blog" },
     helpComment: { fk: "helpPostId", parentCt: "help" },
     contributionComment: { fk: "contributionId", parentCt: "contribution" },
-    publicationComment: { fk: "publicationId", parentCt: "publication" },
     researchToolComment: { fk: "researchToolId", parentCt: "researchTool" },
     researchGrantComment: { fk: "researchGrantId", parentCt: "researchGrant" },
     courseComment: { fk: "courseId", parentCt: "course" },
@@ -667,8 +663,6 @@ export async function getAdminAppeals(
       if (linkCt === "feed") detailHref = `/feed/${linkId}`;
       else if (linkCt === "blog")
         detailHref = `/blog/${linkEntity?.slug ?? linkId}`;
-      else if (linkCt === "publication")
-        detailHref = `/publications/${linkId}`;
       else if (linkCt === "journal") detailHref = `/journals/${linkId}`;
       else if (linkCt === "researchTool")
         detailHref = `/research-tools/${linkId}`;
@@ -886,7 +880,6 @@ export async function getAdminContent(
     const sectionCommentModels: Record<string, { modelKey: string; model: AdminCommentModel }> = {
       feed: { modelKey: "socialComment", model: prisma.socialComment as unknown as AdminCommentModel },
       blog: { modelKey: "articleComment", model: prisma.articleComment as unknown as AdminCommentModel },
-      publications: { modelKey: "publicationComment", model: prisma.publicationComment as unknown as AdminCommentModel },
       journals: { modelKey: "journalComment", model: prisma.journalComment as unknown as AdminCommentModel },
       researchTools: { modelKey: "researchToolComment", model: prisma.researchToolComment as unknown as AdminCommentModel },
       researchGrants: { modelKey: "researchGrantComment", model: prisma.researchGrantComment as unknown as AdminCommentModel },
@@ -966,7 +959,6 @@ export async function getAdminContent(
       switch (commentParent.model) {
         case "socialPost": href = `/feed/${parentId}`; break;
         case "article": href = `/blog/${String(parent?.slug ?? parentId)}`; break;
-        case "publication": href = `/publications/${parentId}`; break;
         case "journal": href = `/journals/${parentId}`; break;
         case "researchTool": href = `/research-tools/${parentId}`; break;
         case "researchGrant": href = `/grants/${parentId}`; break;
@@ -1005,10 +997,6 @@ export async function getAdminContent(
       blog: {
         model: prisma.article,
         detailHref: (item) => `/blog/${"slug" in item ? item.slug : item.id}`,
-      },
-      publications: {
-        model: prisma.publication,
-        detailHref: (item) => `/publications/${item.id}`,
       },
       journals: {
         model: prisma.journal,

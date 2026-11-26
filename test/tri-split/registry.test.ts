@@ -46,7 +46,7 @@ describe("CONTENT_LIST_CONFIGS", () => {
   );
 
   it("wires up every listing surface: 15 content modules + the scholar directory", () => {
-    expect(CONTENT_LIST_KEYS.length).toBe(16);
+    expect(CONTENT_LIST_KEYS.length).toBe(15);
     expect([...CONTENT_KEYS].sort()).toEqual([
       "ACADEMIC_POSITION",
       "ADMISSION",
@@ -57,7 +57,6 @@ describe("CONTENT_LIST_CONFIGS", () => {
       "FEED",
       "HELP_POST",
       "JOURNAL",
-      "PUBLICATION",
       "RESEARCH_GRANT",
       "RESEARCH_SURVEY",
       "RESEARCH_TOOL",
@@ -208,15 +207,8 @@ describe("CONTENT_LIST_CONFIGS", () => {
     },
   );
 
-  it("PUBLICATION selects every field its list card renders", () => {
-    // Regression: `PublicationCard` renders the abstract, the domain and
-    // co-author chips, and the "View Publication" button. The cached list
-    // projection omitted those columns, so the list page silently dropped
-    // content the detail page showed.
-    const publication = CONTENT_LIST_CONFIGS.PUBLICATION;
-    for (const field of ["abstract", "url", "domain", "isUserAuthor"]) {
-      expect(publication.select[field], field).toBe(true);
-    }
+  it("does not register publications as a social content list", () => {
+    expect("PUBLICATION" in CONTENT_LIST_CONFIGS).toBe(false);
   });
 
   it("SUPERVISOR searches the institution, not just the professor's name", () => {

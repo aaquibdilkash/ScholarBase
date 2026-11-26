@@ -21,7 +21,6 @@ DECLARE
     'SocialPost',
     'HelpPost',
     'Contribution',
-    'Publication',
     'ResearchTool',
     'ResearchGrant',
     'Course',

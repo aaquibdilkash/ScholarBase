@@ -14,7 +14,6 @@ export type RecommendationType = NonNullable<SectionData>["recommendations"][num
 export type SupervisorType = NonNullable<SectionData>["supervisors"][number];
 export type ResultType = NonNullable<SectionData>["results"][number];
 export type ContributionType = NonNullable<SectionData>["contributionPosts"][number];
-export type PublicationType = NonNullable<SectionData>["publications"][number];
 export type SurveyType = NonNullable<SectionData>["surveys"][number];
 export type ResearchGrantType = NonNullable<SectionData>["researchGrants"][number];
 export type CourseType = NonNullable<SectionData>["courses"][number];

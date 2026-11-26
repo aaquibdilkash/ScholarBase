@@ -156,7 +156,6 @@ const COUNT_SOURCE = {
   supervisors: "supervisorCount",
   results: "resultCount",
   contributionPosts: "contributionCount",
-  publications: "publicationCount",
   surveys: "surveyCount",
   researchGrants: "researchGrantCount",
   courses: "courseCount",

@@ -18,7 +18,6 @@ export const PROFILE_SECTION_CONFIG = {
   supervisors: { model: "supervisor", bookmarkModel: "supervisorBookmark", bookmarkParent: "supervisor" },
   results: { model: "examsAndResults", bookmarkModel: "examsAndResultsBookmark", bookmarkParent: "examsAndResults" },
   contributionPosts: { model: "contribution", bookmarkModel: "contributionBookmark", bookmarkParent: "contribution" },
-  publications: { model: "publication", bookmarkModel: "publicationBookmark", bookmarkParent: "publication" },
   surveys: { model: "researchSurvey", bookmarkModel: "surveyBookmark", bookmarkParent: "researchSurvey" },
   researchGrants: { model: "researchGrant", bookmarkModel: "researchGrantBookmark", bookmarkParent: "researchGrant" },
   courses: { model: "course", bookmarkModel: "courseBookmark", bookmarkParent: "course" },

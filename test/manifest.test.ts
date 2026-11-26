@@ -187,7 +187,7 @@ describe("entity registry contracts", () => {
   const MODULES = Object.keys(ENTITY_CONFIG) as ModuleKey[]
 
   it("registers all 17 comment-capable modules", () => {
-    expect(MODULES).toHaveLength(17)
+    expect(MODULES).toHaveLength(16)
   })
 
   it("every voting module is also comment-capable, in both directions", () => {

@@ -32,7 +32,6 @@ const EXPECTED_TARGET_TYPE: Record<ModuleKey, string> = {
   ARTICLE: "article",
   HELP_POST: "help",
   CONTRIBUTION: "contribution",
-  PUBLICATION: "publication",
   RESEARCH_TOOL: "researchTool",
   RESEARCH_GRANT: "researchGrant",
   COURSE: "course",
@@ -191,18 +190,6 @@ describe("vote transaction: upvote notification", () => {
     delta: -1,
     label: "off",
   }
-
-  it("notifies the author with the module's target type and title", async () => {
-    seedScenario("PUBLICATION", freshUp)
-    const result = await handleVoteTransaction("PUBLICATION", ENTITY_ID, VOTER, VoteType.UPVOTE)
-
-    expect(result.notification).toMatchObject({
-      recipientId: AUTHOR,
-      targetType: EXPECTED_TARGET_TYPE.PUBLICATION,
-      targetId: ENTITY_ID,
-      body: "Title of PUBLICATION",
-    })
-  })
 
   it.each(MODULES)("derives the correct target type for %s", async (moduleKey) => {
     seedScenario(moduleKey, freshUp)

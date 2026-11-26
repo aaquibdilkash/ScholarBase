@@ -61,7 +61,6 @@ const SECTION_MODULE = {
   supervisors: "SUPERVISOR",
   results: "RESULT",
   contributionPosts: "CONTRIBUTION",
-  publications: "PUBLICATION",
   surveys: "RESEARCH_SURVEY",
   researchGrants: "RESEARCH_GRANT",
   courses: "COURSE",
@@ -496,7 +495,6 @@ export type SectionPayloads = {
   supervisors: Prisma.SupervisorGetPayload<{ include: ViewerInclude }>;
   results: Prisma.ExamsAndResultsGetPayload<{ include: ViewerInclude }>;
   contributionPosts: Prisma.ContributionGetPayload<{ include: ViewerInclude }>;
-  publications: Prisma.PublicationGetPayload<{ include: ViewerInclude }>;
   surveys: Prisma.ResearchSurveyGetPayload<{ include: ViewerInclude }>;
   researchGrants: Prisma.ResearchGrantGetPayload<{ include: ViewerInclude }>;
   courses: Prisma.CourseGetPayload<{ include: ViewerInclude }>;

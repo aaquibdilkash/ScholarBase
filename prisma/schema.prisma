@@ -651,19 +651,6 @@ model ContributionBookmark {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model PublicationBookmark {
-  id            String   @id @default(cuid())
-  publicationId String
-  userId        String
-  createdAt     DateTime @default(now())
-
-  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([publicationId, userId])
-  @@index([userId, createdAt(sort: Desc)])
-}
-
 model ResearchToolBookmark {
   id             String   @id @default(cuid())
   researchToolId String
@@ -1157,35 +1144,25 @@ model Publication {
   /// embedding worker. Unsupported in Prisma Client; see
   /// docs/semantic-embeddings.md.
   embedding           Unsupported("vector(384)")?
-  isUserAuthor        Boolean                     @default(false)
-  isFrozen            Boolean                     @default(false)
-  hasActiveAppeal     Boolean                     @default(false)
   authorId            String
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   editedAt            DateTime?
 
-  // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
+  // Soft delete only — publications are personal showcase entries, so they
+  // carry no social counters, trending score, or moderation freeze state.
   isDeleted      Boolean        @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
 
   author             User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
   journalId          String?
   journal            Journal?              @relation(fields: [journalId], references: [id], onDelete: SetNull)
   publicationAuthors PublicationAuthor[]
-  votes              PublicationVote[]
-  bookmarks          PublicationBookmark[]
-  comments           PublicationComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
-  @@index([trendingScore(sort: Desc)])
+  @@index([authorId, year(sort: Desc), createdAt(sort: Desc)])
   @@index([journalId])
 }
 
@@ -1200,60 +1177,6 @@ model PublicationAuthor {
 
   @@unique([publicationId, userId])
   @@index([userId, authorOrder])
-}
-
-model PublicationVote {
-  id            String      @id @default(cuid())
-  publicationId String
-  userId        String
-  voteType      VoteType
-  createdAt     DateTime    @default(now())
-  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([publicationId, userId])
-}
-
-model PublicationComment {
-  id            String    @id @default(cuid())
-  content       String
-  publicationId String
-  parentId      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  editedAt      DateTime?
-
-  // TOMBSTONING & COUNTERS
-  authorId        String
-  totalVotes      Int            @default(0)
-  totalReplies    Int            @default(0)
-  reportCount     Int            @default(0)
-  isDeleted       Boolean        @default(false)
-  deletedByType   DeletedByType?
-  deletedById     String?
-  isFrozen        Boolean        @default(false)
-  hasActiveAppeal Boolean        @default(false)
-
-  publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  author      User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent      PublicationComment?      @relation("PublicationReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     PublicationComment[]     @relation("PublicationReplies")
-  votes       PublicationCommentVote[]
-  mentions    Json?
-
-  @@index([publicationId, createdAt(sort: Desc)])
-}
-
-model PublicationCommentVote {
-  id        String             @id @default(cuid())
-  commentId String
-  userId    String
-  voteType  VoteType
-  createdAt DateTime           @default(now())
-  comment   PublicationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, userId])
 }
 
 model User {
@@ -1342,7 +1265,6 @@ model User {
   socialPostBookmarks       SocialPostBookmark[]
   helpPostBookmarks         HelpPostBookmark[]
   contributionBookmarks     ContributionBookmark[]
-  publicationBookmarks      PublicationBookmark[]
   researchToolBookmarks     ResearchToolBookmark[]
   researchGrantBookmarks    ResearchGrantBookmark[]
   courseBookmarks           CourseBookmark[]
@@ -1445,9 +1367,6 @@ model User {
   supervisors           Supervisor[]
 
   publications            Publication[]
-  publicationVotes        PublicationVote[]
-  publicationComments     PublicationComment[]
-  publicationCommentVotes PublicationCommentVote[]
   publicationAuthors      PublicationAuthor[]
 
   // First-party publishing (docs/publishing-runbook.md)

@@ -24,6 +24,7 @@ import {
   getProfileActivity,
   getProfileSection,
 } from "@/app/actions/profile";
+import { getProfilePublications, getProfilePublicationPage } from "@/app/actions/publications";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
@@ -43,7 +44,7 @@ import { PublicationCard } from "@/components/publications/PublicationCard";
 import { SurveyCard } from "@/components/surveys/SurveyCard";
 import { ActivityItem } from "@/types/activity";
 import { ProfileData } from "@/types/profile";
-import type { SocialPostWithAuthor } from "@/types/cards";
+import type { PublicationWithAuthor, SocialPostWithAuthor } from "@/types/cards";
 import {
   SectionData,
   SectionKey,
@@ -58,7 +59,6 @@ import {
   SupervisorType,
   ResultType,
   ContributionType,
-  PublicationType,
   SurveyType,
   ResearchGrantType,
   CourseType,
@@ -224,19 +224,6 @@ const SECTIONS: SectionWithCount[] = [
         <ContributionCard
           key={c.id}
           contribution={c}
-          currentUserId={currentUserId}
-        />
-      )),
-  },
-  {
-    key: "publications",
-    title: "Publications",
-    emptyMessage: "No publications added yet.",
-    renderItems: (items: PublicationType[], currentUserId) =>
-      items.map((p) => (
-        <PublicationCard
-          key={p.id}
-          publication={p}
           currentUserId={currentUserId}
         />
       )),
@@ -408,6 +395,8 @@ export default function ProfileTabs({
   const [bookmarkSectionHasMore, setBookmarkSectionHasMore] = useState<Record<string, boolean>>(
     {},
   );
+  const [publicationCount, setPublicationCount] = useState<number | undefined>(undefined);
+  const [publications, setPublications] = useState<Array<PublicationWithAuthor>>([]);
 
   // The Content and Bookmarks tabs are owned by the React Query cache, exactly
   // like the list pages: a 5-minute `staleTime`, and a server cache beneath it
@@ -458,6 +447,22 @@ export default function ProfileTabs({
     staleTime: LIST_REVALIDATE_MS,
   });
 
+  // Publications for the About tab — submitter-only, one at a time.
+  const {
+    data: profilePublications,
+    isPending: isPublicationsPending,
+  } = useQuery({
+    queryKey: ["profile-publications", profileId],
+    queryFn: () => getProfilePublications(profileId, 1),
+    enabled: activeTab === "about" && isOwnProfile,
+    staleTime: LIST_REVALIDATE_MS,
+  });
+
+  useEffect(() => {
+    setPublicationCount(profilePublications?.length ?? 0);
+    setPublications(profilePublications ?? []);
+  }, [profilePublications]);
+
   useEffect(() => {
     // Redirect from bookmarks tab if not own profile
     if (activeTab === "bookmarks" && !isOwnProfile) {
@@ -467,6 +472,15 @@ export default function ProfileTabs({
       setActiveTab("about");
     }
   }, [activeTab, isOwnProfile, searchParams, pathname, router]);
+
+  // Publications load-more for the About tab — one item per click.
+  const loadMorePublications = useCallback(async () => {
+    const page = await getProfilePublicationPage(profileId, publications.length, 1);
+    setPublications((prev) => [...prev, ...page]);
+  }, [profileId, publications.length]);
+
+  const hasMorePublications =
+    publications.length < (publicationCount ?? publications.length);
 
   const setTab = (tab: "about" | "content" | "bookmarks" | "activity") => {
     const params = new URLSearchParams(searchParams);
@@ -671,7 +685,7 @@ export default function ProfileTabs({
                 !profile.orcidUrl &&
                 !profile.linkedinUrl &&
                 !profile.googleScholarUrl && (
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                  <div className="w-full rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
                     <p className="text-sm font-medium text-slate-400">
                       No profile links added yet.
                     </p>
@@ -679,6 +693,50 @@ export default function ProfileTabs({
                 )}
             </div>
           </div>
+
+          {/* Publications */}
+          {isOwnProfile && (
+            <div>
+              <h2 className="mb-3 text-lg font-semibold text-slate-950">
+                Publications
+                <span className="ml-2 text-sm text-slate-500">({publicationCount ?? 0})</span>
+              </h2>
+              {publications.length > 0 ? (
+                <>
+                  <Carousel hasMore={hasMorePublications} onLoadMore={loadMorePublications}>
+                    <PublicationCard
+                      publication={publications[0]}
+                      currentUserId={currentUserId}
+                    />
+                  </Carousel>
+                  <p className="mt-3 text-sm text-slate-500">
+                    <a
+                      href={`/scholars/${profileId}?tab=about#publications`}
+                      className="underline text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    >
+                      View all {publicationCount ?? 0} publications
+                    </a>
+                  </p>
+                </>
+              ) : isPublicationsPending ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400 dark:text-slate-500" />
+                </div>
+              ) : (
+                <div className="w-full rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                  <p className="text-sm font-medium text-slate-400">
+                    No publications added yet.{" "}
+                    <a
+                      href={`/publications/add`}
+                      className="underline text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    >
+                      Add your first publication
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Similar Scholars */}
           {relatedContent}

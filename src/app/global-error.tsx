@@ -26,7 +26,7 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="mt-6 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-200"
+              className="sb-error-retry-button mt-6 rounded-lg px-4 py-2 text-sm font-medium"
             >
               Try again
             </button>

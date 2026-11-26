@@ -39,7 +39,6 @@ export default async function EditPublicationPage({
       keywords: true,
       domain: true,
       abstract: true,
-      isUserAuthor: true,
       authorId: true,
       journalId: true,
       journal: { select: { id: true, title: true } },
@@ -66,8 +65,8 @@ export default async function EditPublicationPage({
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.publications.title}
       description={EDIT_PAGE_TEXT.publications.description}
-      backHref={`/publications/${publication.id}`}
-      backLabel="Cancel and Back to Publication"
+      backHref={`/scholars/${user.id}?tab=about`}
+      backLabel="Cancel and Back to Scholar Profile"
     >
       <PublicationForm
         mode="edit"
@@ -92,7 +91,6 @@ export default async function EditPublicationPage({
           keywords: publication.keywords ?? "",
           domain: publication.domain ?? "",
           abstract: publication.abstract ?? "",
-          isUserAuthor: publication.isUserAuthor ? "true" : "false",
           journalId: publication.journalId ?? "",
           authorIds: publication.publicationAuthors.map((author) => author.userId),
         }}

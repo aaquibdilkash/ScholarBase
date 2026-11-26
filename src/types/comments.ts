@@ -19,7 +19,6 @@ export type CommentEntityType =
   | "course"
   | "result"
   | "contribution"
-  | "publication"
   | "survey";
 
 export interface CommentAuthor {

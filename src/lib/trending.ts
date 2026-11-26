@@ -76,11 +76,6 @@ const loaders = {
     tag: "results",
     type: "result",
   }),
-  publications: createContentTrending({
-    module: "PUBLICATION",
-    tag: "publications",
-    type: "publication",
-  }),
   contributions: createContentTrending({
     module: "CONTRIBUTION",
     tag: "contributions",
@@ -122,7 +117,6 @@ export const getTrendingJournals = () => loaders.journals.fetch();
 export const getTrendingResearchTools = () => loaders.researchTools.fetch();
 export const getTrendingHelpPosts = () => loaders.helpPosts.fetch();
 export const getTrendingResults = () => loaders.results.fetch();
-export const getTrendingPublications = () => loaders.publications.fetch();
 export const getTrendingContributions = () => loaders.contributions.fetch();
 export const getTrendingSurveys = () => loaders.surveys.fetch();
 export const getTrendingGrants = () => loaders.grants.fetch();

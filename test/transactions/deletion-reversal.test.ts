@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { fakeDb, resetFakeDb } from "../fake-prisma"
 import { deleteSocialPost } from "@/app/actions/feed"
 import { deleteArticle } from "@/app/actions/blog"
-import { deletePublication } from "@/app/actions/publications"
 import { deleteHelpPost } from "@/app/actions/help"
 import { deleteAcademicPosition } from "@/app/actions/academic-positions"
 import { deleteAdmission } from "@/app/actions/admissions"
@@ -86,13 +85,6 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
       counter: "articleCount",
       deleter: (id: string) => deleteArticle(id),
       seedExtra: { title: "Research blog", slug: "res-blog" },
-    },
-    {
-      name: "Publication",
-      model: "publication",
-      counter: "publicationCount",
-      deleter: (id: string) => deletePublication(id),
-      seedExtra: { title: "Paper title" },
     },
     {
       name: "HelpPost",

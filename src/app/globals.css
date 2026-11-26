@@ -452,6 +452,21 @@ html[data-theme="dark"] {
   }
   .sb-button-soft:hover { border-color: var(--border-strong); }
 
+  /* Error boundaries must remain readable when the theme's surface rewrite
+     sees variant classes such as `dark:bg-white`. Keep this action's colors
+     explicit instead of relying on a utility that can be re-tinted globally. */
+  .sb-error-retry-button {
+    border: 1px solid #0f172a;
+    background: #0f172a;
+    color: #ffffff;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .sb-error-retry-button:hover {
+    border-color: #334155;
+    background: #334155;
+  }
+
   .sb-navbar-bg {
     background:
       radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.9), transparent 42%),
@@ -734,6 +749,19 @@ html[data-theme="dark"] {
     background: rgba(15, 23, 42, 0.92);
     color: #e2e8f0;
     box-shadow: 0 10px 24px rgba(2, 6, 23, 0.18);
+  }
+
+  html.dark .sb-error-retry-button,
+  html[data-theme="dark"] .sb-error-retry-button {
+    border-color: #f8fafc;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  html.dark .sb-error-retry-button:hover,
+  html[data-theme="dark"] .sb-error-retry-button:hover {
+    border-color: #e2e8f0;
+    background: #e2e8f0;
   }
 
   html.dark .sb-heading,

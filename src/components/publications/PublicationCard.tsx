@@ -1,9 +1,6 @@
 "use client";
 
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { ReportMenu } from "@/components/cards/ReportMenu";
-import { VoteButton } from "@/components/interactions/VoteButton";
-import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
@@ -39,10 +36,7 @@ export function PublicationCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === publication.authorId;
-  const isFollowing = (publication.author?.followers?.length ?? 0) > 0;
-  const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (publication.votes || [])[0]?.voteType ??
-    null;
+
   // Share payload: mirror publications/[id]/page.tsx generateMetadata().
   const shareTitle = publication.title;
   const shareText =
@@ -78,17 +72,10 @@ export function PublicationCard({
 
   return (
     <ListPageCardShell
-      // The list card must surface the same moderation state as the detail page.
-      isFrozen={publication.isFrozen ?? false}
-      frozenEntityId={publication.id}
-      frozenModule="PUBLICATION"
-      frozenEntityType="POST"
-      frozenOwnerId={publication.author?.id ?? null}
-      frozenHasActiveAppeal={publication.hasActiveAppeal ?? false}
       authorHref={`/scholars/${publication.author?.id}`}
       authorName={publication.author?.name || "Scholar"}
       authorId={publication.authorId}
-      isFollowing={isFollowing}
+      isFollowing={false}
       currentUserId={currentUserId}
       authorHandle={publication.author?.handle || undefined}
       authorAvatarUrl={publication.author?.avatarUrl || undefined} authorVerified={!!(publication.author?.institutionVerifiedAt)}
@@ -109,7 +96,7 @@ export function PublicationCard({
                   toast(actionErrorMessage(response, "Failed to delete publication."), "error");
                   return { refresh: false };
                 }
-                removeFromList<PublicationWithAuthor>(queryClient, ["publications"], response.data.deletedId);
+                removeFromList<PublicationWithAuthor>(queryClient, ["profile-publications", publication.authorId], response.data.deletedId);
                 toast("Publication deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
@@ -125,38 +112,11 @@ export function PublicationCard({
       editedDate={
         publication.editedAt && publication.editedAt > publication.createdAt ? publication.editedAt : undefined
       }
-      footerVoteButton={
-        <VoteButton
-          frozen={publication.isFrozen === true}
-          targetId={publication.id}
-          module="PUBLICATION"
-          initialTotalVotes={publication.totalVotes}
-          initialUserVote={userVote}
-          isOwnContent={isOwner}
-        />
-      }
-      footerBookmarkButton={
-        <BookmarkButton
-          frozen={publication.isFrozen === true}
-          targetId={publication.id}
-          module="PUBLICATION"
-          initialTotalBookmarks={publication.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(publication.bookmarks) && publication.bookmarks.length > 0}
-        />
-      }
-      footerCommentsHref={`/publications/${publication.id}`}
-      footerCommentsCount={publication.totalComments}
-      footerReportMenu={
-        <ReportMenu
-          entityId={publication.id}
-          entityType="POST"
-          module="PUBLICATION"
-          ownerId={publication.author?.id ?? publication.authorId ?? null}
-          currentUserId={currentUserId ?? null}
-          isFrozen={publication.isFrozen ?? false}
-          hasActiveAppeal={publication.hasActiveAppeal ?? false}
-        />
-      }
+      footerVoteButton={undefined}
+      footerBookmarkButton={undefined}
+      footerCommentsHref={undefined}
+      footerCommentsCount={0}
+      footerReportMenu={undefined}
       noBodyLink={true}
       bodyBottomContent={
         publication.url ? (
@@ -232,14 +192,6 @@ export function PublicationCard({
               {publication.domain}
             </span>
           )}
-          {publication.isUserAuthor && (
-            <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300">
-              Co-author
-            </span>
-          )}
-        </div>
-
-        <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-slate-500">
           {publication.keywords
             ?.split(",")
             .map((kw) => kw.trim())

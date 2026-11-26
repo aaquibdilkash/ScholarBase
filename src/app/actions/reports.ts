@@ -94,11 +94,6 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "article",
     reportCountField: "reportCount",
   },
-  PUBLICATION: {
-    delegate: prisma.publication as unknown as ModuleConfig["delegate"],
-    model: "publication",
-    reportCountField: "reportCount",
-  },
   JOURNAL: {
     delegate: prisma.journal as unknown as ModuleConfig["delegate"],
     model: "journal",
@@ -179,11 +174,6 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
   CONTRIBUTION_COMMENT: {
     delegate: prisma.contributionComment as unknown as ModuleConfig["delegate"],
     model: "contributionComment",
-    reportCountField: "reportCount",
-  },
-  PUBLICATION_COMMENT: {
-    delegate: prisma.publicationComment as unknown as ModuleConfig["delegate"],
-    model: "publicationComment",
     reportCountField: "reportCount",
   },
   RESEARCH_TOOL_COMMENT: {

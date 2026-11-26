@@ -71,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("registry content listings (13 modules, one chokepoint)", () => {
-  it.each(["COURSE", "JOURNAL", "PUBLICATION", "RESEARCH_GRANT"])(
+  it.each(["COURSE", "JOURNAL", "RESEARCH_GRANT"])(
     "throttles a real search on %s",
     async (key) => {
       await loadContentPage(key as never, { query: "genomics" });

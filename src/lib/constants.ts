@@ -261,7 +261,6 @@ export const REVIEW_PAGE_SIZE = 10
 export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   SOCIAL_FEED: "feed",
   ARTICLE_PAGE: "blog",
-  PUBLICATION: "publication",
   JOURNAL: "journal",
   RESEARCH_TOOL: "researchTool",
   RESEARCH_GRANT: "researchGrant",
@@ -281,7 +280,6 @@ export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   ARTICLE_COMMENT: "articleComment",
   HELP_COMMENT: "helpComment",
   CONTRIBUTION_COMMENT: "contributionComment",
-  PUBLICATION_COMMENT: "publicationComment",
   RESEARCH_TOOL_COMMENT: "researchToolComment",
   RESEARCH_GRANT_COMMENT: "researchGrantComment",
   COURSE_COMMENT: "courseComment",

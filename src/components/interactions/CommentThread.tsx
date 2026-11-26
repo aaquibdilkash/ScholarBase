@@ -64,7 +64,7 @@ const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
   course: "COURSE_COMMENT",
   result: "RESULT_COMMENT",
   contribution: "CONTRIBUTION_COMMENT",
-  publication: "PUBLICATION_COMMENT",
+  
   survey: "SURVEY_COMMENT",
 };
 

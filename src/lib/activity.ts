@@ -22,7 +22,6 @@ export const ACTIVITY_COMMENT_MODULE = {
   ARTICLE: "ARTICLE_COMMENT",
   HELP_POST: "HELP_POST_COMMENT",
   CONTRIBUTION: "CONTRIBUTION_COMMENT",
-  PUBLICATION: "PUBLICATION_COMMENT",
   RESEARCH_TOOL: "RESEARCH_TOOL_COMMENT",
   RESEARCH_GRANT: "RESEARCH_GRANT_COMMENT",
   COURSE: "COURSE_COMMENT",
@@ -51,7 +50,6 @@ export const COMMENT_CONTENT_TYPE_TO_ACTIVITY: Record<
   articleComment: "ARTICLE",
   helpComment: "HELP_POST",
   contributionComment: "CONTRIBUTION",
-  publicationComment: "PUBLICATION",
   researchToolComment: "RESEARCH_TOOL",
   researchGrantComment: "RESEARCH_GRANT",
   courseComment: "COURSE",
@@ -74,7 +72,6 @@ export const COMMENT_CONTENT_TYPE_TO_ACTIVITY: Record<
 export const CONTENT_TYPE_TO_ACTIVITY_MODULE: Record<string, ActivityContentModule> = {
   feed: "SOCIAL_POST",
   blog: "ARTICLE",
-  publication: "PUBLICATION",
   journal: "JOURNAL",
   researchTool: "RESEARCH_TOOL",
   researchGrant: "RESEARCH_GRANT",

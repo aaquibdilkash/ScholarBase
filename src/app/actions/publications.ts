@@ -3,44 +3,14 @@
 import type { PublicationWithAuthor } from "@/types/cards";
 import type { PublicationType } from "@prisma/client";
 
-import {
-  loadContentPage,
-  revalidateContent,
-} from "@/lib/tri-split/modules/registry";
-import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
-import { hideContentActivity } from "@/lib/activity";
-
-import { cache } from "react";
-
 import prisma from "@/lib/db";
-import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { getRichTextLength } from "@/lib/html";
-import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
-import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
-import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-
-function readLinkedIds(formData: FormData, key: string): string[] {
-  return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
-}
-
-/** Chip input persists as comma-joined string — normalize server-side too so
- *  direct FormData posts can't bypass the per-keyword / count / total guards. */
-function normalizeKeywords(raw: string | null): string | null {
-  if (!raw) return null;
-  const chips = [...new Set(
-    raw
-      .split(",")
-      .map((k) => k.trim().replace(/\s+/g, " ").slice(0, MAX_PUBLICATION_KEYWORD_LENGTH))
-      .filter(Boolean),
-  )].slice(0, MAX_PUBLICATION_KEYWORD_COUNT);
-  if (chips.length === 0) return null;
-  const joined = chips.join(", ");
-  return joined.slice(0, MAX_PUBLICATION_KEYWORDS);
-}
+import { notifyUserById } from "@/lib/notifications";
+import { MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
 
 type PublicationPeople = {
   authorIds: string[];
@@ -55,28 +25,27 @@ type PublicationPeopleResult =
 async function resolvePublicationPeople(
   formData: FormData,
 ): Promise<PublicationPeopleResult> {
-  const authorIds = readLinkedIds(formData, "authorIds");
+  const authorIds = readOptionalFormValue(formData, "authorIds");
   const journalId = readOptionalFormValue(formData, "journalId");
-  if (authorIds.length === 0) {
+  if (!authorIds || authorIds.trim() === "") {
     return {
       success: false,
       error: "Select at least one ScholarBase author for this publication.",
     };
   }
-  const [authors, journal] = await Promise.all([
-    prisma.user.findMany({ where: { id: { in: authorIds }, isDeleted: false }, select: { id: true, name: true, handle: true } }),
-    journalId ? prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } }) : null,
-  ]);
-  if (authors.length !== authorIds.length || (journalId && !journal)) {
+  const authorIdList = authorIds.split(",").map((id) => id.trim()).filter(Boolean);
+  const authors = await prisma.user.findMany({ where: { id: { in: authorIdList }, isDeleted: false }, select: { id: true, name: true, handle: true } });
+  if (authors.length !== authorIdList.length) {
     return {
       success: false,
-      error: "One or more selected authors or journals are no longer available. Please select them again.",
+      error: "One or more selected authors are no longer available. Please select them again.",
     };
   }
+  const journal = journalId ? await prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } }) : null;
   return {
     success: true,
     data: {
-      authorIds,
+      authorIds: authorIdList,
       authors: authors.map((author) => author.name || `@${author.handle}`),
       journalId: journal?.id ?? null,
     },
@@ -112,14 +81,13 @@ export async function createPublication(formData: FormData) {
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
   const safeUrl = validateExternalUrl(url, "Publication URL");
-  const keywords = normalizeKeywords(readOptionalFormValue(formData, "keywords"));
+  const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
   if (getRichTextLength(abstract ?? "") === 0) {
     return { success: false, error: "Abstract is required." };
   }
-  const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.$transaction(async (tx) => {
     const newPublication = await tx.publication.create({
@@ -135,11 +103,10 @@ export async function createPublication(formData: FormData) {
         pages,
         doi,
         isbn,
-    url: safeUrl,
+        url: safeUrl,
         keywords,
         domain,
         abstract,
-        isUserAuthor,
         authorId: user.id,
         journalId: linkedPeople.journalId,
         publicationAuthors: { create: linkedPeople.authorIds.map((userId, authorOrder) => ({ userId, authorOrder })) },
@@ -154,17 +121,14 @@ export async function createPublication(formData: FormData) {
             followers: { where: { followerId: user.id }, select: { followerId: true } },
           },
         },
-        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
-      },
-    });
-
-    await tx.userActivity.create({
-      data: {
-        userId: user.id,
-        action: "PUBLISHED",
-        moduleType: "PUBLICATION",
-        entityId: newPublication.id,
-        entityTitle: newPublication.title,
+        publicationAuthors: {
+          select: {
+            userId: true,
+            authorOrder: true,
+            user: { select: { id: true, name: true, handle: true } },
+          },
+          orderBy: { authorOrder: "asc" },
+        },
       },
     });
 
@@ -173,32 +137,23 @@ export async function createPublication(formData: FormData) {
       data: { publicationCount: { increment: 1 } },
     });
 
+    // Co-author notifications: only for scholars other than the submitter
+    await Promise.all(
+      linkedPeople.authorIds.filter((authorId) => authorId !== user.id).map((recipientId) =>
+        notifyUserById({
+          recipientId,
+          actorId: user.id,
+          type: "publication-author",
+          targetType: "Publication",
+          targetId: newPublication.id,
+          title: `${user.email?.split("@")[0] || "Someone"} added you as a publication author`,
+          body: title,
+        }),
+      ),
+    );
+
     return newPublication;
   });
-
-  const publicationAuthors = linkedPeople.authorIds.filter((authorId) => authorId !== user.id);
-  await Promise.all([
-    notifyFollowersOfActivity({
-      actorId: user.id,
-      type: "content-published",
-      targetType: "Publication",
-      targetId: publication.id,
-      title: `${user.email?.split("@")[0] || "Someone"} published a new paper`,
-      body: `${title}${journalOrConference ? ` (${journalOrConference})` : ""}`,
-    }),
-    ...publicationAuthors.map((recipientId) => notifyUserById({
-      recipientId,
-      actorId: user.id,
-      type: "publication-author",
-      targetType: "Publication",
-      targetId: publication.id,
-      title: `${user.email?.split("@")[0] || "Someone"} added you as a publication author`,
-      body: title,
-    })),
-  ]);
-
-  // Purge the cached publication pages: publish must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION", user.id);
 
   return { success: true, data: publication };
 }
@@ -234,60 +189,50 @@ export async function updatePublication(
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
   const safeUrl = validateExternalUrl(url, "Publication URL");
-  const keywords = normalizeKeywords(readOptionalFormValue(formData, "keywords"));
+  const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
   if (getRichTextLength(abstract ?? "") === 0) {
     return { success: false, error: "Abstract is required." };
   }
-  const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },
-    select: {
-      authorId: true,
-      publicationAuthors: { select: { userId: true } },
-    },
+    select: { authorId: true, publicationAuthors: { select: { userId: true } } },
   });
-
-  if (!publication) {
-    throw new Error("Publication not found.");
-  }
-  if (!(await isAuthorizedOrAdmin(publication.authorId, user.id))) {
-    throw new Error("Not authorized to edit this publication.");
-  }
-  const previousAuthorIds = publication.publicationAuthors.map((a) => a.userId);
+  if (!publication) throw new Error("Publication not found.");
+  if (publication.authorId !== user.id) throw new Error("Not authorized to edit this publication.");
+  const previousAuthorIds = publication.publicationAuthors.map(({ userId }) => userId);
 
   const updatedPublication = await prisma.$transaction(async (tx) => {
     await tx.publicationAuthor.deleteMany({ where: { publicationId } });
     return tx.publication.update({
-    where: { id: publicationId },
-    data: {
-      title,
-      journalId: linkedPeople.journalId,
-      publicationAuthors: { create: linkedPeople.authorIds.map((userId, authorOrder) => ({ userId, authorOrder })) },
-      authors,
-      publicationType,
-      journalOrConference,
-      publisher,
-      year: year ? parseInt(year) : null,
-      volume,
-      issue,
-      pages,
-      doi,
-      isbn,
-    url: safeUrl,
-      keywords,
-      domain,
-      abstract,
-      isUserAuthor,
-      editedAt: new Date(),
-    },
-  });
+      where: { id: publicationId },
+      data: {
+        title,
+        journalId: linkedPeople.journalId,
+        publicationAuthors: { create: linkedPeople.authorIds.map((userId, authorOrder) => ({ userId, authorOrder })) },
+        authors,
+        publicationType,
+        journalOrConference,
+        publisher,
+        year: year ? parseInt(year) : null,
+        volume,
+        issue,
+        pages,
+        doi,
+        isbn,
+        url: safeUrl,
+        keywords,
+        domain,
+        abstract,
+        editedAt: new Date(),
+      },
+    });
   });
 
-  // Notify scholars newly added as co-authors on edit (create already notifies).
+  // Notify scholars newly added as co-authors on edit
   const newlyAddedAuthorIds = linkedPeople.authorIds.filter(
     (id) => id !== user.id && !previousAuthorIds.includes(id),
   );
@@ -301,14 +246,11 @@ export async function updatePublication(
           targetType: "Publication",
           targetId: publicationId,
           title: `${user.email?.split("@")[0] || "Someone"} added you as a co-author`,
-          body: `${title}${journalOrConference ? ` (${journalOrConference})` : ""}`,
+          body: `${title}${journalOrConference ? ` (${journalOrConference})` : ``}`,
         }),
       ),
     );
   }
-
-  // Purge the cached publication pages: edit must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION", publication.authorId);
 
   return { success: true, data: updatedPublication };
 }
@@ -321,56 +263,163 @@ export async function deletePublication(publicationId: string) {
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },
-    select: { authorId: true, totalVotes: true, totalComments: true },
+    select: { authorId: true, publicationAuthors: { select: { userId: true } } },
   });
 
   if (!publication) {
     throw new Error("Publication not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(
-    user.id,
-    publication.authorId,
-  );
+  if (user.id !== publication.authorId) {
+    throw new Error("You are not the author of this publication.");
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.publication.update({
       where: { id: publicationId },
-      data: { isDeleted: true, deletedByType, deletedById: user.id },
+      data: { isDeleted: true, deletedByType: "AUTHOR", deletedById: user.id },
     });
 
-     await tx.user.update({
-       where: { id: publication.authorId },
-       data: { publicationCount: { decrement: 1 } },
-     });
-
-     if (publication.totalVotes !== 0) {
-      await tx.user.update({
-        where: { id: publication.authorId },
-        data: { reputation: { decrement: publication.totalVotes } },
-      });
-    }
+    await tx.user.update({
+      where: { id: user.id },
+      data: { publicationCount: { decrement: 1 } },
+    });
 
     // Hide this content's activity so a deleted publication stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
-    await hideContentActivity(tx, "PUBLICATION", publicationId)
+    // Note: deleteAllNotificationsForContent no longer has a PUBLICATION path
+    // since ENTITY_CONFIG.PUBLICATION was removed; we purge notifications that
+    // reference this publication's id directly.
+    await tx.notification.deleteMany({
+      where: {
+        OR: [
+          { targetType: "Publication", targetId: publicationId },
+        ],
+      },
+    });
 
-    // Delete every notification pointing at this publication and its comments.
-    await deleteAllNotificationsForContent(tx, "PUBLICATION", publicationId)
   });
 
-  // Purge the cached publication pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION", publication.authorId);
+  return { success: true, data: { deletedId: publicationId, isDeleted: true as const, deletedByType: "AUTHOR" } };
+}
 
-  // Purge every bookmarker's Bookmarks tab so a soft-deleted publication stops
-  // inflating their bookmark count or showing a phantom "show more" arrow.
-  await revalidateBookmarkersForDeletedContent("PUBLICATION", publicationId);
+/**
+ * Loads one page of publication rows for a given profile (About tab).
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * Queries only publications owned by the given profileId (submitter-only).
+ *
+ * Order: year desc nulls last, then createdAt desc, id desc.
+ * Initial take=1; load-more adds one more item per click.
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
+export async function getProfilePublications(
+  profileId: string,
+  take: number = 1,
+) {
+  return prisma.publication.findMany({
+    where: {
+      authorId: profileId,
+      isDeleted: false,
+    },
+    orderBy: [
+      { year: "desc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
+    take,
+    select: {
+      id: true,
+      title: true,
+      authors: true,
+      publicationType: true,
+      year: true,
+      journalOrConference: true,
+      journal: { select: { id: true, title: true } },
+      publisher: true,
+      doi: true,
+      url: true,
+      keywords: true,
+      domain: true,
+      abstract: true,
+      createdAt: true,
+      publicationAuthors: {
+        select: {
+          userId: true,
+          authorOrder: true,
+          user: { select: { id: true, name: true, handle: true } },
+        },
+        orderBy: { authorOrder: "asc" },
+      },
+    },
+  }) as Promise<PublicationWithAuthor[]>;
+}
 
-  return { success: true, data: { deletedId: publicationId, isDeleted: true as const, deletedByType, totalComments: publication.totalComments } };
+/**
+ * Loads the next page of publications for the About tab.
+ * Increments take by 1 each click (one more item per arrow press).
+ */
+export async function getProfilePublicationPage(
+  profileId: string,
+  skip: number = 0,
+  take: number = 1,
+) {
+  return prisma.publication.findMany({
+    where: {
+      authorId: profileId,
+      isDeleted: false,
+    },
+    orderBy: [
+      { year: "desc" },
+      { createdAt: "desc" },
+      { id: "desc" },
+    ],
+    skip,
+    take,
+    select: {
+      id: true,
+      title: true,
+      authors: true,
+      publicationType: true,
+      year: true,
+      journalOrConference: true,
+      journal: { select: { id: true, title: true } },
+      publisher: true,
+      doi: true,
+      url: true,
+      keywords: true,
+      domain: true,
+      abstract: true,
+      createdAt: true,
+      publicationAuthors: {
+        select: {
+          userId: true,
+          authorOrder: true,
+          user: { select: { id: true, name: true, handle: true } },
+        },
+        orderBy: { authorOrder: "asc" },
+      },
+    },
+  }) as Promise<PublicationWithAuthor[]>;
+}
+
+/**
+ * Returns the total number of (non-deleted) publications for a profile.
+ * Drives the header count and pagination "hasMore" state.
+ */
+export async function getProfilePublicationCount(profileId: string) {
+  return prisma.publication.count({
+    where: {
+      authorId: profileId,
+      isDeleted: false,
+    },
+  });
 }
 
 /**
  * Loads one page of publication rows for the
- * *current* viewer.
+ * *current* viewer (used by the old /publications list page).
  *
  * Identity comes from the session, server-side — never from a client argument.
  * (This loader used to accept `userId` from the browser, so any caller could
@@ -378,115 +427,90 @@ export async function deletePublication(publicationId: string) {
  *
  * The cached viewer-agnostic batch plus the single-statement live overlay live
  * in `@/lib/tri-split/modules/registry`.
+ *
+ * NOTE: This loader is kept for backward compat if any code still references it,
+ * but the `/publications` list page has been removed. New code should use
+ * `getProfilePublications` / `getProfilePublicationPage` instead.
  */
 export async function getPublications(
   q?: string,
   limit = 10,
-  cursor?: string,
+  _cursor?: string,
 ) {
-  return loadContentPage("PUBLICATION", { query: q, pageSize: limit, cursor }) as Promise<
-  PublicationWithAuthor[]
->;
+  return prisma.publication.findMany({
+    where: {
+      isDeleted: false,
+      OR: [
+        { title: { contains: q ?? "", mode: "insensitive" } },
+        { abstract: { contains: q ?? "", mode: "insensitive" } },
+        { keywords: { contains: q ?? "", mode: "insensitive" } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      authors: true,
+      publicationType: true,
+      year: true,
+      authorId: true,
+      journal: { select: { id: true, title: true } },
+    },
+  }) as unknown as PublicationWithAuthor[];
 }
 
-export const getPublicationById = cache(
-  async (publicationId: string, userId?: string) => {
-    return prisma.publication.findUnique({
-      where: {
-        id: publicationId,
-        isDeleted: false,
-      },
-      select: {
-        id: true,
-        title: true,
-        authors: true,
-        publicationType: true,
-        journalOrConference: true,
-        journalId: true,
-        journal: { select: { id: true, title: true } },
-        publisher: true,
-        year: true,
-        volume: true,
-        issue: true,
-        pages: true,
-        doi: true,
-        isbn: true,
-        url: true,
-        keywords: true,
-        domain: true,
-        abstract: true,
-        isUserAuthor: true,
-        createdAt: true,
-        updatedAt: true,
-        editedAt: true,
-        authorId: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            handle: true,
-            avatarUrl: true, institutionVerifiedAt: true,
-            followers: userId
-              ? {
-                  where: { followerId: userId },
-                  select: { followerId: true },
-                }
-              : false,
-          },
-        },
-        publicationAuthors: {
-          select: {
-            userId: true,
-            authorOrder: true,
-            user: { select: { id: true, name: true, handle: true } },
-          },
-          orderBy: { authorOrder: "asc" },
-        },
-        totalVotes: true,
-        totalBookmarks: true,
-        isFrozen: true,
-        hasActiveAppeal: true,
-        isDeleted: true,
-        deletedByType: true,
-        totalComments: true,
-        votes: userId
-          ? { where: { userId }, select: { voteType: true } }
-          : false,
-        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-        comments: {
-          where: VISIBLE_PARENT_COMMENT_WHERE,
-          // LAZY PAGINATION: first page of parents only; replies load on demand.
-          orderBy: { createdAt: "desc" },
-          take: COMMENT_PAGE_SIZE + 1,
-          select: {
-            isDeleted: true,
-            isFrozen: true,
-            hasActiveAppeal: true,
-            deletedByType: true,
-            id: true,
-            content: true,
-            createdAt: true,
-            updatedAt: true,
-            editedAt: true,
-            parentId: true,
-            authorId: true,
-            author: {
-              select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true, institutionVerifiedAt: true,
-              },
-            },
-            totalVotes: true,
-            totalReplies: true,
-            votes: userId
-              ? { where: { userId }, select: { voteType: true } }
-              : false,
-            mentions: true,
-          },
+export const getPublicationById = async (publicationId: string, userId?: string) => {
+  return prisma.publication.findUnique({
+    where: {
+      id: publicationId,
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      title: true,
+      authors: true,
+      publicationType: true,
+      journalOrConference: true,
+      journalId: true,
+      journal: { select: { id: true, title: true } },
+      publisher: true,
+      year: true,
+      volume: true,
+      issue: true,
+      pages: true,
+      doi: true,
+      isbn: true,
+      url: true,
+      keywords: true,
+      domain: true,
+      abstract: true,
+      createdAt: true,
+      updatedAt: true,
+      editedAt: true,
+      authorId: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true, institutionVerifiedAt: true,
+          followers: userId
+            ? {
+                where: { followerId: userId },
+                select: { followerId: true },
+              }
+            : false,
         },
       },
-    });
-  },
-);
+      publicationAuthors: {
+        select: {
+          userId: true,
+          authorOrder: true,
+          user: { select: { id: true, name: true, handle: true } },
+        },
+        orderBy: { authorOrder: "asc" },
+      },
+    },
+  });
+};

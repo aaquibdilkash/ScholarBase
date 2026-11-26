@@ -271,51 +271,6 @@ export const CONTENT_LIST_CONFIGS = {
     dateKeys: DATES,
   },
 
-  PUBLICATION: {
-    module: "PUBLICATION",
-    // Which Trending tab lists this module, so one mutation purges both.
-    trending: "publications",
-    tag: "publications-public",
-    where: { isDeleted: false },
-    select: {
-      id: true,
-      title: true,
-      authors: true,
-      year: true,
-      journalOrConference: true,
-      journalId: true,
-      journal: { select: { id: true, title: true } },
-      publicationType: true,
-      keywords: true,
-      domain: true,
-      abstract: true,
-      url: true,
-      isUserAuthor: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      publicationAuthors: {
-        select: {
-          userId: true,
-          authorOrder: true,
-          user: { select: { id: true, name: true, handle: true } },
-        },
-        orderBy: { authorOrder: "asc" },
-      },
-      ...COMMON_TAIL,
-      author: AUTHOR,
-    } as unknown as Record<string, unknown>,
-    searchFields: [
-      { field: "title" },
-      { field: "authors" },
-      { field: "keywords" },
-      { field: "domain" },
-      { field: "journalOrConference" },
-      { field: "abstract" },
-    ],
-    dateKeys: DATES,
-  },
   RESEARCH_TOOL: {
     module: "RESEARCH_TOOL",
     // Which Trending tab lists this module, so one mutation purges both.
@@ -755,8 +710,8 @@ export const CONTENT_LIST_KEYS = Object.keys(
  * Loads one page for a standard content module, for the current viewer.
  * Takes no identity — the factory resolves it from the session.
  *
- * This is the ONE entry point for all 13 configured content modules
- * (publications, callForPapers, grants, surveys, admissions, courses, academicPositions,
+ * This is the ONE entry point for all 12 configured content modules
+ * (callForPapers, grants, surveys, admissions, courses, academicPositions,
  * journals, research tools, results, contributions, supervisors, help), so the
  * search throttle lives here rather than being repeated in 13 action files that
  * would inevitably drift apart.

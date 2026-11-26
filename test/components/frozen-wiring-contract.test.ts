@@ -33,7 +33,13 @@ const REQUIRED_PROPS = [
  * The user directory. A `User` row has no `isFrozen`, and freezing a scholar is
  * the account-freeze flow (`FrozenAccountBanner`), not content moderation.
  */
-const NOT_CONTENT = new Set(["src/components/scholars/ScholarCard.tsx"]);
+const NOT_CONTENT = new Set([
+  "src/components/scholars/ScholarCard.tsx",
+  // Publications are personal showcase entries now; their moderation/freeze
+  // surface was removed together with votes and comments.
+  "src/app/publications/[id]/page.tsx",
+  "src/components/publications/PublicationCard.tsx",
+]);
 
 const SHELLS = ["ListPageCardShell", "DetailPageCardShell"] as const;
 

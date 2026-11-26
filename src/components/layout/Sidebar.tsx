@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronsLeft,
   ClipboardList,
-  File,
   FileText,
   Gift,
   HandCoins,
@@ -350,7 +349,6 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Blog", href: "/blog", icon: <FileText className="h-6 w-6 shrink-0" /> },
       { name: "Research Tools", href: "/research-tools", icon: <Search className="h-6 w-6 shrink-0" /> },
       { name: "Learning Zone", href: "/learn", icon: <BookMarked className="h-6 w-6 shrink-0" /> },
-      { name: "Research Publications", href: "/publications", icon: <File className="h-6 w-6 shrink-0" /> },
       // Hidden while the Contributions feature is behind the "Coming Soon" gate.
       ...(!isComingSoon
         ? [{ name: "Contributions", href: "/contributions", icon: <Gift className="h-6 w-6 shrink-0" /> }]

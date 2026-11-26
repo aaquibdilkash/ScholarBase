@@ -6,10 +6,6 @@ import {
   buildContentJsonLd,
   CONTENT_SCHEMA,
 } from "@/lib/schema";
-import { ReportMenu } from "@/components/cards/ReportMenu";
-import { CommentSection } from "@/components/interactions/CommentSection";
-import { VoteButton } from "@/components/interactions/VoteButton";
-import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { createClient } from "@/utils/supabase/server";
 import { getPublicationById } from "../../actions/publications";
@@ -82,29 +78,28 @@ const PublicationDetailPage = async ({
     if (!removed) notFound();
     return (
       <RemovedContentNotice
-        backHref="/publications"
-        backLabel="Back to Publications"
+        backHref="/scholars"
+        backLabel="Back to Scholars"
         entityId={removed.id}
         module="PUBLICATION"
         ownerId={removed.authorId}
         currentUserId={user?.id}
-        hasActiveAppeal={removed.hasActiveAppeal}
+        hasActiveAppeal={false}
         noun="publication"
       />
     );
   }
 
   const p = publication;
-  const userVote =
-    (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  // Related publications via pgvector cosine similarity — read-only.
   const related = await getRelatedContent("PUBLICATION", p.id);
 
   async function handleDelete() {
     "use server";
     const res = await deletePublication(p.id);
     if (res?.success === false) return res;
-    return { redirect: "/publications", invalidateQueries: [["publications"]] };
+    return { redirect: `/scholars/${p.authorId}?tab=about`, invalidateQueries: [["profile-publications", p.authorId]] };
   }
 
   return (
@@ -156,19 +151,12 @@ const PublicationDetailPage = async ({
       relatedContent={
         <RelatedContent title="Related publications" items={related} />
       }
-      isFrozen={p.isFrozen ?? false}
-      frozenEntityId={p.id}
-      frozenModule="PUBLICATION"
-      frozenEntityType="POST"
-      frozenOwnerId={p.author?.id ?? null}
-      frozenHasActiveAppeal={p.hasActiveAppeal ?? false}
-      backHref="/publications"
-      backLabel="Back to Publications"
+      backHref={`/scholars/${p.authorId}?tab=about`}
+      backLabel="Back to Scholar Profile"
       authorHref={`/scholars/${p.author?.id}`}
       authorName={p.author?.name || "Scholar"}
       authorHandle={p.author?.handle || undefined}
       authorAvatarUrl={p.author?.avatarUrl || undefined}
-      authorVerified={!!p.author?.institutionVerifiedAt}
       authorId={p.author?.id}
       isFollowing={!!p.author?.followers?.length}
       currentUserId={user?.id}
@@ -187,50 +175,11 @@ const PublicationDetailPage = async ({
           />
         ) : null
       }
-      footerVoteButton={
-        <VoteButton
-          targetId={p.id}
-          module="PUBLICATION"
-          initialTotalVotes={p.totalVotes}
-          initialUserVote={userVote}
-          isOwnContent={user?.id === p.author?.id}
-        />
-      }
-      footerBookmarkButton={
-        <BookmarkButton
-          frozen={p.isFrozen === true}
-          targetId={p.id}
-          module="PUBLICATION"
-          initialTotalBookmarks={p.totalBookmarks ?? 0}
-          initialIsBookmarked={
-            Array.isArray(p.bookmarks) && p.bookmarks.length > 0
-          }
-        />
-      }
-      footerCommentsHref={`/publications/${p.id}#comments`}
-      footerCommentsCount={p.totalComments}
-      footerReportMenu={
-        <ReportMenu
-          entityId={p.id}
-          entityType="POST"
-          module="PUBLICATION"
-          ownerId={p.author?.id ?? null}
-          currentUserId={user?.id ?? null}
-          isFrozen={p.isFrozen}
-          hasActiveAppeal={p.hasActiveAppeal}
-        />
-      }
-      discussion={
-        <CommentSection
-          locked={p.isFrozen ?? false}
-          comments={p.comments}
-          totalComments={p.totalComments}
-          targetId={p.id}
-          module="publication"
-          currentUserId={user?.id ?? null}
-          postAuthorId={p.author?.id}
-        />
-      }
+      footerCommentsHref=""
+      footerCommentsCount={0}
+      // Social interaction slots removed: no VoteButton, BookmarkButton,
+      // CommentSection, or ReportMenu. Publication is a read-only citation
+      // page; the owner still gets Edit/Delete from the managementControls above.
     >
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
         <h1 className="min-w-0 [overflow-wrap:anywhere] text-lg sm:text-xl md:text-2xl font-bold text-slate-950 flex-1">
@@ -336,16 +285,6 @@ const PublicationDetailPage = async ({
             </p>
             <p className="mt-1 break-words text-sm font-semibold text-teal-800 dark:text-teal-200 [overflow-wrap:anywhere]">
               {p.pages}
-            </p>
-          </div>
-        )}
-        {p.isUserAuthor && (
-          <div className="metric-card min-w-0 overflow-hidden bg-amber-50 dark:bg-amber-900/20">
-            <p className="text-xs text-rose-500 dark:text-rose-400 font-medium uppercase tracking-wider">
-              Author Status
-            </p>
-            <p className="mt-1 break-words text-sm font-semibold text-rose-800 dark:text-rose-200 [overflow-wrap:anywhere]">
-              Co-author
             </p>
           </div>
         )}

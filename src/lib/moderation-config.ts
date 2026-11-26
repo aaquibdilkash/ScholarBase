@@ -23,7 +23,6 @@ import type { ContentListKey } from "@/lib/tri-split/modules/registry";
 export const MODEL_MAP: Record<string, { model: string }> = {
   feed: { model: "socialPost" },
   blog: { model: "article" },
-  publication: { model: "publication" },
   journal: { model: "journal" },
   researchTool: { model: "researchTool" },
   researchGrant: { model: "researchGrant" },
@@ -47,7 +46,6 @@ export const COMMENT_MODEL_MAP: Record<string, { model: string }> = {
   articleComment: { model: "articleComment" },
   helpComment: { model: "helpPostComment" },
   contributionComment: { model: "contributionComment" },
-  publicationComment: { model: "publicationComment" },
   researchToolComment: { model: "researchToolComment" },
   researchGrantComment: { model: "researchGrantComment" },
   courseComment: { model: "courseComment" },
@@ -101,7 +99,6 @@ export const COMMENT_TOP_LEVEL: Record<string, { model: string; fk: string }> = 
   articleComment: { model: "article", fk: "articleId" },
   helpComment: { model: "helpPost", fk: "helpPostId" },
   contributionComment: { model: "contribution", fk: "contributionId" },
-  publicationComment: { model: "publication", fk: "publicationId" },
   researchToolComment: { model: "researchTool", fk: "researchToolId" },
   researchGrantComment: { model: "researchGrant", fk: "researchGrantId" },
   courseComment: { model: "course", fk: "courseId" },
@@ -136,7 +133,6 @@ export const ANONYMOUS_CONTENT_TYPES = new Set([
 export const AUTHOR_COUNT_FIELD: Record<string, string | null> = {
   feed: "socialPostCount",
   blog: "articleCount",
-  publication: "publicationCount",
   journal: "journalCount",
   researchTool: "researchToolCount",
   researchGrant: "researchGrantCount",
@@ -168,7 +164,6 @@ export const AUTHOR_COUNT_FIELD: Record<string, string | null> = {
 export const MODERATION_LIST_KEY: Record<string, ContentListKey> = {
   feed: "FEED",
   blog: "ARTICLE",
-  publication: "PUBLICATION",
   journal: "JOURNAL",
   researchTool: "RESEARCH_TOOL",
   researchGrant: "RESEARCH_GRANT",
@@ -195,7 +190,6 @@ export const CONTENT_TARGET_TYPE: Record<string, string> = {
   // Top-level content
   feed: "post",
   blog: "article",
-  publication: "publication",
   journal: "journal",
   researchTool: "researchTool",
   researchGrant: "researchGrant",
@@ -218,7 +212,6 @@ export const CONTENT_TARGET_TYPE: Record<string, string> = {
   articleComment: "article",
   helpComment: "help",
   contributionComment: "contribution",
-  publicationComment: "publication",
   researchToolComment: "researchTool",
   researchGrantComment: "researchGrant",
   courseComment: "course",

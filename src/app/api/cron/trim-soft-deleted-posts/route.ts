@@ -13,7 +13,6 @@ const TABLE_TO_MODULE: Record<string, ModuleKey> = {
   SocialPost: 'SOCIAL_POST',
   HelpPost: 'HELP_POST',
   Contribution: 'CONTRIBUTION',
-  Publication: 'PUBLICATION',
   ResearchTool: 'RESEARCH_TOOL',
   ResearchGrant: 'RESEARCH_GRANT',
   Course: 'COURSE',

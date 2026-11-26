@@ -110,20 +110,6 @@ export const ENTITY_CONFIG = {
     parentFk: 'contributionId',
     commentFk: 'contributionId',
   },
-  PUBLICATION: {
-    model: 'publication' as const,
-    voteModel: 'publicationVote' as const,
-    bookmarkModel: 'publicationBookmark' as const,
-    commentModel: 'publicationComment' as const,
-    commentVoteModel: 'publicationCommentVote' as const,
-    get parent() { return (prisma as any)[this.model] },
-    get vote() { return (prisma as any)[this.voteModel] },
-    get comment() { return (prisma as any)[this.commentModel] },
-    get commentVote() { return (prisma as any)[this.commentVoteModel] },
-    titleField: 'title',
-    parentFk: 'publicationId',
-    commentFk: 'publicationId',
-  },
   RESEARCH_TOOL: {
     model: 'researchTool' as const,
     voteModel: 'researchToolVote' as const,
@@ -315,7 +301,6 @@ const MODULE_VOTE_TARGET_TYPE: Record<ModuleKey, string> = {
   ARTICLE: 'article',
   HELP_POST: 'help',
   CONTRIBUTION: 'contribution',
-  PUBLICATION: 'publication',
   RESEARCH_TOOL: 'researchTool',
   RESEARCH_GRANT: 'researchGrant',
   COURSE: 'course',
@@ -950,7 +935,6 @@ export const COMMENT_TYPE_TO_MODULE: Record<string, ModuleKey> = {
   course: 'COURSE',
   result: 'RESULT',
   contribution: 'CONTRIBUTION',
-  publication: 'PUBLICATION',
   survey: 'RESEARCH_SURVEY',
 }
 
