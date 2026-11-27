@@ -51,6 +51,7 @@ type GroupDetails = {
   id: string;
   title: string | null;
   isFrozen: boolean;
+  hasLeft?: boolean;
   createdAt: string | Date;
   createdById: string;
   viewerId: string;
@@ -208,6 +209,8 @@ export function GroupInfoPanel({
       toast(actionErrorMessage(result, "Failed to leave group."), "error");
       return false;
     }
+    toast("You left the group.", "default");
+    await refetch();
     onLeft();
     return true;
   };
@@ -281,7 +284,7 @@ export function GroupInfoPanel({
                   {data.title || "Group discussion"}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Group · {data.participants.length} of {MAX_GROUP_PARTICIPANTS} participants
+                  {data.participants.length} {data.participants.length === 1 ? "participant" : "participants"}{data.pendingInvites.length > 0 ? ` · ${data.pendingInvites.length} invited` : ""}
                 </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500">
                   Created {formatJoined(data.createdAt)}
@@ -461,14 +464,21 @@ export function GroupInfoPanel({
               )}
 
               <section className="mt-8 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setPendingAction({ kind: "leave" })}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Leave group
-                </button>
+                {!data.hasLeft && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingAction({ kind: "leave" })}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Leave group
+                  </button>
+                )}
+                {data.hasLeft && (
+                  <p className="rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                    You left this group. Its history is read-only.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => setPendingAction({ kind: "report" })}

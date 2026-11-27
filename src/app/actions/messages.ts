@@ -55,6 +55,9 @@ const directConversationSelect = {
     select: {
       user: { select: sidebarUserSelect },
       lastReadAt: true,
+      // ⚡ READ-ONLY ARCHIVE: the sidebar keeps a thread after its viewer leaves
+      // a group, so it needs `leftAt` to render "You left" and skip unread.
+      leftAt: true,
     },
   },
   messages: {
@@ -96,6 +99,8 @@ async function attachUnreadCounts(
         SELECT "conversationId", COALESCE("lastReadAt", ${new Date(0)}) AS "lastReadAt"
         FROM "ConversationParticipant"
         WHERE "userId" = ${userId}
+          -- A thread the viewer left is an archive: it can never be unread.
+          AND "leftAt" IS NULL
       )
       SELECT m."conversationId" AS "conversationId", COUNT(*)::int AS "unreadCount"
       FROM "Message" m
@@ -175,36 +180,50 @@ export async function searchInbox(userId: string, query: string, limit = 30) {
   if (!isSearchableQuery(q)) return [];
   if (!(await allowSearchRequest("messages:inbox", currentUser.id))) return [];
 
-  const conversations = await prisma.conversation.findMany({
-    where: {
-      participants: { some: { userId } },
-      // A group is searched by its own title as well as by its members. Before
-      // this, a group whose members were not the term ("papite log") was
-      // invisible to the very search box that lists it.
-      OR: [
-        { type: "GROUP", title: { contains: q, mode: "insensitive" } },
-        {
-          participants: {
-            some: {
-              user: {
-                id: { not: userId }, // Never match the current user themselves;
-                                     // searching a common name must find *other*
-                                     // users, not every conversation you're in.
-                OR: [
-                  { name: { contains: q, mode: "insensitive" } },
-                  { handle: { contains: q, mode: "insensitive" } },
-                ],
+  // ⚡ TWO SCOPED QUERIES, DIRECT FIRST.
+  // A group is matched by its own title only. It used to also match any member's
+  // name, which meant searching "kahkasha" returned every group she belonged to
+  // — drowning out the one direct chat the user was actually looking for. Direct
+  // conversations match the *other* participant, and they are returned above
+  // groups so an individual chat never sinks below a wall of group rows.
+  const [directMatches, groupMatches] = await Promise.all([
+    prisma.conversation.findMany({
+      where: {
+        type: "DIRECT",
+        participants: { some: { userId } },
+        AND: [
+          {
+            participants: {
+              some: {
+                user: {
+                  id: { not: userId },
+                  OR: [
+                    { name: { contains: q, mode: "insensitive" } },
+                    { handle: { contains: q, mode: "insensitive" } },
+                  ],
+                },
               },
             },
           },
-        },
-      ],
-    },
-    orderBy: { lastMessageAt: "desc" },
-    take: limit,
-    select: directConversationSelect,
-  });
+        ],
+      },
+      orderBy: { lastMessageAt: "desc" },
+      take: limit,
+      select: directConversationSelect,
+    }),
+    prisma.conversation.findMany({
+      where: {
+        type: "GROUP",
+        participants: { some: { userId } },
+        title: { contains: q, mode: "insensitive" },
+      },
+      orderBy: { lastMessageAt: "desc" },
+      take: limit,
+      select: directConversationSelect,
+    }),
+  ]);
 
+  const conversations = [...directMatches, ...groupMatches].slice(0, limit);
   const unreadCountMap = await attachUnreadCounts(userId, conversations);
 
   return conversations.map((conversation) => ({
@@ -222,6 +241,7 @@ export async function getUnreadMessageCount() {
     FROM "Message" m
     INNER JOIN "ConversationParticipant" cp ON m."conversationId" = cp."conversationId"
     WHERE cp."userId" = ${userId}
+      AND cp."leftAt" IS NULL
       AND m."senderId" != ${userId}
       AND m."createdAt" > COALESCE(cp."lastReadAt", ${new Date(0)})
   `;
@@ -239,6 +259,7 @@ export async function getUnreadCounts() {
       INNER JOIN "ConversationParticipant" cp
         ON m."conversationId" = cp."conversationId"
       WHERE cp."userId" = ${userId}
+        AND cp."leftAt" IS NULL
         AND m."senderId" != ${userId}
         AND m."createdAt" > COALESCE(cp."lastReadAt", ${new Date(0)})
     ),
@@ -441,13 +462,14 @@ export async function inviteGroupMembers(
     where: {
       id: conversationId,
       type: "GROUP",
-      participants: { some: { userId: auth.user.id, role: "OWNER" } },
+      // A former owner who left keeps the row (archive) but no powers.
+      participants: { some: { userId: auth.user.id, role: "OWNER", leftAt: null } },
     },
     select: {
       id: true,
       title: true,
       isFrozen: true,
-      participants: { select: { userId: true } },
+      participants: { select: { userId: true, leftAt: true } },
       invites: { where: { status: "PENDING" }, select: { inviteeId: true } },
     },
   });
@@ -458,7 +480,13 @@ export async function inviteGroupMembers(
     return { success: false, error: "This group is frozen by moderators and cannot change membership." };
   }
 
-  const memberIds = new Set(conversation.participants.map((participant) => participant.userId));
+  // Seats count ACTIVE members only. A scholar who left keeps their participant
+  // row for the read-only archive, so they no longer occupy a seat.
+  const memberIds = new Set(
+    conversation.participants
+      .filter((participant) => !participant.leftAt)
+      .map((participant) => participant.userId),
+  );
   const pendingIds = new Set(conversation.invites.map((invite) => invite.inviteeId));
   const freshIds = [...new Set(userIds)]
     .filter((id) => typeof id === "string" && id.trim())
@@ -570,19 +598,36 @@ export async function respondToGroupInvite(
       where: { id: conversationId },
       select: {
         isFrozen: true,
-        participants: { select: { userId: true } },
+        participants: { select: { userId: true, leftAt: true } },
       },
     });
     if (!conversation) return "GONE" as const;
     if (conversation.isFrozen) return "FROZEN" as const;
 
-    const alreadyMember = conversation.participants.some(
+    const existing = conversation.participants.find(
       (participant) => participant.userId === auth.user.id,
     );
-    if (!alreadyMember) {
-      if (conversation.participants.length + 1 > MAX_GROUP_PARTICIPANTS) return "FULL" as const;
+    // Only active members occupy a seat. A left member keeps their row for the
+    // read-only archive and is reactivated by accepting a fresh invitation.
+    const activeCount = conversation.participants.filter(
+      (participant) => !participant.leftAt,
+    ).length;
+
+    if (!existing) {
+      if (activeCount + 1 > MAX_GROUP_PARTICIPANTS) return "FULL" as const;
       await tx.conversationParticipant.create({
         data: { conversationId, userId: auth.user.id, lastReadAt: new Date() },
+      });
+    } else if (Boolean(existing.leftAt)) {
+      if (activeCount + 1 > MAX_GROUP_PARTICIPANTS) return "FULL" as const;
+      await tx.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId, userId: auth.user.id } },
+        data: {
+          leftAt: null,
+          joinedAt: new Date(),
+          lastReadAt: new Date(),
+          role: "MEMBER",
+        },
       });
     }
     await tx.conversationInvite.update({
@@ -644,6 +689,7 @@ export async function getGroupDetails(conversationId: string) {
           user: { select: sidebarUserSelect },
           role: true,
           joinedAt: true,
+          leftAt: true,
         },
       },
       invites: {
@@ -661,7 +707,13 @@ export async function getGroupDetails(conversationId: string) {
   const me = conversation.participants.find(
     (participant) => participant.user.id === currentUser.id,
   );
-  const isOwner = me?.role === "OWNER";
+  // A former member keeps the thread as a read-only archive: they can still see
+  // who is in the group, but no membership controls and no pending identities.
+  const hasLeft = Boolean(me?.leftAt);
+  const isOwner = !hasLeft && me?.role === "OWNER";
+  const activeParticipants = conversation.participants.filter(
+    (participant) => !participant.leftAt,
+  );
 
   return {
     id: conversation.id,
@@ -671,7 +723,8 @@ export async function getGroupDetails(conversationId: string) {
     createdById: conversation.createdById,
     viewerId: currentUser.id,
     isOwner,
-    participants: conversation.participants.map((participant) => ({
+    hasLeft,
+    participants: activeParticipants.map((participant) => ({
       ...participant.user,
       role: participant.role,
       joinedAt: participant.joinedAt,
@@ -687,9 +740,11 @@ export async function getGroupDetails(conversationId: string) {
 }
 
 /**
- * Remove a member (owner) or leave the group (self). An owner who leaves hands
- * OWNER to the earliest-joined remaining member; the last member leaving
- * deletes the conversation and its history.
+ * Remove a member (owner) or leave the group (self). The participant row is
+ * KEPT with `leftAt` set, so the thread survives as a read-only archive instead
+ * of vanishing from the inbox and opening `/not-found`. An owner who leaves
+ * hands OWNER to the earliest-joined active member. The conversation itself is
+ * never deleted — every former member still owns their copy of the history.
  */
 export async function removeGroupParticipant(
   conversationId: string,
@@ -717,7 +772,7 @@ export async function removeGroupParticipant(
     },
     select: {
       isFrozen: true,
-      participants: { select: { userId: true, role: true, joinedAt: true } },
+      participants: { select: { userId: true, role: true, joinedAt: true, leftAt: true } },
     },
   });
   if (!conversation) return { success: false, error: "Group not found." };
@@ -727,7 +782,9 @@ export async function removeGroupParticipant(
   if (!target) return { success: true };
 
   const isSelf = memberId === auth.user.id;
-  if (!isSelf && me?.role !== "OWNER") {
+  // Already left/removed: idempotent, the archive is already read-only.
+  if (Boolean(target.leftAt)) return { success: true };
+  if (!isSelf && (!me || Boolean(me.leftAt) || me.role !== "OWNER")) {
     return { success: false, error: "Only the group owner can remove members." };
   }
   // A frozen group is read-only, but anyone may still walk away from it.
@@ -735,26 +792,32 @@ export async function removeGroupParticipant(
     return { success: false, error: "This group is frozen by moderators and cannot change membership." };
   }
 
+  // Ownership moves to the earliest-joined ACTIVE member; former members keep
+  // their archive row but can never inherit the group.
   const remaining = conversation.participants.filter(
-    (participant) => participant.userId !== memberId,
+    (participant) => participant.userId !== memberId && !participant.leftAt,
   );
+  const nextOwner =
+    target.role === "OWNER" && remaining.length > 0
+      ? [...remaining].sort(
+          (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
+        )[0]
+      : null;
 
+  const leftAt = new Date();
   const result = await prisma.$transaction(async (tx) => {
-    await tx.conversationParticipant.delete({
+    // ⚡ READ-ONLY ARCHIVE: the participant row is KEPT. Deleting it erased the
+    // history and left a dead sidebar row that opened `/not-found`. `leftAt`
+    // makes every active-membership check skip this scholar while the thread
+    // stays readable in their inbox.
+    await tx.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId: memberId } },
+      data: { leftAt, lastReadAt: leftAt, role: "MEMBER" },
     });
     // A stale invite must never let the removed member walk back in.
     await tx.conversationInvite.deleteMany({ where: { conversationId, inviteeId: memberId } });
 
-    if (remaining.length === 0) {
-      await tx.conversation.delete({ where: { id: conversationId } });
-      return { conversationDeleted: true };
-    }
-
-    if (target.role === "OWNER") {
-      const nextOwner = [...remaining].sort(
-        (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
-      )[0];
+    if (nextOwner) {
       await tx.conversationParticipant.update({
         where: { conversationId_userId: { conversationId, userId: nextOwner.userId } },
         data: { role: "OWNER" },
@@ -765,6 +828,8 @@ export async function removeGroupParticipant(
       });
     }
 
+    // The conversation itself is never deleted: every former member still owns
+    // their read-only copy of the history.
     return { conversationDeleted: false };
   });
 
@@ -772,12 +837,9 @@ export async function removeGroupParticipant(
     success: true,
     data: {
       ...result,
+      leftAt,
       removedSelf: isSelf,
-      newOwnerId: target.role === "OWNER" && remaining.length > 0
-        ? remaining.sort(
-            (a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime(),
-          )[0].userId
-        : null,
+      newOwnerId: nextOwner?.userId ?? null,
     },
   };
 }
@@ -791,9 +853,9 @@ export async function revokeGroupInvite(
 
   const owner = await prisma.conversationParticipant.findUnique({
     where: { conversationId_userId: { conversationId, userId: auth.id } },
-    select: { role: true },
+    select: { role: true, leftAt: true },
   });
-  if (owner?.role !== "OWNER") {
+  if (owner?.role !== "OWNER" || Boolean(owner.leftAt)) {
     return { success: false, error: "Only the group owner can revoke invitations." };
   }
 
@@ -826,6 +888,7 @@ export async function getConversation(conversationId: string) {
           role: true,
           user: { select: sidebarUserSelect },
           lastReadAt: true,
+          leftAt: true,
         },
       },
       messages: {
@@ -838,13 +901,21 @@ export async function getConversation(conversationId: string) {
 
   if (!conversation) return null;
 
+  // ⚡ READ-ONLY ARCHIVE: a former member still opens the thread and reads the
+  // history; `hasLeft` is what disables the composer, the message actions and
+  // the Realtime channel.
+  const viewerParticipant = conversation.participants.find(
+    (participant) => participant.user.id === userId,
+  );
+  const hasLeft = Boolean(viewerParticipant?.leftAt);
+
   // ⚡ BLOCK STATE: Resolve block relationships in the same action so the chat
   // UI can disable the composer and render the correct notice banner.
   const otherParticipantId = conversation.type === "DIRECT" ? conversation.participants.find(
     (p) => p.user.id !== userId,
   )?.user.id : undefined;
 
-  if (!otherParticipantId) return conversation;
+  if (!otherParticipantId) return { ...conversation, hasLeft };
 
   const block = await prisma.block.findFirst({
     where: {
@@ -858,6 +929,7 @@ export async function getConversation(conversationId: string) {
 
   return {
     ...conversation,
+    hasLeft,
     blockedByMe: block?.blockerId === userId,
     blockedMe: block ? block.blockerId !== userId : false,
   };
@@ -1079,6 +1151,7 @@ export type MessageFailureCode =
   | "RECIPIENT_FROZEN"
   | "VALIDATION"
   | "CONVERSATION_DELETED"
+  | "NOT_A_MEMBER"
   | "UNKNOWN";
 
 export type SendMessageFailure = {
@@ -1149,6 +1222,7 @@ export async function sendMessage(
       participants: {
         select: {
           userId: true,
+          leftAt: true,
           user: { select: { id: true, isFrozen: true, isDeleted: true } },
         },
       },
@@ -1157,6 +1231,19 @@ export async function sendMessage(
 
   if (!conversation)
     return { success: false, error: "Conversation not found.", code: "CONVERSATION_DELETED" };
+
+  // ⚡ READ-ONLY ARCHIVE: the row survives after leaving so the history stays
+  // readable, but a former member can never write to the thread again.
+  const viewerParticipant = conversation.participants.find(
+    (participant) => participant.userId === user.id,
+  );
+  if (viewerParticipant?.leftAt) {
+    return {
+      success: false,
+      error: "You left this group. You can read the history but cannot send new messages.",
+      code: "NOT_A_MEMBER",
+    };
+  }
 
   // A frozen group is read-only for everyone until a moderator unfreezes it.
   if (conversation.type === "GROUP" && conversation.isFrozen) {
@@ -1235,7 +1322,13 @@ export async function sendMessage(
   // response, so the send stays instant even when the request worker exits.
   if (conversation.type === "GROUP") {
     const recipientIds = conversation.participants
-      .filter((participant) => participant.userId !== user.id && !participant.user.isDeleted && !participant.user.isFrozen)
+      .filter(
+        (participant) =>
+          participant.userId !== user.id &&
+          !participant.leftAt &&
+          !participant.user.isDeleted &&
+          !participant.user.isFrozen,
+      )
       .map((participant) => participant.userId);
     if (recipientIds.length > 0) {
       after(() => queueGroupMessagePush({
@@ -1335,7 +1428,7 @@ export async function editMessage(
       conversationId: true,
       isDeleted: true,
       conversation: {
-        select: { type: true, isFrozen: true, participants: { select: { userId: true } } },
+        select: { type: true, isFrozen: true, participants: { select: { userId: true, leftAt: true } } },
       },
     },
   });
@@ -1343,6 +1436,13 @@ export async function editMessage(
   // ⚡ ACADEMIC INTEGRITY: only the author may edit their own message.
   if (!message || message.senderId !== supabaseUser.id) {
     return { success: false, error: "You can only edit your own messages." };
+  }
+
+  const viewerParticipant = message.conversation.participants.find(
+    (participant) => participant.userId === supabaseUser.id,
+  );
+  if (viewerParticipant?.leftAt) {
+    return { success: false, error: "You left this group. Its history is read-only." };
   }
 
   if (message.isDeleted) {
@@ -1419,7 +1519,7 @@ export async function deleteMessage(
       senderId: true,
       isDeleted: true,
       conversation: {
-        select: { type: true, isFrozen: true, participants: { select: { userId: true } } },
+        select: { type: true, isFrozen: true, participants: { select: { userId: true, leftAt: true } } },
       },
     },
   });
@@ -1427,6 +1527,13 @@ export async function deleteMessage(
   // ⚡ ACADEMIC INTEGRITY: only the author may delete their own message.
   if (!message || message.senderId !== supabaseUser.id) {
     return { success: false, error: "You can only delete your own messages." };
+  }
+
+  const viewerParticipant = message.conversation.participants.find(
+    (participant) => participant.userId === supabaseUser.id,
+  );
+  if (viewerParticipant?.leftAt) {
+    return { success: false, error: "You left this group. Its history is read-only." };
   }
 
   if (message.isDeleted) {
@@ -1564,6 +1671,8 @@ export async function markConversationAsRead(conversationId: string) {
       where: {
         conversationId,
         userId: supabaseUser.id,
+        // An archived (left) thread has no unread state to advance.
+        leftAt: null,
         OR: [
           { lastReadAt: null },
           { lastReadAt: { lt: lastReadAt } },

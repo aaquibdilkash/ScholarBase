@@ -137,6 +137,12 @@ export default function PublicationForm({
             data,
             mode,
           );
+          queryClient.invalidateQueries({
+            queryKey: ["profile-publications", data.authorId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["profile-publication-count", data.authorId],
+          });
           router.push(`/publications/${data.id}`);
         }
       },

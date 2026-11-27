@@ -24,7 +24,7 @@ import {
   getProfileActivity,
   getProfileSection,
 } from "@/app/actions/profile";
-import { getProfilePublications, getProfilePublicationPage } from "@/app/actions/publications";
+import { getProfilePublications, getProfilePublicationPage, getProfilePublicationCount } from "@/app/actions/publications";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
@@ -454,14 +454,25 @@ export default function ProfileTabs({
   } = useQuery({
     queryKey: ["profile-publications", profileId],
     queryFn: () => getProfilePublications(profileId, 1),
-    enabled: activeTab === "about" && isOwnProfile,
+    enabled: activeTab === "about",
+    staleTime: LIST_REVALIDATE_MS,
+  });
+
+  const { data: profilePublicationTotal } = useQuery({
+    queryKey: ["profile-publication-count", profileId],
+    queryFn: () => getProfilePublicationCount(profileId),
+    enabled: activeTab === "about",
     staleTime: LIST_REVALIDATE_MS,
   });
 
   useEffect(() => {
-    setPublicationCount(profilePublications?.length ?? 0);
+    setPublicationCount(
+      typeof profilePublicationTotal === "number"
+        ? profilePublicationTotal
+        : (profilePublications?.length ?? 0),
+    );
     setPublications(profilePublications ?? []);
-  }, [profilePublications]);
+  }, [profilePublications, profilePublicationTotal]);
 
   useEffect(() => {
     // Redirect from bookmarks tab if not own profile
@@ -695,48 +706,55 @@ export default function ProfileTabs({
           </div>
 
           {/* Publications */}
-          {isOwnProfile && (
-            <div>
-              <h2 className="mb-3 text-lg font-semibold text-slate-950">
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold text-slate-950">
                 Publications
                 <span className="ml-2 text-sm text-slate-500">({publicationCount ?? 0})</span>
               </h2>
-              {publications.length > 0 ? (
-                <>
-                  <Carousel hasMore={hasMorePublications} onLoadMore={loadMorePublications}>
-                    <PublicationCard
-                      publication={publications[0]}
-                      currentUserId={currentUserId}
-                    />
-                  </Carousel>
-                  <p className="mt-3 text-sm text-slate-500">
-                    <a
-                      href={`/scholars/${profileId}?tab=about#publications`}
-                      className="underline text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                    >
-                      View all {publicationCount ?? 0} publications
-                    </a>
-                  </p>
-                </>
-              ) : isPublicationsPending ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-slate-400 dark:text-slate-500" />
-                </div>
-              ) : (
-                <div className="w-full rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
-                  <p className="text-sm font-medium text-slate-400">
-                    No publications added yet.{" "}
-                    <a
-                      href={`/publications/add`}
-                      className="underline text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                    >
-                      Add your first publication
-                    </a>
-                  </p>
-                </div>
+              {isOwnProfile && (
+                <Link
+                  href="/publications/add"
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                >
+                  Add publication
+                </Link>
               )}
             </div>
-          )}
+            {publications.length > 0 ? (
+              <Carousel hasMore={hasMorePublications} onLoadMore={loadMorePublications}>
+                {publications.map((publication) => (
+                  <PublicationCard
+                    key={publication.id}
+                    publication={publication}
+                    currentUserId={currentUserId}
+                  />
+                ))}
+              </Carousel>
+            ) : isPublicationsPending ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400 dark:text-slate-500" />
+              </div>
+            ) : isOwnProfile ? (
+              <div className="w-full rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                <p className="text-sm font-medium text-slate-400">
+                  No publications added yet.{" "}
+                  <a
+                    href={`/publications/add`}
+                    className="underline text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Add your first publication
+                  </a>
+                </p>
+              </div>
+            ) : (
+              <div className="w-full rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                <p className="text-sm font-medium text-slate-400">
+                  No publications added yet.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Similar Scholars */}
           {relatedContent}

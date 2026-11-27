@@ -17,9 +17,9 @@ import useMediaQuery from "@/hooks/useMediaQuery";
 import { useInboxSearch } from "@/hooks/useInboxSearch";
 import { SearchInput } from "@/components/ui/SearchInput";
 
-type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; };
+type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; leftAt?: Date | string | null; };
 type Message = { id?: string; body: string; createdAt?: Date | string | number; senderId?: string; sender?: { id: string; }; };
-type InboxConversation = { id: string; type: "DIRECT" | "GROUP"; title: string | null; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
+type InboxConversation = { id: string; type: "DIRECT" | "GROUP"; title: string | null; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number };
 
 // ⚡ INFINITE SCROLL: conversations per page.
 const PAGE_SIZE = 10;
@@ -337,15 +337,37 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       mergePreview();
     };
 
+    const handleConversationUpdated = (event: CustomEvent) => {
+      const conversationId = event.detail?.conversationId;
+      if (!conversationId) return;
+      if (inboxRefreshInFlightRef.current.has(conversationId)) return;
+      inboxRefreshInFlightRef.current.add(conversationId);
+      getConversationPreview(conversationId)
+        .then((preview) => {
+          if (!preview) return;
+          setInbox((prev) =>
+            prev.some((c) => c.id === preview.id)
+              ? prev.map((c) => (c.id === preview.id ? (preview as InboxConversation) : c))
+              : prev,
+          );
+        })
+        .catch(() => {})
+        .finally(() => {
+          inboxRefreshInFlightRef.current.delete(conversationId);
+        });
+    };
+
     window.addEventListener('conversation-read', handleConversationRead as EventListener);
     window.addEventListener('message-sent', handleMessageSent as EventListener);
     window.addEventListener('message-received', handleMessageReceived as EventListener);
     window.addEventListener('conversation-created', handleConversationCreated as EventListener);
+    window.addEventListener('conversation-updated', handleConversationUpdated as EventListener);
     return () => {
       window.removeEventListener('conversation-read', handleConversationRead as EventListener);
       window.removeEventListener('message-sent', handleMessageSent as EventListener);
       window.removeEventListener('message-received', handleMessageReceived as EventListener);
       window.removeEventListener('conversation-created', handleConversationCreated as EventListener);
+      window.removeEventListener('conversation-updated', handleConversationUpdated as EventListener);
     };
   }, [user]);
 
@@ -470,13 +492,15 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                   latestMessageCreatedAt &&
                   latestMessageCreatedAt <= otherParticipantLastReadAt,
                 );
-                const isUnread =
-                  conversation.unreadCount > 0 ||
-                  (latestSenderId !== undefined &&
-                    latestSenderId !== user.id &&
-                    new Date(conversation.lastMessageAt) > lastReadAt);
-                const isActive = pathname === `/messages/${conversation.id}`;
                 const isOtherUserOnline = !isGroup && !otherParticipant?.isFrozen && onlineUserIds.has(otherParticipant?.id || "");
+                const viewerLeft = Boolean(participantData?.leftAt);
+                const isUnread =
+                  !viewerLeft &&
+                  (conversation.unreadCount > 0 ||
+                    (latestSenderId !== undefined &&
+                      latestSenderId !== user.id &&
+                      new Date(conversation.lastMessageAt) > lastReadAt));
+                const isActive = pathname === `/messages/${conversation.id}`;
 
                 return (
                   <Link prefetch={false}
@@ -517,11 +541,15 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                         {showExpanded && ( 
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{isGroup ? conversation.title || "Group discussion" : otherParticipant?.name || "Scholar"}</div>
-                            {latestMessage && (
+                            {viewerLeft && isGroup ? (
+                              <p className="mt-0.5 min-w-0 max-w-full line-clamp-1 text-sm italic text-slate-400 dark:text-slate-500">
+                                You left this group
+                              </p>
+                            ) : latestMessage ? (
                               <p className={`mt-0.5 min-w-0 max-w-full line-clamp-1 text-sm [overflow-wrap:anywhere] ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
                                 {latestMessage.body}
                               </p>
-                            )}
+                            ) : null}
                           </div>
                         )}
                       </div>

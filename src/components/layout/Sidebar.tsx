@@ -219,14 +219,19 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       const senderName = message.sender?.name || "New message";
       // Without the group name a group message was indistinguishable from a
       // direct one — the reader had no idea which thread had spoken.
+      const isGroup = conversationType === "GROUP";
       const title =
-        conversationType === "GROUP" && conversationTitle
-          ? `${senderName} · ${conversationTitle}`
+        isGroup && conversationTitle
+          ? conversationTitle
           : senderName;
+      const description =
+        isGroup
+          ? `${senderName}: ${message.body || ""}`
+          : (message.body || undefined);
 
       toast({
         title,
-        description: message.body || undefined,
+        description,
         href: `/messages/${encodeURIComponent(String(conversationId))}`,
         // Message toasts carry a name, a body and (for a group) the group it
         // came from; 2.2s was gone before it could be read.

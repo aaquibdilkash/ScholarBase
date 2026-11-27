@@ -102,6 +102,9 @@ begin
     from "ConversationParticipant" cp
     where cp."conversationId" = NEW."conversationId"
       and cp."userId" <> NEW."senderId"
+      -- Former members keep their row for the read-only archive but must not
+      -- receive new-message pings.
+      and cp."leftAt" is null
   loop
     perform realtime.send(
       jsonb_build_object(
@@ -137,6 +140,53 @@ for each row execute function public.broadcast_new_message();
 -- never hard-deleted.
 
 -- -----------------------------------------------------------------------------
+-- 1b. Membership -> Broadcast
+-- -----------------------------------------------------------------------------
+-- Group membership and invite state must move in real time too: accepting an
+-- invitation, declining, leaving and removing a member all change the member
+-- list and (for decline/accept) the pending-invite list. Without this, the
+-- owner's "Invited · N pending" and the participant roster only update after a
+-- manual refresh.
+--
+-- The trigger sends a tiny `MEMBERSHIP` ping to the conversation's private
+-- topic. The client refetches the thread (so a removed member is redirected to
+-- the read-only archive) and the group-info panel.
+create or replace function public.broadcast_conversation_membership()
+returns trigger
+security definer
+set search_path = public, pg_temp
+language plpgsql
+as $$
+declare
+  conversation_id text;
+begin
+  if TG_OP = 'DELETE' then
+    conversation_id := OLD."conversationId";
+  else
+    conversation_id := NEW."conversationId";
+  end if;
+
+  perform realtime.send(
+    jsonb_build_object('conversationId', conversation_id),
+    'MEMBERSHIP',
+    'conversation:' || conversation_id,
+    true
+  );
+  return null;
+end;
+$$;
+
+drop trigger if exists broadcast_conversation_membership_participant on public."ConversationParticipant";
+create trigger broadcast_conversation_membership_participant
+after insert or update or delete on public."ConversationParticipant"
+for each row execute function public.broadcast_conversation_membership();
+
+drop trigger if exists broadcast_conversation_membership_invite on public."ConversationInvite";
+create trigger broadcast_conversation_membership_invite
+after insert or update or delete on public."ConversationInvite"
+for each row execute function public.broadcast_conversation_membership();
+
+-- -----------------------------------------------------------------------------
 -- 2. Realtime Authorization
 -- -----------------------------------------------------------------------------
 -- App-table RLS does NOT govern Broadcast/Presence. Only channels joined with
@@ -167,6 +217,9 @@ using (
       select 1 from public."ConversationParticipant" cp
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
+        -- A left/removed member still reads history through Prisma, but the
+        -- live channel is closed to them.
+        and cp."leftAt" is null
     )
     when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
@@ -184,6 +237,7 @@ with check (
       select 1 from public."ConversationParticipant" cp
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
+        and cp."leftAt" is null
     )
     when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
@@ -264,6 +318,9 @@ using (
 -- =============================================================================
 --   drop trigger if exists broadcast_new_message_trigger on public."Message";
 --   drop function if exists public.broadcast_new_message();
+--   drop trigger if exists broadcast_conversation_membership_participant on public."ConversationParticipant";
+--   drop trigger if exists broadcast_conversation_membership_invite on public."ConversationInvite";
+--   drop function if exists public.broadcast_conversation_membership();
 --   drop policy if exists "chat participants can read broadcasts" on realtime.messages;
 --   drop policy if exists "chat participants can send broadcasts" on realtime.messages;
 --   alter publication supabase_realtime add table "Message", "ConversationParticipant";

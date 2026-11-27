@@ -80,6 +80,8 @@ type Conversation = {
   /** Group moderation state — a frozen group is read-only. */
   isFrozen?: boolean;
   hasActiveAppeal?: boolean;
+  /** READ-ONLY ARCHIVE: viewer left/removed this group; history stays readable. */
+  hasLeft?: boolean;
   createdById?: string;
 };
 
@@ -112,6 +114,7 @@ export default function ConversationPage({
   const [isReportOpen, setIsReportOpen] = useState(false);
   // ⚡ QUOTE REPLY: The message currently being replied to (WhatsApp-style).
   const [replyingTo, setReplyingTo] = useState<SentMessage | null>(null);
+  const refreshAfterMembershipChangeRef = useRef<() => void>(() => {});
   const { toast } = useToast();
   const isCurrentUserFrozen = useIsFrozen();
 
@@ -312,7 +315,8 @@ export default function ConversationPage({
       }
 
       if (!conv) {
-        router.replace("/not-found");
+        toast("This conversation is no longer available.", "error");
+        router.replace("/messages");
         return;
       }
 
@@ -374,13 +378,14 @@ export default function ConversationPage({
     return () => {
       isMounted = false;
     };
-  }, [conversationId, router]);
+  }, [conversationId, router, toast]);
 
   const otherParticipantData = conversation?.participants.find(
     (p) => p.user.id !== userId,
   );
   const otherParticipant = otherParticipantData?.user;
   const isGroup = conversation?.type === "GROUP";
+  const hasLeft = Boolean(conversation?.hasLeft);
 
   // A reply target belongs to one conversation. Switching threads must clear it
   // so the composer does not quote a message from the previous thread (and send
@@ -416,7 +421,7 @@ export default function ConversationPage({
   //  - Online status: global `presence:global` channel (PresenceProvider).
   // Full teardown on conversation switch prevents stale-channel leaks.
   useEffect(() => {
-    if (!userId || !conversationId) return;
+    if (!userId || !conversationId || hasLeft) return;
 
     // `privateChannel` is async: it awaits realtime.setAuth() so the
     // `realtime.messages` policies are evaluated as the signed-in user rather
@@ -556,6 +561,17 @@ export default function ConversationPage({
           }
         },
       )
+      .on(
+        "broadcast",
+        { event: "MEMBERSHIP" },
+        () => {
+          // ⚡ Membership (accept/decline/leave/remove/invite/revoke) changed on
+          // another device or by another member; re-read the thread and the
+          // group info so role badges, the pending-invite list and the
+          // read-only archive flag converge.
+          refreshAfterMembershipChangeRef.current?.();
+        },
+      )
       .subscribe((status: string) => {
         if (status === "SUBSCRIBED") {
           // The initial mark-read can happen before this channel is ready.
@@ -599,6 +615,7 @@ export default function ConversationPage({
   }, [
     userId,
     conversationId,
+    hasLeft,
     broadcastReadReceipt,
     handleBroadcastMessage,
     handleBroadcastUpdate,
@@ -650,6 +667,31 @@ export default function ConversationPage({
     document.addEventListener("mousedown", closeOnOutside);
     return () => document.removeEventListener("mousedown", closeOnOutside);
   }, []);
+
+  const refreshAfterMembershipChange = useCallback(() => {
+    void getConversation(conversationId)
+      .then((fresh) => {
+        if (!fresh) {
+          toast("You are no longer a participant of this group.", "error");
+          window.dispatchEvent(
+            new CustomEvent("conversation-updated", { detail: { conversationId } }),
+          );
+          router.replace("/messages");
+          return;
+        }
+        setConversation(fresh as unknown as Conversation);
+        window.dispatchEvent(
+          new CustomEvent("conversation-updated", { detail: { conversationId } }),
+        );
+      })
+      .catch((error) => {
+        console.error("Failed to refresh conversation after membership change:", error);
+      });
+  }, [conversationId, toast, router]);
+
+  useEffect(() => {
+    refreshAfterMembershipChangeRef.current = refreshAfterMembershipChange;
+  }, [refreshAfterMembershipChange]);
 
   // `conversation.id !== conversationId` covers an in-flight switch: the route
   // changed but the new conversation has not loaded yet. Rendering the previous
@@ -729,7 +771,12 @@ export default function ConversationPage({
         return;
       }
       toast("You left the group.", "default");
-      router.replace("/messages");
+      // ⚡ READ-ONLY ARCHIVE: the thread stays open in read-only mode; the
+      // sidebar merges the updated row (leftAt) instead of dropping it.
+      window.dispatchEvent(
+        new CustomEvent("conversation-updated", { detail: { conversationId } }),
+      );
+      refreshAfterMembershipChange();
     } finally {
       setIsLeaving(false);
       setLeaveConfirmOpen(false);
@@ -739,27 +786,13 @@ export default function ConversationPage({
   // Re-read the thread after the group-info panel changes membership. If the
   // viewer is gone (left, or was removed while the panel was open), the action
   // returns null and the route has to leave the thread.
-  const refreshAfterMembershipChange = () => {
-    void getConversation(conversationId)
-      .then((fresh) => {
-        if (!fresh) {
-          toast("You are no longer a participant of this group.", "error");
-          router.replace("/messages");
-          return;
-        }
-        setConversation(fresh as unknown as Conversation);
-      })
-      .catch((error) => {
-        console.error("Failed to refresh conversation after membership change:", error);
-      });
-  };
-
   // ⚡ ISSUE 5: A block in either direction disables the composer.
   const isPeerFrozen = !isGroup && Boolean(otherParticipant?.isFrozen);
   const isChatDisabled =
     isCurrentUserFrozen ||
     isPeerFrozen ||
     Boolean(isGroup && conversation?.isFrozen) ||
+    hasLeft ||
     blockState.blockedByMe ||
     blockState.blockedMe;
 
@@ -954,7 +987,9 @@ export default function ConversationPage({
             canManageMessages={
               !isCurrentUserFrozen &&
               !blockState.blockedByMe &&
-              !blockState.blockedMe
+              !blockState.blockedMe &&
+
+              !hasLeft
             }
           />
         </div>
@@ -972,6 +1007,8 @@ export default function ConversationPage({
               This scholar&apos;s account is currently frozen. Messaging is
               unavailable.
             </span>
+          ) : hasLeft ? (
+            <span>You left this group. You can read the history but cannot send new messages.</span>
           ) : blockState.blockedMe ? (
             <span>You cannot send messages to this scholar.</span>
           ) : (
@@ -1027,7 +1064,12 @@ export default function ConversationPage({
           conversationId={conversation.id}
           open={isGroupInfoOpen}
           onClose={() => setIsGroupInfoOpen(false)}
-          onLeft={() => router.replace("/messages")}
+          onLeft={() => {
+            window.dispatchEvent(
+              new CustomEvent("conversation-updated", { detail: { conversationId } }),
+            );
+            refreshAfterMembershipChange();
+          }}
           onMembershipChanged={refreshAfterMembershipChange}
         />
       )}
@@ -1043,7 +1085,10 @@ export default function ConversationPage({
             setGroupReportOpen(false);
             if (userId) {
               await removeGroupParticipant(conversation.id, userId);
-              router.replace("/messages");
+              window.dispatchEvent(
+                new CustomEvent("conversation-updated", { detail: { conversationId } }),
+              );
+              refreshAfterMembershipChange();
             }
           }}
         />

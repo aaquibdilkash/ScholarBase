@@ -97,6 +97,9 @@ export function PublicationCard({
                   return { refresh: false };
                 }
                 removeFromList<PublicationWithAuthor>(queryClient, ["profile-publications", publication.authorId], response.data.deletedId);
+                queryClient.setQueryData<number>(["profile-publication-count", publication.authorId], (prev) =>
+                  typeof prev === "number" ? Math.max(0, prev - 1) : prev,
+                );
                 toast("Publication deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

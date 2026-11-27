@@ -9,7 +9,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { getRichTextLength } from "@/lib/html";
 import { validateExternalUrl } from "@/lib/external-url";
-import { notifyUserById } from "@/lib/notifications";
+import { notifyUserById, notifyFollowersOfActivity } from "@/lib/notifications";
 import { MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
 
 type PublicationPeople = {
@@ -153,6 +153,15 @@ export async function createPublication(formData: FormData) {
     );
 
     return newPublication;
+  });
+
+  await notifyFollowersOfActivity({
+    actorId: user.id,
+    type: "content-published",
+    targetType: "publication",
+    targetId: publication.id,
+    title: `${user.email?.split("@")[0] || "A scholar"} published a new paper`,
+    body: publication.title,
   });
 
   return { success: true, data: publication };
@@ -333,6 +342,7 @@ export async function getProfilePublications(
       id: true,
       title: true,
       authors: true,
+      authorId: true,
       publicationType: true,
       year: true,
       journalOrConference: true,
@@ -344,6 +354,16 @@ export async function getProfilePublications(
       domain: true,
       abstract: true,
       createdAt: true,
+      editedAt: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          institutionVerifiedAt: true,
+        },
+      },
       publicationAuthors: {
         select: {
           userId: true,
@@ -381,6 +401,7 @@ export async function getProfilePublicationPage(
       id: true,
       title: true,
       authors: true,
+      authorId: true,
       publicationType: true,
       year: true,
       journalOrConference: true,
@@ -392,6 +413,16 @@ export async function getProfilePublicationPage(
       domain: true,
       abstract: true,
       createdAt: true,
+      editedAt: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          institutionVerifiedAt: true,
+        },
+      },
       publicationAuthors: {
         select: {
           userId: true,

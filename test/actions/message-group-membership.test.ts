@@ -165,11 +165,13 @@ describe("removeGroupParticipant", () => {
     const result = await removeGroupParticipant(ids.conversation, ids.member);
 
     expect(result.success).toBe(true);
-    expect(
-      fakeDb
-        .rows("conversationParticipant")
-        .some((row) => row.userId === ids.member),
-    ).toBe(false);
+    // The row survives as a read-only archive (leftAt set), so the thread stays
+    // readable; the invite is still dropped.
+    const left = fakeDb
+      .rows("conversationParticipant")
+      .find((row) => row.userId === ids.member);
+    expect(left).toBeTruthy();
+    expect(left?.leftAt).toBeTruthy();
     expect(fakeDb.rows("conversationInvite")).toHaveLength(0);
   });
 
@@ -208,7 +210,7 @@ describe("removeGroupParticipant", () => {
     expect(member?.role).toBe("OWNER");
   });
 
-  it("deletes the conversation when the last member leaves", async () => {
+  it("keeps the conversation as a read-only archive when the last member leaves", async () => {
     seedGroup([
       { id: ids.owner, role: "OWNER", joinedAt: "2026-01-01T00:00:00.000Z" },
     ]);
@@ -216,8 +218,13 @@ describe("removeGroupParticipant", () => {
     const result = await removeGroupParticipant(ids.conversation, ids.owner);
 
     expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ conversationDeleted: true });
-    expect(fakeDb.rows("conversation")).toHaveLength(0);
+    expect(result.data).toMatchObject({ conversationDeleted: false });
+    // The thread survives so the leaver can still read the history.
+    expect(fakeDb.rows("conversation")).toHaveLength(1);
+    const left = fakeDb
+      .rows("conversationParticipant")
+      .find((row) => row.userId === ids.owner);
+    expect(left?.leftAt).toBeTruthy();
   });
 });
 
