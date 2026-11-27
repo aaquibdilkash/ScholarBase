@@ -163,6 +163,13 @@ export const SEO_PAGES = {
         path: "/research-tools",
         section: "Research Tools",
     },
+    netnokit: {
+        title: "NetnoKit — Netnography Comment Exporter | ScholarBase",
+        description:
+            "Export YouTube and Instagram comments as CSV or Excel for netnographic research.",
+        path: "/research-tools/netnography-exporter",
+        section: "Research Tools",
+    },
     shield: {
         title: "Scholar Shield AI Detector | ScholarBase",
         description:

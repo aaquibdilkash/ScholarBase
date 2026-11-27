@@ -9,6 +9,7 @@ import { ResearchToolCard } from "./ResearchToolCard";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getResearchTools } from "@/app/actions/researchTools";
+import { NetnoKitCard } from "./NetnoKitCard";
 
 export function ResearchToolsList({
   tools,
@@ -47,6 +48,7 @@ export function ResearchToolsList({
           className="mb-4"
         />
       </form>
+      {!appliedQuery && <NetnoKitCard />}
       <CacheBackedList<ResearchToolWithAuthor>
         queryKey={queryKey}
         initialItems={isServerQuery ? tools : undefined}
@@ -59,7 +61,7 @@ export function ResearchToolsList({
             currentUserId={currentUserId}
           />
         )}
-        className="grid gap-6 md:grid-cols xl:grid-cols"
+        className="mt-6 grid gap-6 md:grid-cols xl:grid-cols"
         emptyMessage={listEmptyMessage(appliedQuery, "No research tools posted yet.")}
       />
     </div>

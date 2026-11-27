@@ -41,6 +41,7 @@ export const STATIC_PATHS = [
   "/exams-and-results",
   "/blog",
   "/research-tools",
+  "/research-tools/netnography-exporter",
   "/grants",
   "/learn",
   "/journals",

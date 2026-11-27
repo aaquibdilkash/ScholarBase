@@ -54,7 +54,8 @@ export default async function ResearchToolsPage({
         </AsyncListRegion>
       }
       all={
-        <AsyncListRegion
+        <>
+          <AsyncListRegion
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
@@ -73,6 +74,7 @@ export default async function ResearchToolsPage({
             />
           )}
         </AsyncListRegion>
+        </>
       }
     />
   );

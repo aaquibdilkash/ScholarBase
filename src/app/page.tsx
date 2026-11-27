@@ -27,6 +27,7 @@ import {
   SearchCheck,
   Mail,
   ArrowRight,
+  Download,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
@@ -72,6 +73,12 @@ export default async function HomePage() {
       description: "Discover tools and software for your research.",
       href: "/research-tools",
       icon: <Search className="h-8 w-8" />,
+    },
+    {
+      title: "NetnoKit",
+      description: "Export YouTube and Instagram comments for netnography.",
+      href: "/research-tools/netnography-exporter",
+      icon: <Download className="h-8 w-8" />,
     },
     {
       title: "Journals",
@@ -297,7 +304,7 @@ export default async function HomePage() {
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-950 mb-8 text-center">
           Everything You Need for Your Academic Journey
         </h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
           {features.map((feature) => (
             <Link
               prefetch={false}
@@ -431,7 +438,7 @@ export default async function HomePage() {
 
       {/* Join the team — careers teaser */}
       <section className="mt-12 sb-surface-strong p-8 md:p-12">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
+        <div className="grid gap-8">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
               <Megaphone className="h-3.5 w-3.5" />
@@ -448,17 +455,17 @@ export default async function HomePage() {
               curated listings, and bug reports are public, credited to you, and
               interview-ready.
             </p>
-            <div className="mt-7 flex flex-col sm:flex-row gap-3">
+            <div className="mt-7 grid grid-cols-2 gap-3">
               <Link
                 prefetch={false}
                 href="/careers"
-                className="sb-button-accent"
+                className="sb-button-accent w-full"
               >
                 See open tracks
               </Link>
               <a
                 href="mailto:connect@scholarbase.app?subject=Joining%20ScholarBase%20—%20CV"
-                className="sb-button-soft"
+                className="sb-button-soft w-full"
               >
                 <Mail className="h-4 w-4 mr-2 inline" />
                 Send your CV
@@ -466,7 +473,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: Megaphone,
