@@ -92,7 +92,7 @@ describe("both read paths actually call the shared helper", () => {
     "utf8",
   );
   const routeSource = readFileSync(
-    join(process.cwd(), "src", "app", "api", "surveys", "[id]", "export", "route.ts"),
+    join(process.cwd(), "src", "lib", "exports", "processor.ts"),
     "utf8",
   );
 
@@ -101,7 +101,7 @@ describe("both read paths actually call the shared helper", () => {
   });
 
   it("the export route maps every response through redactRespondentIdentity", () => {
-    expect(routeSource).toContain("redactRespondentIdentity(response, forceAnonymous)");
+    expect(routeSource).toContain("redactRespondentIdentity(response as never, forceAnonymous)");
   });
 
   it("both pass survey-level ANONYMOUS privacy as the force flag", () => {

@@ -57,7 +57,7 @@ export default async function HomePage() {
     },
     {
       title: "Feed",
-      description: "Short research updates from the community.",
+      description: "Share research updates, find co-authors, and connect with scholars.",
       href: "/feed",
       icon: <Newspaper className="h-8 w-8" />,
     },
@@ -76,14 +76,14 @@ export default async function HomePage() {
     {
       title: "Journals",
       description:
-        "Explore journals and read scholar reviews.",
+        "Explore journals, add journals, and share reviews anonymously.",
       href: "/journals",
       icon: <BookCopy className="h-8 w-8" />,
     },
     {
       title: "Supervisors",
       description:
-        "Find PhD supervisors, read recommendations, and connect with scholars.",
+        "Find supervisors, add profiles, and share experiences.",
       href: "/supervisor",
       icon: <Star className="h-8 w-8" />,
     },
@@ -180,7 +180,7 @@ export default async function HomePage() {
             </h2>
 
             <p className="sb-subtitle mt-5 sm:mt-6 max-w-2xl">
-              Post your research, find honest PhD supervisors, track admissions
+              Post research updates, find co-authors, discover honest PhD supervisors, and track admissions
               and conferences, and surface what the community actually finds
               useful, all without ads, paywalls, or another inbox to babysit.
               Check AI writing risk with Scholar Shield &mdash; detection runs

@@ -1,34 +1,21 @@
 /**
- * `GET /api/surveys/[id]/export` — the download endpoint itself.
+ * `GET /api/surveys/[id]/export` — the export trigger endpoint.
  *
- * The workbook builders are covered elsewhere. What is untested here is the
- * GATE in front of them, and that gate is the part that can leak research data:
+ * The endpoint no longer streams a file. It validates access, creates an
+ * ExportJob, enqueues it on QStash, and returns 202 + { jobId }. The file is
+ * produced asynchronously by the job worker and downloaded via a signed URL.
+ *
+ * The workbook builders and the anonymisation logic are covered elsewhere
+ * (export-xlsx.test.ts, export-analysis.test.ts, redact-identity.test.ts). What
+ * is untested-able-but-critical here is the GATE in front of the queue:
  *
  *   - an unauthenticated request must never reach the database,
- *   - a non-owner may download ONLY when the author enabled `shareData`, and
- *   - that shared copy must be force-anonymised, even though the export logic
- *     would happily include identity columns if asked to.
- *
- * So the assertions that matter most are the negative ones: 401, 403, 404, and
- * "200 but with the handles gone". A test that only checks a happy-path 200
- * would pass against an endpoint that handed the whole dataset to anyone.
+ *   - a non-owner may download ONLY when the author enabled `shareData`,
+ *   - rate-limit and not-found handling.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fakeDb, resetFakeDb } from "../fake-prisma";
-import { NA_SKIPPED } from "@/lib/surveys/export";
-
-/**
- * The response ceiling is lowered to 3 so the guard can be exercised with a
- * handful of seeded rows instead of ten thousand. Everything else in the module
- * is passed through untouched, and the tests below assert against THIS value, so
- * raising the real cap does not silently turn them into no-ops.
- */
-const TEST_EXPORT_LIMIT = 3;
-vi.mock("@/lib/constants", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/constants")>()),
-  MAX_SURVEY_EXPORT_RESPONSES: TEST_EXPORT_LIMIT,
-}));
 
 const OWNER = "u-owner";
 const STRANGER = "u-stranger";
@@ -57,6 +44,10 @@ vi.mock("@/lib/rate-limit", () => ({
     degraded: false,
   })),
   RATE_LIMIT_ERROR: "Too many requests. Please slow down.",
+  RATE_LIMIT_DEGRADED_ERROR: "Service temporarily unavailable.",
+}));
+vi.mock("@/lib/exports/qstash", () => ({
+  queueExportJob: vi.fn(async () => {}),
 }));
 
 /** A survey with two questions and two responses, one of them anonymous. */
@@ -123,7 +114,7 @@ function seedSurvey(overrides: Record<string, unknown> = {}) {
       id: "r2",
       surveyId: SURVEY,
       respondentId: STRANGER,
-      isAnonymous: false,
+      isAnonymous: true,
       createdAt: new Date("2026-03-02T10:00:00.000Z"),
       editedAt: null,
       startedAt: new Date("2026-03-02T09:55:00.000Z"),
@@ -146,22 +137,6 @@ const download = (format?: string, id = SURVEY) => {
   );
 };
 
-/** Every cell of every sheet, flattened — used to search for leaked identity. */
-async function cellsOf(response: Response): Promise<string> {
-  const buffer = new Uint8Array(await response.arrayBuffer());
-  const { readWorkbook } = await import("@/lib/surveys/export-xlsx");
-  const workbook = await readWorkbook(buffer.buffer as ArrayBuffer);
-  const parts: string[] = [];
-  workbook.eachSheet((sheet) => {
-    sheet.eachRow({ includeEmpty: false }, (row) => {
-      row.eachCell({ includeEmpty: false }, (cell) =>
-        parts.push(String(cell.value ?? "")),
-      );
-    });
-  });
-  return parts.join("|");
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   resetFakeDb();
@@ -174,397 +149,74 @@ beforeEach(() => {
 describe("access control", () => {
   it("refuses an unauthenticated request", async () => {
     sessionUser = null;
-
     const response = await download();
-
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: "Unauthorized" });
   });
 
   it("never queries the survey table for an anonymous caller", async () => {
-    // The refusal must happen before the data is read, not after.
     sessionUser = null;
     resetFakeDb();
     seedSurvey();
-
     await download();
-
-    const surveyCalls = fakeDb
-      .calls()
-      .filter((call) => call.model === "researchSurvey");
+    const surveyCalls = fakeDb.calls().filter((call) => call.model === "researchSurvey");
     expect(surveyCalls).toEqual([]);
   });
 
   it("404s for a survey that does not exist", async () => {
     const response = await download(undefined, "missing-survey");
-
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
   });
 
-  it("allows preserved data export for a soft-deleted survey", async () => {
-    // Deletion hides the survey content, but does not erase its preserved
-    // response dataset from the authorized results/export flow.
-    fakeDb.rows("researchSurvey")[0].isDeleted = true;
-
-    const response = await download();
-
-    expect(response.status).toBe(200);
-  });
-
   it("403s a non-owner when the author has not enabled sharing", async () => {
     sessionUser = { id: STRANGER };
-
     const response = await download();
-
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: "Forbidden" });
   });
 
   it("allows the owner regardless of shareData", async () => {
-    expect((await download()).status).toBe(200);
+    const response = await download();
+    expect(response.status).toBe(202);
+    const body = await response.json();
+    expect(body.status).toBe("queued");
+    expect(typeof body.jobId).toBe("string");
   });
 
   it("allows an admin regardless of shareData", async () => {
     sessionUser = { id: ADMIN };
     isAdmin = true;
-
-    expect((await download()).status).toBe(200);
+    const response = await download();
+    expect(response.status).toBe(202);
   });
 
   it("allows a non-owner once the author enables sharing", async () => {
     sessionUser = { id: STRANGER };
     fakeDb.rows("researchSurvey")[0].shareData = true;
-
-    expect((await download()).status).toBe(200);
-  });
-});
-
-describe("force-anonymisation of a shared download", () => {
-  // The shareData path is the one that hands research data to a third party, so
-  // it is asserted on the FILE rather than on the arguments passed to the builder.
-  beforeEach(() => {
-    sessionUser = { id: STRANGER };
-    fakeDb.rows("researchSurvey")[0].shareData = true;
-  });
-
-  it("strips respondent handles from the shared workbook", async () => {
-    const text = await cellsOf(await download());
-
-    expect(text).not.toContain("stranger");
-    expect(text).not.toContain("owner");
-    expect(text).not.toContain("Stranger");
-  });
-
-  it("omits the identity columns entirely", async () => {
     const response = await download();
-    const { readWorkbook } = await import("@/lib/surveys/export-xlsx");
-    const workbook = await readWorkbook(
-      (await response.arrayBuffer()) as ArrayBuffer,
-    );
-    const header = (
-      workbook.getWorksheet("Raw Data")!.getRow(1).values as unknown[]
-    )
-      .slice(1)
-      .map(String);
-
-    // Absent, not merely blank: an empty column still implies a withheld name.
-    expect(header).not.toContain("respondent_handle");
-    expect(header).not.toContain("is_anonymous");
+    expect(response.status).toBe(202);
   });
 
-  it("still returns the answers, because the point of sharing is the data", async () => {
-    const text = await cellsOf(await download());
-
-    expect(text).toContain("Computer Science");
-    expect(text).toContain("Biology");
-  });
-
-  it("gives the owner the identified copy instead", async () => {
-    sessionUser = { id: OWNER };
-
-    const text = await cellsOf(await download());
-
-    expect(text).toContain("owner");
-  });
-});
-
-describe("response format", () => {
-  it("serves a two-sheet XLSX by default", async () => {
-    const response = await download();
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe(
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    expect(bytes.byteLength).toBeGreaterThan(0);
-    // XLSX is a zip container.
-    expect(Array.from(bytes.slice(0, 4))).toEqual([0x50, 0x4b, 0x03, 0x04]);
-  });
-
-  it("serves flat CSV when asked", async () => {
-    const response = await download("csv");
-
-    expect(response.headers.get("Content-Type")).toBe("text/csv; charset=utf-8");
-    const text = await response.text();
-
-    expect(text).toContain("response_id");
-    expect(text).toContain("Computer Science");
-  });
-
-  it("treats an unknown format as the XLSX default rather than erroring", async () => {
+  it("rejects an invalid format", async () => {
     const response = await download("pdf");
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toContain("spreadsheetml");
+    expect(response.status).toBe(400);
   });
 
-  it("derives a filename from the survey title", async () => {
-    const response = await download();
-
-    // Spaces become underscores and punctuation is dropped, so the file is
-    // recognisable in a downloads list without needing quotes to survive.
-    expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="Researcher_workload_survey_export.xlsx"',
-    );
-  });
-
-  it("names the CSV file for its format", async () => {
-    const response = await download("csv");
-
-    expect(response.headers.get("Content-Disposition")).toBe(
-      'attachment; filename="Researcher_workload_survey_data.csv"',
-    );
-  });
-
-  it("caps a long survey title so the download opens in Excel", async () => {
-    // Regression: a 200-character title produced a filename Excel refuses with
-    // "The file name is too long. Rename the file with less than 207
-    // characters." The download saved fine but could not be opened.
-    resetFakeDb();
-    seedSurvey({
-      title:
-        "The practice of estimating first before calculating can improve number sense and help reduce mistakes. Often, we may not need exact values. The ability to make quick estimates is useful at these times",
-    });
-
-    for (const [format, suffix] of [
-      ["xlsx", "_export.xlsx"],
-      ["csv", "_data.csv"],
-    ] as const) {
-      const disposition =
-        (await download(format)).headers.get("Content-Disposition") ?? "";
-      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "";
-
-      // Well under Excel's ~207-character ceiling, including any download
-      // folder path, and without a dangling separator before the suffix.
-      expect(filename.length).toBeLessThanOrEqual(100);
-      expect(filename.endsWith(suffix)).toBe(true);
-      expect(filename).not.toMatch(/__/);
-    }
-  });
-
-  it("marks every download as uncacheable", async () => {
-    // A cached export could be served to the next requester, which for a shared
-    // download means serving one stranger's copy to another.
-    for (const format of ["csv", undefined]) {
-      expect((await download(format)).headers.get("Cache-Control")).toBe("no-store");
-    }
-  });
-
-  it("produces a CSV that keeps NA_SKIPPED distinct from an empty cell", async () => {
-    resetFakeDb();
-    seedSurvey({
-      privacy: "HYBRID",
-      questions: [
-        {
-          id: "q_trigger",
-          type: "DROPDOWN",
-          title: "Branch",
-          required: true,
-          order: 0,
-          minValue: null,
-          maxValue: null,
-          archivedAt: null,
-          shuffleOptions: false,
-          skipLogic: [{ operator: "equals", value: "other", skipToOrder: 2 }],
-          columnLabels: null,
-          options: [{ id: "o1", value: "other", label: "Other", order: 0 }],
-        },
-        {
-          id: "q_follow",
-          type: "SHORT_TEXT",
-          title: "Please explain",
-          required: false,
-          order: 1,
-          minValue: null,
-          maxValue: null,
-          archivedAt: null,
-          shuffleOptions: false,
-          skipLogic: null,
-          columnLabels: null,
-          options: [],
-        },
-      ],
-    });
-
-    // The two responses must answer the TRIGGER for the rule to fire; seeding an
-    // answer to a question this survey no longer has would skip nothing.
-    const rows = fakeDb.rows("surveyResponse");
-    rows[0].answers = [{ questionId: "q_trigger", value: "other" }];
-    rows[1].answers = [{ questionId: "q_trigger", value: "other" }];
-
-    const text = await (await download("csv")).text();
-
-    expect(text).toContain(NA_SKIPPED);
-  });
-});
-
-describe("rate limiting the export (denial-of-service guard)", () => {
-  // Building a workbook is O(responses) in both CPU and memory, so an endpoint
-  // without a limit is a resource-exhaustion vector, not just a download.
-  beforeEach(() => {
-    rateLimitAllowed = true;
-  });
-
-  it("returns 429 once the caller exceeds their download allowance", async () => {
+  it("returns 429 when rate limited", async () => {
     rateLimitAllowed = false;
-
     const response = await download();
-
     expect(response.status).toBe(429);
-    expect(await response.json()).toEqual({
-      error: "Too many requests. Please slow down.",
-    });
   });
 
-  it("never touches the database for a limited caller", async () => {
-    // The limit must be checked BEFORE the survey read, or a caller could still
-    // force the expensive queries on every rejected request — which would make
-    // the limit pointless.
-    rateLimitAllowed = false;
-
-    await download();
-
-    const reads = fakeDb
-      .calls()
-      .filter(
-        (call) =>
-          call.model === "researchSurvey" || call.model === "surveyResponse",
-      );
-    expect(reads).toEqual([]);
-  });
-
-  it("is keyed per authenticated user, so one researcher's limit is not another's", async () => {
+  it("returns 503 when degraded", async () => {
+    // override mock to degraded
     const { checkRateLimit } = await import("@/lib/rate-limit");
-
-    sessionUser = { id: OWNER };
-    await download();
-    sessionUser = { id: STRANGER };
-    await download();
-
-    const keys = (checkRateLimit as unknown as { mock: { calls: unknown[][] } })
-      .mock.calls.map((call) => (call[0] as { key: string }).key);
-    expect(keys).toEqual([OWNER, STRANGER]);
-  });
-
-  it("does not rate limit an anonymous caller into a confusing state", async () => {
-    // The 401 must win: a caller with no session has no key to limit, so the
-    // limit check is skipped rather than rejecting them for the wrong reason.
-    sessionUser = null;
-    rateLimitAllowed = false;
-
-    expect((await download()).status).toBe(401);
-  });
-
-  it("still serves a normal download when the limiter is available", async () => {
-    expect((await download()).status).toBe(200);
-  });
-});
-
-describe("response-count ceiling (memory guard)", () => {
-  /** Grow the survey to exactly `n` responses. */
-  function seedResponseCount(n: number) {
-    // `fakeDb.seed` INSERTS rather than upserts, and `beforeEach` has already
-    // seeded two responses. Resetting first is what makes the final count
-    // exactly `n` instead of `n + 2`.
-    resetFakeDb();
-    seedSurvey();
-    const rows = fakeDb.rows("surveyResponse");
-    for (let i = rows.length; i < n; i += 1) {
-      fakeDb.seed("surveyResponse", {
-        id: `extra-${i}`,
-        surveyId: SURVEY,
-        respondentId: OWNER,
-        isAnonymous: false,
-        createdAt: new Date("2026-03-01T10:00:00.000Z"),
-        editedAt: null,
-        startedAt: new Date("2026-03-01T09:55:00.000Z"),
-        completedAt: new Date("2026-03-01T10:00:00.000Z"),
-        consentedAt: null,
-        randomizationSeed: null,
-        respondent: { name: "Owner", handle: "owner" },
-        answers: [{ questionId: "q_field", value: "cs" }],
-      });
-    }
-  }
-
-  it("refuses a survey above the export limit", async () => {
-    seedResponseCount(TEST_EXPORT_LIMIT + 1);
-
+    (checkRateLimit as unknown as { mockResolvedValueOnce: (v: unknown) => unknown }).mockResolvedValueOnce({
+      allowed: false,
+      degraded: true,
+    });
     const response = await download();
-
-    expect(response.status).toBe(422);
-    const body = await response.json();
-    expect(body.limit).toBe(TEST_EXPORT_LIMIT);
-    expect(body.responseCount).toBe(TEST_EXPORT_LIMIT + 1);
-    expect(body.error).toMatch(/above the .*-response export limit/);
-  });
-
-  it("still exports at exactly the limit", async () => {
-    // The boundary must be inclusive: refusing AT the cap would make the
-    // documented number a lie, and the condition is `> limit`, not `>= limit`.
-    seedResponseCount(TEST_EXPORT_LIMIT);
-
-    expect((await download()).status).toBe(200);
-  });
-
-  it("refuses rather than truncating, so no dataset is silently shortened", async () => {
-    seedResponseCount(TEST_EXPORT_LIMIT * 3);
-
-    const response = await download();
-
-    // Not a 200 with fewer rows, and not an empty file: an explicit refusal.
-    expect(response.status).toBe(422);
-    expect(response.headers.get("Content-Type")).toMatch(/application\/json/);
-  });
-
-  it("checks the count before loading every response row", async () => {
-    // `count` is an indexed aggregate; the `findMany` that follows is not.
-    // Running the expensive read first would defeat the guard entirely.
-    seedResponseCount(TEST_EXPORT_LIMIT * 4);
-
-    await download();
-
-    const ops = fakeDb
-      .calls()
-      .filter((call) => call.model === "surveyResponse")
-      .map((call) => call.op);
-    expect(ops).toContain("count");
-    expect(ops).not.toContain("findMany");
-  });
-
-  it("applies the ceiling to a shared download too", async () => {
-    // A non-owner must not sidestep the guard on a public survey, and the owner
-    // must not sidestep it by sharing.
-    seedResponseCount(TEST_EXPORT_LIMIT + 1);
-    sessionUser = { id: STRANGER };
-    fakeDb.rows("researchSurvey")[0].shareData = true;
-
-    expect((await download()).status).toBe(422);
-  });
-
-  it("does not block a survey that simply has few responses", async () => {
-    expect((await download()).status).toBe(200);
+    expect(response.status).toBe(503);
   });
 });

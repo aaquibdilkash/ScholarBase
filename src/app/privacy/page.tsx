@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
       <div className="mx-auto max-w-4xl px-2 sm:px-4">
         <h1 className="sb-heading text-center">Privacy Policy</h1>
         <p className="sb-subtitle mt-4 text-center">
-          Last updated: October 6, 2026
+          Last updated: Novermeber 22, 2026
         </p>
         <div className="prose prose-lg prose-slate mx-auto mt-8 dark:prose-invert dark:prose-a:text-blue-300 dark:prose-strong:text-slate-100">
           <p>

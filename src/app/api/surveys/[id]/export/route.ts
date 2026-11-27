@@ -1,45 +1,28 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+
 import prisma from "@/lib/db";
 import { isUserAdmin } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
-import { MAX_SURVEY_EXPORT_RESPONSES } from "@/lib/constants";
-import {
-  buildRawData,
-  redactRespondentIdentity,
-  toCsv,
-  type ExportSurvey,
-} from "@/lib/surveys/export";
-import { buildWorkbook, writeWorkbook } from "@/lib/surveys/export-xlsx";
+import { createExportJob } from "@/lib/exports/job";
+import { queueExportJob } from "@/lib/exports/qstash";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Research export endpoint.
- * - Owner / admin: full access (identity columns included if survey is non-anonymous).
- * - Other authenticated users: allowed only when survey.shareData is true; results
- *   are force-anonymized (all respondent identity columns stripped).
- * Serves either a two-sheet XLSX workbook (Codebook + Raw Data) or a flat CSV.
- */
+const querySchema = z.object({
+  format: z.enum(["csv", "xlsx"]).default("xlsx"),
+});
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Generating a workbook is CPU- and memory-heavy and scales with the response
-  // count, so this endpoint is rate limited per authenticated user. Without it,
-  // anyone who can reach a shared survey could loop it and exhaust the function's
-  // memory — a denial-of-service that costs the project compute, not just their
-  // own download. Runs BEFORE the survey read so a limited caller never touches
-  // the database.
   const exportLimit = await checkRateLimit({
     namespace: "survey:export",
     key: user.id,
@@ -48,161 +31,49 @@ export async function GET(
     onDegraded: "closed",
   });
   if (!exportLimit.allowed) {
-    // Degraded means Redis is down and we denied the expensive export — that
-    // is an infrastructure outage, so surface 503 rather than a throttle 429.
     if (exportLimit.degraded) {
       return NextResponse.json({ error: RATE_LIMIT_DEGRADED_ERROR }, { status: 503 });
     }
     return NextResponse.json({ error: RATE_LIMIT_ERROR }, { status: 429 });
   }
 
-  const survey = await prisma.researchSurvey.findUnique({
-    // Soft-deleted surveys retain their response data for the authorized
-    // results/export flow. The card/detail shells hide the survey content;
-    // this endpoint serves only the preserved, access-controlled dataset.
-    where: { id },
-    select: {
-      title: true,
-      privacy: true,
-      authorId: true,
-      shareData: true,
-      questions: {
-        orderBy: { order: "asc" },
-        include: {
-          options: { orderBy: { order: "asc" } },
-        },
-      },
-    },
-  });
-  if (!survey) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const url = new URL(request.url);
+  const parsed = querySchema.safeParse({ format: url.searchParams.get("format") ?? "xlsx" });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid format" }, { status: 400 });
   }
+  const format = parsed.data.format;
+
+  const survey = await prisma.researchSurvey.findUnique({
+    where: { id },
+    select: { authorId: true, shareData: true },
+  });
+  if (!survey) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const isAdmin = await isUserAdmin(user.id);
   const isOwner = survey.authorId === user.id;
-  const isAuthorized = isOwner || isAdmin;
-
-  // Non-owners can download only when the survey creator enabled data sharing.
-  // Their export is force-anonymized (no respondent handles/names).
-  const shareData = survey.shareData ?? false;
-  if (!isAuthorized && !shareData) {
+  if (!isOwner && !isAdmin && !survey.shareData) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const anonymize = !isAuthorized;
+  const anonymize = !isOwner && !isAdmin;
 
-  // Bound the export BEFORE loading anything. `count` is a cheap indexed query;
-  // `findMany` without a `take` is not. Checking the ceiling first means a survey
-  // far over the limit is refused in milliseconds instead of after allocating
-  // gigabytes of response rows.
-  const responseCount = await prisma.surveyResponse.count({ where: { surveyId: id } });
-  if (responseCount > MAX_SURVEY_EXPORT_RESPONSES) {
-    // Refused, never truncated. A silently shortened dataset is the worst
-    // possible outcome here: the missing rows look exactly like respondents who
-    // did not answer, and nobody would discover it until the analysis was
-    // published.
-    return NextResponse.json(
-      {
-        error: `This survey has ${responseCount} responses, which is above the ${MAX_SURVEY_EXPORT_RESPONSES}-response export limit.`,
-        responseCount,
-        limit: MAX_SURVEY_EXPORT_RESPONSES,
-      },
-      { status: 422 },
-    );
-  }
-
-  const responses = await prisma.surveyResponse.findMany({
-    where: { surveyId: id },
-    select: {
-      id: true,
-      createdAt: true,
-      editedAt: true,
-      startedAt: true,
-      completedAt: true,
-      consentedAt: true,
-      isAnonymous: true,
-      respondent: { select: { name: true, handle: true } },
-      answers: { select: { questionId: true, value: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  // Defense in depth: `buildRawData` already blanks anonymous identities
-  // cell-by-cell, but the rows are also redacted at the source here — the
-  // same `redactRespondentIdentity` call `getSurveyResponses` makes — so no
-  // code past this point ever holds a respondent object for a row that must
-  // stay anonymous. ANONYMOUS-survey rows are force-redacted regardless of
-  // the per-response flag.
-  const forceAnonymous = survey.privacy === "ANONYMOUS";
-  const safeResponses = responses.map((response) =>
-    redactRespondentIdentity(response, forceAnonymous),
-  );
-
-  const exportSurvey: ExportSurvey = {
-    title: survey.title,
-    privacy: survey.privacy,
-    questions: survey.questions.map((q) => ({
-      id: q.id,
-      type: q.type,
-      title: q.title,
-      required: q.required,
-      order: q.order,
-      minValue: q.minValue,
-      maxValue: q.maxValue,
-      archivedAt: q.archivedAt,
-      shuffleOptions: q.shuffleOptions,
-      skipLogic: q.skipLogic,
-      columnLabels: q.columnLabels,
-      matrixMode: q.matrixMode,
-      options: q.options.map((o) => ({
-        value: o.value,
-        label: o.label,
-        order: o.order,
-      })),
-    })),
-  };
-
-  // Identity columns are stripped for anonymous surveys at the source.
-  const includeIdentity =
-    survey.privacy !== "ANONYMOUS" &&
-    safeResponses.some((r) => !r.isAnonymous);
-
-  const format = new URL(request.url).searchParams.get("format") ?? "xlsx";
-  // Excel rejects paths over ~207 characters ("The file name is too long"),
-  // and a survey title can be 200 characters by itself. Cap the base so the
-  // downloaded file always opens, and trim any separator left on the cut.
-  const MAX_FILE_BASE = 80;
-  const slug = survey.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
-  const fileBase =
-    slug.slice(0, MAX_FILE_BASE).replace(/[_-]+$/, "") || "survey";
-
-  if (format === "csv") {
-    const csv = toCsv(buildRawData(exportSurvey, safeResponses, includeIdentity, anonymize));
-    return new NextResponse(csv, {
-      headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileBase}_data.csv"`,
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
-  // Two-sheet workbook: a Codebook data dictionary plus the flat Raw Data
-  // matrix. `writeWorkbook` awaits exceljs's zip serialization, which is why
-  // this handler stays async end to end.
-  const workbook = buildWorkbook(
-    exportSurvey,
-    safeResponses,
-    includeIdentity,
+  const job = await createExportJob(user.id, "SURVEY", {
+    surveyId: id,
+    format,
     anonymize,
-  );
-  const buffer = await writeWorkbook(workbook);
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${fileBase}_export.xlsx"`,
-      "Cache-Control": "no-store",
-    },
   });
+
+  try {
+    await queueExportJob(job.id);
+  } catch (e) {
+    const { markExportJobFailed } = await import("@/lib/exports/job");
+    await markExportJobFailed(job.id, e instanceof Error ? e.message : "Enqueue failed");
+    return NextResponse.json({ error: "Could not queue export" }, { status: 503 });
+  }
+
+  return NextResponse.json(
+    { jobId: job.id, status: "queued" },
+    { status: 202, headers: { "Cache-Control": "no-store" } },
+  );
 }

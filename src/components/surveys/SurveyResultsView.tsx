@@ -69,37 +69,36 @@ export function SurveyResultsView({
     try {
       setExportingFormat(format);
 
-      const response = await fetch(
-        `/api/surveys/${surveyId}/export?format=${format}`
-      );
+      const trigger = await fetch(`/api/surveys/${surveyId}/export?format=${format}`);
+      if (!trigger.ok) throw new Error("Failed to queue export");
+      const { jobId } = (await trigger.json()) as { jobId: string };
 
-      if (!response.ok) {
-        throw new Error("Failed to export survey data");
-      }
-
-      // Read response as binary blob without triggering page navigation
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      // Determine clean filename from Content-Disposition or fallback
-      let fileName = `ScholarBase_${survey.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.${format}`;
-      const disposition = response.headers.get("Content-Disposition");
-      if (disposition && disposition.includes("filename=")) {
-        const match = disposition.match(/filename="?([^";]+)"?/);
-        if (match?.[1]) {
-          fileName = match[1];
+      // Poll the job until it completes or fails.
+      let downloadUrl: string | null = null;
+      for (let i = 0; i < 120; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const statusRes = await fetch(`/api/exports/${jobId}`);
+        if (!statusRes.ok) throw new Error("Export status check failed");
+        const status = (await statusRes.json()) as {
+          status: string;
+          downloadUrl?: string;
+          error?: string | null;
+        };
+        if (status.status === "DONE" && status.downloadUrl) {
+          downloadUrl = status.downloadUrl;
+          break;
+        }
+        if (status.status === "FAILED") {
+          throw new Error(status.error ?? "Export failed");
         }
       }
+      if (!downloadUrl) throw new Error("Export timed out");
 
-      // Trigger standard browser download
       const tempLink = document.createElement("a");
       tempLink.href = downloadUrl;
-      tempLink.download = fileName;
+      tempLink.download = `ScholarBase_${survey.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.${format}`;
       document.body.appendChild(tempLink);
       tempLink.click();
-
-      // Clean up object URL from memory
-      window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(tempLink);
     } catch (error) {
       console.error("Download failed:", error);

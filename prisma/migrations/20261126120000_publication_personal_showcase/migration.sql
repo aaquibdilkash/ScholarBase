@@ -37,9 +37,14 @@ ALTER TABLE "Publication"
 CREATE INDEX "Publication_authorId_year_createdAt_idx"
   ON "Publication"("authorId" ASC, "year" DESC, "createdAt" DESC);
 
--- 6. update_trending_scores() no longer owns the Publication table. This is a
---    manual Supabase function (see src/app/api/cron/update-trending/update-trending.md);
---    keep the two definitions in step.
+/* 6. update_trending_scores() no longer owns the Publication table. This is a
+   manual Supabase function (see src/app/api/cron/update-trending/update-trending.md);
+   keep the two definitions in step.
+
+   The function is intentionally not changed by this migration. Production's
+   migration role may not own the manually managed Supabase function. Update
+   it through the SQL in the referenced document when the function owner needs
+   the new definition.
 CREATE OR REPLACE FUNCTION update_trending_scores()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -224,3 +229,4 @@ BEGIN
   );
 END;
 $$;
+*/

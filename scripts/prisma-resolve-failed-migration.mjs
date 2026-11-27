@@ -102,6 +102,95 @@ const ADMISSION_TRIGGER_STATEMENTS = [
    EXECUTE FUNCTION "public"."enqueue_embedding_job"()`,
 ];
 
+// ---------------------------------------------------------------------------
+// Known repair: 20261126120000_publication_personal_showcase
+//
+// This migration failed while replacing the manually owned Supabase
+// `update_trending_scores()` function. PostgreSQL migrations run in a
+// transaction, so the schema changes should all have rolled back. Verify that
+// pre-migration shape before allowing Prisma to retry the corrected SQL.
+// ---------------------------------------------------------------------------
+
+const PUBLICATION_SHOWCASE_MIGRATION =
+  "20261126120000_publication_personal_showcase";
+const PUBLICATION_PRE_MIGRATION_COLUMNS = [
+  "totalVotes",
+  "totalBookmarks",
+  "totalComments",
+  "trendingScore",
+  "reportCount",
+  "isFrozen",
+  "hasActiveAppeal",
+  "isUserAuthor",
+];
+const PUBLICATION_CHILD_TABLES = [
+  "PublicationCommentVote",
+  "PublicationComment",
+  "PublicationBookmark",
+  "PublicationVote",
+];
+
+async function repairPublicationPersonalShowcase() {
+  const columns = await client.query(
+    `SELECT a.attname
+     FROM pg_attribute a
+     WHERE a.attrelid = '"Publication"'::regclass
+       AND a.attname = ANY($1::text[])
+       AND NOT a.attisdropped`,
+    [PUBLICATION_PRE_MIGRATION_COLUMNS],
+  );
+  const foundColumns = new Set(columns.rows.map((row) => row.attname));
+  const missingColumns = PUBLICATION_PRE_MIGRATION_COLUMNS.filter(
+    (column) => !foundColumns.has(column),
+  );
+
+  const tables = await client.query(
+    `SELECT c.relname
+     FROM pg_class c
+     JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = 'public'
+       AND c.relkind = 'r'
+       AND c.relname = ANY($1::text[])`,
+    [PUBLICATION_CHILD_TABLES],
+  );
+  const foundTables = new Set(tables.rows.map((row) => row.relname));
+  const missingTables = PUBLICATION_CHILD_TABLES.filter(
+    (table) => !foundTables.has(table),
+  );
+
+  const newIndex = await client.query(
+    `SELECT to_regclass('public."Publication_authorId_year_createdAt_idx"') AS name`,
+  );
+
+  console.log(
+    `  Publication pre-migration columns: ${foundColumns.size}/${PUBLICATION_PRE_MIGRATION_COLUMNS.length}; child tables: ${foundTables.size}/${PUBLICATION_CHILD_TABLES.length}; new index: ${newIndex.rows[0].name ?? "missing"}`,
+  );
+
+  const isPostMigrationState =
+    missingColumns.length === PUBLICATION_PRE_MIGRATION_COLUMNS.length &&
+    missingTables.length === PUBLICATION_CHILD_TABLES.length &&
+    newIndex.rows[0].name !== null;
+
+  if (isPostMigrationState) {
+    console.log(
+      "  Publication schema changes are already committed; the failed function DDL was the final statement.",
+    );
+    return "applied";
+  }
+
+  if (
+    missingColumns.length > 0 ||
+    missingTables.length > 0 ||
+    newIndex.rows[0].name !== null
+  ) {
+    throw new Error(
+      `unexpected partial publication schema (missing columns: ${missingColumns.join(", ") || "none"}; missing tables: ${missingTables.join(", ") || "none"}; new index: ${newIndex.rows[0].name ?? "missing"}); refusing to guess`,
+    );
+  }
+
+  return "rolled-back";
+}
+
 async function readAdmissionState() {
   const column = await client.query(
     `SELECT t.typname AS udt_name,
@@ -244,6 +333,11 @@ async function repairAdmissionLevels() {
 }
 
 const KNOWN_REPAIRS = {
+  [PUBLICATION_SHOWCASE_MIGRATION]: {
+    description:
+      "Publication showcase migration failed while replacing the manually owned trending function",
+    repair: repairPublicationPersonalShowcase,
+  },
   [ADMISSION_MIGRATION]: {
     description:
       "AdmissionLevel enum rewrite hit the embedding-trigger dependency (P3018/0A000)",

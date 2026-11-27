@@ -58,6 +58,8 @@ function loadEnvFile(path) {
 
 loadEnvFile(".env.local");
 loadEnvFile(".env");
+loadEnvFile("cool_staging.env");
+loadEnvFile("cool_prod.env");
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey =

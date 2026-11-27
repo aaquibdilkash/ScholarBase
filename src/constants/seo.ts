@@ -138,7 +138,7 @@ export const SEO_PAGES = {
     feed: {
         title: "Research Feed | ScholarBase",
         description:
-            "Follow research updates, academic discussions, and community posts from scholars on ScholarBase.",
+            "Share research updates, find co-authors, and join academic discussions with scholars on ScholarBase.",
         path: "/feed",
         section: "Community",
     },
@@ -215,7 +215,7 @@ export const SEO_PAGES = {
     journals: {
         title: "Academic Journals | ScholarBase",
         description:
-            "Browse journals, publication opportunities, and peer review information across academia.",
+            "Browse journals, add entries anonymously, and read scholar reviews.",
         path: "/journals",
         section: "Journals",
     },
@@ -236,7 +236,7 @@ export const SEO_PAGES = {
     supervisor: {
         title: "PhD Supervisors | ScholarBase",
         description:
-            "Find supervisors, mentors, and research guidance by university, department, and academic expertise.",
+            "Find supervisors, add profiles anonymously, and share mentorship experiences.",
         path: "/supervisor",
         section: "Supervisors",
     },
@@ -289,7 +289,7 @@ export const SEO_CREATE_PAGES = {
     },
     journals: {
         title: "Add a journal | ScholarBase",
-        description: "Add an academic journal, publication details, and its impact information.",
+        description: "Add a journal with its publication details. Post anonymously if you prefer.",
     },
     learn: {
         title: "Add a course | ScholarBase",
@@ -314,7 +314,7 @@ export const SEO_CREATE_PAGES = {
     supervisor: {
         title: "Add a supervisor | ScholarBase",
         description:
-            "Create a supervisor profile and highlight academic mentorship and research guidance.",
+            "Add a supervisor profile and mentorship details. Post anonymously if you prefer.",
     },
     surveys: {
         title: "Create a survey | ScholarBase",
@@ -360,7 +360,7 @@ export const CREATE_PAGE_TEXT = {
     },
     journals: {
         title: "Add a Journal",
-        description: "Add an academic journal, publication details, and its impact information.",
+        description: "Add a journal with its publication details. Post anonymously if you prefer.",
     },
     learn: {
         title: "Add a Course",
@@ -385,7 +385,7 @@ export const CREATE_PAGE_TEXT = {
     supervisor: {
         title: "Add a Supervisor",
         description:
-            "Create a supervisor profile and highlight academic mentorship and research guidance.",
+            "Add a supervisor profile and mentorship details. Post anonymously if you prefer.",
     },
     surveys: {
         title: "Create a Survey",
@@ -523,7 +523,7 @@ export const LIST_PAGE_TEXT = {
     journals: {
         title: "Journals",
         description:
-            "Browse and discover academic journals reviewed by scholars.",
+            "Browse journals, add entries anonymously, and read scholar reviews.",
     },
     help: {
         title: "Scholar Suggest",
@@ -533,7 +533,7 @@ export const LIST_PAGE_TEXT = {
     feed: {
         title: "Research Feed",
         description:
-            "Short research updates from the community.",
+            "Share research updates, find co-authors, and connect with the community.",
     },
     admissions: {
         title: "Admissions",
@@ -558,7 +558,7 @@ export const LIST_PAGE_TEXT = {
     supervisor: {
         title: "Find a Supervisor",
         description:
-            "Read and share mentorship experiences from fellow scholars.",
+            "Find supervisors, add profiles anonymously, and share experiences.",
     },
 } as const;
 

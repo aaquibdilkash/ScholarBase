@@ -3385,3 +3385,34 @@ model ManuscriptEvent {
   @@index([manuscriptId, createdAt])
   @@index([targetVenueId, type])
 }
+
+// ============================================
+// ASYNC EXPORT JOBS
+// ============================================
+enum ExportJobKind {
+  SURVEY
+  NETNOKIT
+}
+
+enum ExportJobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model ExportJob {
+  id          String          @id @default(cuid())
+  userId      String
+  kind        ExportJobKind
+  params      Json
+  status      ExportJobStatus @default(QUEUED)
+  objectPath  String?
+  error       String?
+  createdAt   DateTime        @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}
